@@ -63,6 +63,10 @@ export function authHeader(): Record<string, string> {
   return auth ? { authorization: `Bearer ${auth.token}` } : {}
 }
 
+export function authToken(): string | null {
+  return auth?.token ?? null
+}
+
 export function recoveryCode(): string | null {
   return auth?.recoveryCode ?? null
 }

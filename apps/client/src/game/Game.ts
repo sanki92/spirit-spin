@@ -27,6 +27,7 @@ export class Game {
   battle: BattleState | null = null
   dropT = 1
   private prev: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
+  private corr: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private removeResize: (() => void) | null = null
   private last = 0
   private hitstopUntil = 0
@@ -101,6 +102,12 @@ export class Game {
     if (b) this.prev = [{ x: b.tops[0].x, y: b.tops[0].y }, { x: b.tops[1].x, y: b.tops[1].y }]
   }
 
+  correct(side: 0 | 1, dx: number, dy: number): void {
+    const c = this.corr[side]
+    c.x += dx
+    c.y += dy
+  }
+
   hitstop(ms: number): void {
     this.hitstopUntil = Math.max(this.hitstopUntil, performance.now() + ms)
   }
@@ -158,7 +165,10 @@ export class Game {
       }
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], p = this.prev[i] as Snap
-        const x = p.x + (t.x - p.x) * alpha, y = p.y + (t.y - p.y) * alpha
+        const c = this.corr[i] as Snap, k = Math.exp(-dt * 12)
+        c.x *= k
+        c.y *= k
+        const x = p.x + (t.x - p.x) * alpha + c.x, y = p.y + (t.y - p.y) * alpha + c.y
         const top = this.tops[i as 0 | 1]
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out)
         top.group.position.y += (1 - this.dropT) ** 2 * 1.4

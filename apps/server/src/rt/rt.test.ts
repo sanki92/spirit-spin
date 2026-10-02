@@ -79,6 +79,25 @@ describe('realtime', () => {
     a.ws.close(); b.ws.close()
   }, 120000)
 
+  it('the same socket can host a new battle after a match ends', async () => {
+    const { a, b, room } = await pair()
+    b.send({ k: 'leave' })
+    expect((await a.wait('left')).reason).toBe('quit')
+    a.send({ k: 'create', build: BUILD_A })
+    const next = await a.wait('room')
+    expect(next.code).not.toBe(room.code)
+    a.ws.close(); b.ws.close()
+  })
+
+  it('hosting again mid-match forfeits the old room instead of hanging', async () => {
+    const { a, b } = await pair()
+    await b.wait('room')
+    a.send({ k: 'create', build: BUILD_A })
+    expect((await b.wait('left')).reason).toBe('quit')
+    expect((await a.wait('room')).side).toBe(0)
+    a.ws.close(); b.ws.close()
+  })
+
   it('rejects bad tokens and malformed messages', async () => {
     const c = await client()
     c.send({ k: 'hello', token: 'a.b.c', name: 'x' })

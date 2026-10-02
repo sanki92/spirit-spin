@@ -7,6 +7,7 @@ import { currentRoute, useNav, type Route } from './state/nav'
 import { useSave } from './state/save'
 import { settleMatch } from './state/settle'
 import { BattleScreen } from './ui/screens/BattleScreen'
+import { Friends } from './ui/screens/Friends'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home, Tower } from './ui/screens/Home'
 import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
@@ -32,7 +33,14 @@ export function App() {
     const s = useSave.getState()
     if (!s.starter) nav.reset({ k: 'starter' })
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
-    else nav.reset({ k: 'home' })
+    else {
+      nav.reset({ k: 'home' })
+      const join = new URLSearchParams(location.search).get('join')
+      if (join && /^[A-Za-z0-9]{4}$/.test(join)) {
+        history.replaceState(null, '', location.pathname)
+        nav.push({ k: 'friends', join })
+      }
+    }
   }, [nav])
 
   switch (route.k) {
@@ -51,6 +59,8 @@ export function App() {
     case 'settings': return <Settings />
     case 'awaken': return <Awaken />
     case 'battle': return <BattleRoute route={route} />
+    case 'friends': return <Friends join={route.join} />
+    case 'live': return <LiveRoute route={route} />
     case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} />
   }
 }
@@ -82,4 +92,23 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     [route, nav],
   )
   return <BattleScreen setup={setup} theme={route.floor && route.floor > 30 ? 'volcano' : route.floor && route.floor > 15 ? 'frozen-moon' : 'classic'} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
+}
+
+function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
+  const nav = useNav()
+  const s = useSave.getState()
+  const player = s.loadout as TopBuild
+  const beast = s.beasts[player.beastId]
+  const setup = useMemo<MatchSetup>(
+    () => ({ player, opponent: route.peer.build, bot: BOT_LEVELS.normal, playerHesitates: false, seed: 0, art: [beastArt(player.beastId, beast?.awakened), `beasts/${route.peer.build.beastId}`] }),
+    [route],
+  )
+  const onEnd = useCallback(
+    (r: MatchResult) => {
+      const settlement = settleMatch(r, null, null, route.peer.name)
+      nav.replace({ k: 'result', result: r, settlement, opponentName: route.peer.name })
+    },
+    [route, nav],
+  )
+  return <BattleScreen setup={setup} theme="classic" onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} online={route.side} />
 }

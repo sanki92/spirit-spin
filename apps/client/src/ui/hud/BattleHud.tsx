@@ -25,7 +25,7 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
 }) {
-  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive })))
+  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice })))
   const ready = useHud(s => s.gauge[0] >= 1 && s.phase === 'battle')
   return (
     <div className="hud">
@@ -49,6 +49,7 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
         </div>
       )}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
+      {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.cutin && <CutIn beast={h.cutin.beast} side={h.cutin.side} hesitate={h.cutin.hesitate} />}
       {h.phase === 'battle' && (
         <>

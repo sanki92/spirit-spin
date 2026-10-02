@@ -20,6 +20,7 @@ export interface HudState {
   shoutLevel: number
   inputMode: 'motion' | 'swipe'
   safetyPause: boolean
+  notice: string | null
   set: (p: Partial<HudState>) => void
 }
 
@@ -37,5 +38,6 @@ export const useHud = create<HudState>(set => ({
   shoutLevel: 0,
   inputMode: 'swipe',
   safetyPause: false,
+  notice: null,
   set: p => set(p),
 }))

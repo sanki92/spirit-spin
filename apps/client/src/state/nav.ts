@@ -1,4 +1,4 @@
-import type { BossId, TopBuild } from '@spirit/core'
+import type { BossId, Side, TopBuild } from '@spirit/core'
 import { create } from 'zustand'
 import type { MatchResult } from '../game/BattleController'
 import type { Settlement } from './settle'
@@ -20,6 +20,8 @@ export type Route =
   | { k: 'battle'; opponent: TopBuild; floor: number | null; boss: BossId | null; opponentName: string }
   | { k: 'result'; result: MatchResult; settlement: Settlement; opponentName: string }
   | { k: 'awaken' }
+  | { k: 'friends'; join?: string }
+  | { k: 'live'; side: Side; peer: { name: string; build: TopBuild } }
 
 interface Nav {
   stack: Route[]

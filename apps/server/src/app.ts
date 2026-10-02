@@ -29,7 +29,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -70,6 +70,14 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   }
 
   app.get('/healthz', async () => ({ ok: true, time: new Date().toISOString() }))
+  const devShutdown = deps.devShutdown
+  if (devShutdown) {
+    app.post('/__dev/shutdown', async (req, reply) => {
+      if (req.socket.remoteAddress !== '127.0.0.1' && req.socket.remoteAddress !== '::1' && req.socket.remoteAddress !== '::ffff:127.0.0.1') return reply.code(404).send()
+      devShutdown()
+      return { ok: true }
+    })
+  }
 
   app.post('/v1/auth/guest', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()

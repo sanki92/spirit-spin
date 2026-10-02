@@ -211,3 +211,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .recover-form button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--cyan); color: #04122a; font-weight: 800; }
 .ai-tag { margin-left: 6px; font-size: 12px; color: #6a76a8; }
 .typing { display: inline-block; letter-spacing: 3px; animation: breathe 0.9s ease-in-out infinite; }
+.friends-block { flex-wrap: wrap; }
+.friends-block .slash { flex: none; }
+.host-card { display: grid; justify-items: center; gap: 14px; padding: 18px; border-radius: 16px; background: var(--steel); text-align: center; }
+.host-card p { margin: 0; color: var(--muted); }
+.qr { width: min(64vw, 260px); aspect-ratio: 1; border-radius: 12px; background: #fff; padding: 8px; }
+.room-code { font-family: 'Bebas Neue'; font-size: 64px; letter-spacing: 12px; color: var(--gold); line-height: 1; user-select: all; }
+.waiting { animation: breathe 1.6s ease-in-out infinite; }
+.form-error { margin: 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--red) 18%, var(--steel)); color: var(--chrome); }

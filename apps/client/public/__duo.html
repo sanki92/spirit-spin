@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Duo harness</title>
+<style>
+  body { margin: 0; background: #1b1b22; display: flex; gap: 12px; justify-content: center; align-items: flex-start; height: 100vh; overflow: hidden; }
+  iframe { width: 360px; height: 680px; border: 0; border-radius: 22px; margin-top: 6px; background: #000; zoom: 0.66; }
+  body { gap: 6px; }
+</style>
+</head>
+<body>
+<iframe id="a" src="http://localhost:5174/?sim" allow="autoplay"></iframe>
+<iframe id="b" src="http://127.0.0.1:5174/?sim" allow="autoplay"></iframe>
+<script>
+let n = 0
+const waits = new Map()
+addEventListener('message', e => { if (e.data && e.data.__evalResult) { waits.get(e.data.id)?.(JSON.parse(e.data.value)); waits.delete(e.data.id) } })
+window.call = (id, code) => new Promise(r => {
+  const i = ++n
+  waits.set(i, r)
+  const f = document.getElementById(id)
+  f.contentWindow.postMessage({ __eval: code, id: i }, new URL(f.src).origin)
+  setTimeout(() => { if (waits.has(i)) { waits.delete(i); r('TIMEOUT') } }, 30000)
+})
+</script>
+</body>
+</html>

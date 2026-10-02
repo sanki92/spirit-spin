@@ -1,7 +1,7 @@
 import {
   applyRound, botInput, botRip, composeRip, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState,
-  type FinishKind, type TickInput, type TopBuild, type TouchSample,
+  type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
 import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
@@ -40,31 +40,31 @@ const FAIL_TEXT: Record<RipFail['reason'], string> = { 'no-pull': 'TOO SOFT', 't
 
 export class BattleController {
   match: MatchState = newMatch()
-  private botRng: RngState
-  private launchAt = 0
-  private swipe: TouchSample[] | null = null
-  private spiritRequest = false
-  private lastSpiritVia: 'shout' | 'button' | null = null
-  private manualTilt = { x: 0, y: 0 }
-  private events: BattleEvent[] = []
-  private hudTimer = 0
-  private timers: number[] = []
-  private bestRpm = 0
-  private spiritCalls = 0
-  private maxDeficit = 0
-  private perfectRips = 0
-  private roundClashes = 0
-  private perfTimer = 0
-  private overspins = 0
-  private tiltSum = 0
-  private tiltTicks = 0
-  private hesitationLeft: boolean
-  private disposed = false
+  protected botRng: RngState
+  protected launchAt = 0
+  protected swipe: TouchSample[] | null = null
+  protected spiritRequest = false
+  protected lastSpiritVia: 'shout' | 'button' | null = null
+  protected manualTilt = { x: 0, y: 0 }
+  protected events: BattleEvent[] = []
+  protected hudTimer = 0
+  protected timers: number[] = []
+  protected bestRpm = 0
+  protected spiritCalls = 0
+  protected maxDeficit = 0
+  protected perfectRips = 0
+  protected roundClashes = 0
+  protected perfTimer = 0
+  protected overspins = 0
+  protected tiltSum = 0
+  protected tiltTicks = 0
+  protected hesitationLeft: boolean
+  protected disposed = false
 
   constructor(
-    private game: Game,
-    private setup: MatchSetup,
-    private deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void },
+    protected game: Game,
+    protected setup: MatchSetup,
+    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void },
   ) {
     this.botRng = createRng(setup.seed ^ 0x9e3779b9)
     this.hesitationLeft = setup.playerHesitates
@@ -101,18 +101,21 @@ export class BattleController {
     this.manualTilt = { x, y }
   }
 
-  private later(ms: number, fn: () => void): void {
+  protected later(ms: number, fn: () => void): void {
     this.timers.push(window.setTimeout(() => !this.disposed && fn(), ms))
   }
 
-  private beginRound(): void {
+  protected beginRound(): void {
+    this.countdown(performance.now() + GRIP_MS + BEAT_MS * 3)
+  }
+
+  protected countdown(t0: number): void {
     const hud = useHud.getState()
     this.swipe = null
     this.game.setBattle(null)
     this.game.fx.clearDecals()
     hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
-    const t0 = performance.now() + GRIP_MS + BEAT_MS * 3
     this.launchAt = t0
     const s = this.deps.sound
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
@@ -128,7 +131,7 @@ export class BattleController {
     this.later(t0 + CAPTURE_AFTER_MS - performance.now(), () => this.resolveLaunch())
   }
 
-  private resolveLaunch(): void {
+  protected resolveLaunch(): void {
     const t0 = this.launchAt
     let res: RipResult | RipFail
     const motion = this.deps.sensors?.live ? scoreRip(this.deps.sensors.window(t0 - 1100, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration) : null
@@ -160,17 +163,25 @@ export class BattleController {
     })
     this.deps.sound.play('rip', { volume: 0.9 })
     this.deps.sound.play('callout', { rate: res.ok && res.quality === 'PERFECT' ? 1.15 : 1 })
+    this.launch(rip, opp, win, usedSwipe ? this.swipe : null)
+  }
+
+  protected launch(rip: RipResult, opp: RipResult, _motion: MotionSample[] | null, _swipe: TouchSample[] | null): void {
     const hesitate = this.hesitationLeft
     const battle = createBattle(this.game.specs!, [{ rip, hesitate }, { rip: opp, hesitate: false }], (this.setup.seed + this.match.round * 7919) >>> 0)
     this.game.dropT = 0
     this.game.setBattle(battle)
+    this.enterBattlePhase()
+  }
+
+  protected enterBattlePhase(): void {
     this.later(1100, () => {
       if (useHud.getState().phase === 'launch') useHud.getState().set({ phase: 'battle', callout: null })
       this.deps.sensors?.calibrateNeutral()
     })
   }
 
-  private playerInput(): TickInput {
+  protected playerInput(): TickInput {
     const sensors = this.deps.sensors
     const tilt = sensors?.live ? sensors.tilt() : this.manualTilt
     this.tiltSum += Math.min(1, Math.hypot(tilt.x, tilt.y))
@@ -180,7 +191,7 @@ export class BattleController {
     return { tiltX: tilt.x, tiltY: tilt.y, spirit }
   }
 
-  private tick(): void {
+  protected tick(): void {
     const b = this.game.battle
     if (!b) return
     const input = this.playerInput()
@@ -189,7 +200,7 @@ export class BattleController {
     this.events.length = 0
   }
 
-  private onEvent(e: BattleEvent): void {
+  protected onEvent(e: BattleEvent): void {
     const g = this.game, s = this.deps.sound, hud = useHud.getState()
     switch (e.k) {
       case 'clash': {
@@ -237,7 +248,7 @@ export class BattleController {
     }
   }
 
-  private finishRound(e: Extract<BattleEvent, { k: 'finish' }>): void {
+  protected finishRound(e: Extract<BattleEvent, { k: 'finish' }>): void {
     const g = this.game, s = this.deps.sound
     const o = e.outcome
     const bt = g.battle!
@@ -259,26 +270,31 @@ export class BattleController {
     useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores })
     this.later(2300, () => {
       if (this.match.winner === null) return this.beginRound()
-      const won = this.match.winner === 0
-      useHud.getState().set({ phase: 'matchEnd', banner: won ? 'victory' : 'defeat' })
-      s.play(won ? 'victory' : 'defeat')
-      this.later(1800, () =>
-        this.deps.onEnd({
-          winner: this.match.winner!,
-          match: this.match,
-          bestRpm: this.bestRpm,
-          spiritCalls: this.spiritCalls,
-          comeback: won && this.maxDeficit >= 3,
-          perfectRips: this.perfectRips,
-          overspins: this.overspins,
-          finishes: this.match.history.filter(h => h.winner === 0).map(h => h.finish),
-          aggression: this.tiltTicks ? this.tiltSum / this.tiltTicks : 0,
-        }),
-      )
+      this.concludeMatch()
     })
   }
 
-  private frame(dt: number): void {
+  protected concludeMatch(): void {
+    const s = this.deps.sound
+    const won = this.match.winner === 0
+    useHud.getState().set({ phase: 'matchEnd', banner: won ? 'victory' : 'defeat' })
+    s.play(won ? 'victory' : 'defeat')
+    this.later(1800, () =>
+      this.deps.onEnd({
+        winner: this.match.winner!,
+        match: this.match,
+        bestRpm: this.bestRpm,
+        spiritCalls: this.spiritCalls,
+        comeback: won && this.maxDeficit >= 3,
+        perfectRips: this.perfectRips,
+        overspins: this.overspins,
+        finishes: this.match.history.filter(h => h.winner === 0).map(h => h.finish),
+        aggression: this.tiltTicks ? this.tiltSum / this.tiltTicks : 0,
+      }),
+    )
+  }
+
+  protected frame(dt: number): void {
     const shout = this.deps.shout
     if (shout?.ready) {
       const b = this.game.battle

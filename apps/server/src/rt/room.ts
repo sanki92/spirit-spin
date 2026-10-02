@@ -4,7 +4,7 @@ import {
   type Side, type TopBuild, type TouchSample,
 } from '@spirit/core'
 
-export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, firstRoundDelayMs: 1500 }
+export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, firstRoundDelayMs: 2500 }
 
 export interface Seat {
   playerId: string

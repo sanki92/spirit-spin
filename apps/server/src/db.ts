@@ -1,3 +1,4 @@
+import { existsSync, renameSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
@@ -60,7 +61,20 @@ export async function openDb(url: string): Promise<{ db: Db; close: () => Promis
     await migrate(db)
     return { db, close: () => pool.end() }
   }
-  const client = url === 'memory://' ? new PGlite() : new PGlite(url.replace(/^file:\/\//, ''))
+  if (url === 'memory://') return openPglite(new PGlite())
+  const dir = url.replace(/^file:\/\//, '')
+  try {
+    return await openPglite(new PGlite(dir))
+  } catch (e) {
+    if (process.env.NODE_ENV === 'production' || !existsSync(dir)) throw e
+    const aside = `${dir}.corrupt-${new Date().toISOString().replace(/[:.]/g, '-')}`
+    renameSync(dir, aside)
+    console.warn(`[db] dev PGlite at ${dir} would not open (${String(e).slice(0, 120)}); moved to ${aside} and starting fresh`)
+    return openPglite(new PGlite(dir))
+  }
+}
+
+async function openPglite(client: PGlite): Promise<{ db: Db; close: () => Promise<void> }> {
   const db = drizzlePglite(client) as unknown as Db
   await migrate(db)
   return { db, close: () => client.close() }

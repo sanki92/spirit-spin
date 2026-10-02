@@ -49,6 +49,8 @@ export function Home() {
         {!s.onboarded.firstBattle ? 'First battle · Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Tower cleared · Rematch' : `Tower floor ${next}${floor.boss ? ` · Boss ${BOSSES[floor.boss].name}` : ''}`}
       </Slash>
 
+      {s.onboarded.firstBattle && <Slash tone="ghost" className="play-friend" onClick={() => nav.push({ k: 'friends' })}>Battle a friend live</Slash>}
+
       <section className="quests">
         {s.quests.list.map(q => {
           const done = q.progress >= q.target, claimed = s.quests.claimed.includes(q.id)

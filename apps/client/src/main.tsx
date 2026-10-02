@@ -12,7 +12,11 @@ import './screens.css'
 installTelemetry()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })
 const runtime = new Runtime()
-if (import.meta.env.DEV) Object.assign(window, { __nav: useNav, __save: useSave, __rt: runtime })
+if (import.meta.env.DEV) {
+  Object.assign(window, { __nav: useNav, __save: useSave, __rt: runtime })
+  void import('./net/rt').then(m => Object.assign(window, { __net: m.rt }))
+  if (new URLSearchParams(location.search).has('sim')) void import('./dev/sim').then(m => m.installSim())
+}
 void startSync()
 
 createRoot(document.getElementById('root')!).render(

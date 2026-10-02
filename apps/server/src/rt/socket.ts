@@ -82,9 +82,14 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
         return send({ k: 'welcome', playerId: id })
       }
       if (!playerId) return fail('auth')
+      if (room?.phase === 'done') { room = null; side = null }
       try {
+        if ((m.k === 'create' || m.k === 'join') && room && side !== null && room.code !== (m.k === 'join' ? m.code : '')) {
+          room.forfeit(side, 'quit')
+          room = null
+          side = null
+        }
         if (m.k === 'create') {
-          if (room) return
           enter(make(), m.build)
         } else if (m.k === 'join' || m.k === 'rejoin') {
           const r = rooms.get(m.code)
