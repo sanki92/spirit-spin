@@ -10,7 +10,7 @@ export async function spiritMoment(kind: 'post' | 'reply' | 'greet', beast: Beas
     const res = await fetch('/v1/spirit/moment', {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...authHeader() },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         kind,
         beast: { id: beast.id, trust: beast.trust, respect: beast.respect, courage: beast.courage, pride: beast.pride, curiosity: beast.curiosity, calm: beast.calm, battles: beast.battles, awakened: beast.awakened, memories: beast.memories.slice(0, 10).map(m => ({ text: m.text.slice(0, 120), importance: m.importance })) },

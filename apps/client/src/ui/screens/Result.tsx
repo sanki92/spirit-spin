@@ -9,7 +9,7 @@ import { todayKey, useSave } from '../../state/save'
 import type { Settlement } from '../../state/settle'
 import { Img, Screen, Slash } from '../kit'
 
-const requested = new WeakSet<object>()
+const pending = new WeakMap<object, Promise<AiLine | null>>()
 const TRAIT_LABEL: Record<string, string> = { trust: 'Trust', respect: 'Respect', courage: 'Courage', pride: 'Pride', curiosity: 'Curiosity', calm: 'Calm' }
 
 export function Result({ result, settlement, opponentName }: { result: MatchResult; settlement: Settlement; opponentName: string }) {
@@ -22,7 +22,8 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
   const [reply, setReply] = useState<Reply | null>(null)
   const [changes, setChanges] = useState<Change[]>(settlement.changes)
   const mood = beast ? moodAfter({ won, comeback: result.comeback, finishes: [], perfectRips: 0, overspins: 0, spiritCalls: 0, aggression: 0, boss: null, opponent: '' }, beast) : 'neutral'
-  const [line, setLine] = useState(() => lineFor(beastId, won && result.comeback ? 'comeback' : won ? 'win' : 'loss'))
+  const fallback = () => lineFor(beastId, won && result.comeback ? 'comeback' : won ? 'win' : 'loss')
+  const [line, setLine] = useState<string | null>(() => (useSave.getState().beasts[beastId] ? null : fallback()))
   const [aiMood, setAiMood] = useState<Mood | null>(null)
   const [replyLine, setReplyLine] = useState<string | null>(null)
   const summary: BattleSummary = { won, comeback: result.comeback, finishes: result.finishes, perfectRips: result.perfectRips, overspins: result.overspins, spiritCalls: result.spiritCalls, aggression: result.aggression, boss: null, opponent: opponentName }
@@ -42,14 +43,18 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
   }
   useEffect(() => {
     const b = useSave.getState().beasts[beastId]
-    if (!b || requested.has(result)) return
-    requested.add(result)
+    if (!b) return
+    let p = pending.get(result)
+    if (!p) {
+      p = spiritMoment('post', b, summary, null)
+      pending.set(result, p)
+      void p.then(ai => ai && applyAi(ai))
+    }
     let live = true
-    void spiritMoment('post', b, summary, null).then(ai => {
-      if (!live || !ai) return
-      setLine(ai.line)
-      setAiMood(ai.mood)
-      applyAi(ai)
+    void p.then(ai => {
+      if (!live) return
+      setLine(ai?.line ?? fallback())
+      if (ai) setAiMood(ai.mood)
     })
     return () => { live = false }
   }, [])
@@ -84,7 +89,7 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
       <section className="moment" style={{ ['--c' as string]: BEASTS[beastId].color }}>
         <Img id={`beasts/${beastId}/expressions/${aiMood ?? (reply ? (won ? 'joyful' : 'neutral') : mood)}`} className="moment-face" />
         <div className="moment-talk">
-          <p className="moment-line" aria-live="polite">{reply ? (replyLine ?? LINES[beastId].reply[reply]) : line}<span className="ai-tag" title="Spirit voice written by AI">✦</span></p>
+          <p className="moment-line" aria-live="polite">{reply ? (replyLine ?? LINES[beastId].reply[reply]) : line ?? <span className="typing">…</span>}{(reply ? replyLine : aiMood) && <span className="ai-tag" title="Spirit voice written by AI">✦</span>}</p>
           {!reply && (
             <div className="replies">
               {choices.map(c => <button key={c} onClick={() => answer(c)}>{REPLY_LABEL[c]}</button>)}

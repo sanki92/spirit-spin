@@ -6,7 +6,7 @@ export const LINES: Record<BeastId, Bank> = {
   voltfang: {
     greet: ['The storm is restless today. Let\'s give it somewhere to go.', 'I can hear thunder in your pulse. Good.', 'Rip hard. Rip true. I\'ll handle the rest.'],
     win: ['Ha! Did you feel that crack? That was us.', 'Too slow. Next!', 'That\'s how a storm wolf hunts.'],
-    loss: ['Grr. I hesitated. I won\'t next time.', 'They got lucky. Run it back.', 'My fangs were dull today. Sharpen me.'],
+    loss: ['Grr. They got the jump on us. Not again.', 'They got lucky. Run it back.', 'My fangs were dull today. Sharpen me.'],
     comeback: ['Three points down and we still tore through them. THAT is a storm.'],
     hesitate: ['…I don\'t know you yet.'],
     reply: { celebrate: 'Howl with me!', humble: 'Fine. I\'ll stay grounded. For now.', push: 'Harder? Now you\'re speaking my language.', comfort: '…Thanks. I needed that.', analyze: 'You saw their opening too? Next time we strike first.', fireup: 'YES. Let the sky split!' },
