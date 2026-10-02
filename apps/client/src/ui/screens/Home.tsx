@@ -1,4 +1,4 @@
-import { BOSSES, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
+import { BOSSES, COSMETICS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
 import { useEffect, useMemo } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
@@ -41,11 +41,14 @@ export function Home() {
   return (
     <Screen className="home" bg="backgrounds/main-menu">
       <header className="home-head">
-        <button className="profile" onClick={() => nav.push({ k: 'settings' })} aria-label="Settings">
-          <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar" />
+        <button className="profile" onClick={() => nav.push({ k: 'profile' })} aria-label="Profile">
+          <span className="framed-avatar">
+            <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar-img" />
+            <Img id={COSMETICS[s.cosmetics?.frame ?? 'frame-common']?.art ?? 'ui/card-frame-common'} className="avatar-frame" />
+          </span>
           <div>
             <strong>{s.name}</strong>
-            <span>Level {lvl}</span>
+            <span>Level {lvl} · {COSMETICS[s.cosmetics?.title ?? 'title-rookie']?.name}</span>
             <Bar value={s.xp - xpForLevel(lvl)} max={xpForLevel(lvl + 1) - xpForLevel(lvl)} tone="gold" />
           </div>
         </button>

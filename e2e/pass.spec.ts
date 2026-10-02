@@ -1,0 +1,43 @@
+import { expect, test } from '@playwright/test'
+
+type W = Window & Record<string, any>
+
+test('spirit pass: unlock premium with the dev checkout, claim rewards, equip them', async ({ page }) => {
+  await page.goto('/?sim')
+  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: /continue/i }).click()
+  await page.getByText(/tap to ready/i).click()
+  await page.waitForFunction(() => !!(window as W).__save && (window as W).__rt?.ready)
+  await page.evaluate(() => {
+    const w = window as W
+    w.__save.getState().chooseStarter('nagara')
+    for (const k of ['safety', 'calibrated', 'firstBattle']) w.__save.getState().markOnboarded(k)
+    w.__save.setState({ xp: 1300, coins: 100 })
+    w.__nav.getState().reset({ k: 'home' })
+  })
+  await page.waitForTimeout(2600)
+  await page.getByRole('button', { name: 'Profile' }).click()
+  await expect(page.locator('.profile-card')).toBeVisible()
+  await page.screenshot({ path: 'e2e/out/profile.png', fullPage: true })
+  await page.getByRole('button', { name: /spirit pass rewards/i }).click()
+  await expect(page.locator('.pass-tier')).toContainText('Tier 10')
+  await page.screenshot({ path: 'e2e/out/pass-before.png' })
+  const coins = await page.evaluate(() => (window as W).__save.getState().coins)
+  await page.locator('.pass-row').first().locator('.pass-cell').first().getByRole('button', { name: 'Claim' }).click()
+  expect(await page.evaluate(() => (window as W).__save.getState().coins)).toBeGreaterThan(coins)
+  await page.getByRole('button', { name: /unlock/i }).click()
+  await expect(page.getByText('Unlocked. Enjoy!')).toBeVisible({ timeout: 10_000 })
+  await page.locator('.pass-row').first().locator('.pass-cell').nth(1).getByRole('button', { name: 'Claim' }).click()
+  expect(await page.evaluate(() => (window as W).__save.getState().unlocks)).toContain('launcher-voltfang')
+  await page.screenshot({ path: 'e2e/out/pass-after.png' })
+  await page.evaluate(() => (window as W).__nav.getState().reset({ k: 'home' }))
+  await page.getByRole('button', { name: 'Profile' }).click()
+  await page.getByRole('radiogroup', { name: 'Launcher' }).getByRole('radio', { name: /voltfang/i }).click()
+  expect(await page.evaluate(() => (window as W).__save.getState().cosmetics.launcher)).toBe('launcher-voltfang')
+  await page.evaluate(() => (window as W).__nav.getState().push({ k: 'battle', opponent: { bladeId: 'fang', discId: 'standard', tipId: 'flat', beastId: 'voltfang' }, floor: null, boss: null, opponentName: 'Sparring Spinner' }))
+  await expect(page.locator('.launcher-art')).toBeVisible({ timeout: 8000 })
+  await page.screenshot({ path: 'e2e/out/grip-launcher.png' })
+  await page.evaluate(() => (window as W).__nav.getState().reset({ k: 'shop' }))
+  await page.getByRole('tab', { name: 'Cosmetics' }).click()
+  await page.screenshot({ path: 'e2e/out/shop-cosmetics.png' })
+})

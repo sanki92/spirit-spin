@@ -7,6 +7,7 @@ import { spiritMoment } from '../../state/spiritAi'
 import { recover, recoveryCode } from '../../state/sync'
 import { Axis, Bar, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
+import { CosmeticShop } from './Style'
 
 export function Journal() {
   const s = useSave()
@@ -125,6 +126,8 @@ export function Shop() {
   const s = useSave()
   const items = useMemo(() => shopRotation(todayKey()), [])
   const [msg, setMsg] = useState<string | null>(null)
+  const [tab, setTab] = useState<'parts' | 'cosmetics'>('parts')
+  const nav = useNav()
   const owns = (kind: 'blade' | 'disc' | 'tip', id: string) => s.owned[`${kind}s`].includes(id)
   const buy = (kind: 'blade' | 'disc' | 'tip', id: string, price: number) => {
     if (!s.spend(price)) return setMsg('Not enough coins yet. Win Tower battles and finish quests to earn more.')
@@ -134,6 +137,12 @@ export function Shop() {
   return (
     <Screen className="shop">
       <TopBar title="Shop" />
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'parts'} className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>Parts</button>
+        <button role="tab" aria-selected={tab === 'cosmetics'} className={tab === 'cosmetics' ? 'on' : ''} onClick={() => setTab('cosmetics')}>Cosmetics</button>
+        <button role="tab" aria-selected={false} onClick={() => nav.push({ k: 'pass' })}>Spirit Pass</button>
+      </div>
+      {tab === 'cosmetics' ? <CosmeticShop /> : (<>
       <p className="fine">New parts every day. Rarity changes the look and feel, never the power budget.</p>
       <div className="shop-grid">
         {items.map(it => (
@@ -145,6 +154,7 @@ export function Shop() {
           </div>
         ))}
       </div>
+      </>)}
       {msg && <p className="toast pop" onAnimationEnd={() => setTimeout(() => setMsg(null), 2200)}>{msg}</p>}
     </Screen>
   )

@@ -23,6 +23,8 @@ export type Route =
   | { k: 'awaken' }
   | { k: 'friends'; join?: string }
   | { k: 'ranked' }
+  | { k: 'pass' }
+  | { k: 'profile' }
   | { k: 'cups'; join?: string }
   | { k: 'cup'; id: string }
   | { k: 'ghost'; issued: IssuedGhost; kind: 'ranked' | 'tournament'; cupId?: string }

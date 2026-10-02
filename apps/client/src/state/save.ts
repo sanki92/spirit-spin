@@ -1,5 +1,5 @@
 import {
-  applyBattle, applyQuestProgress, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
+  applyBattle, applyQuestProgress, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
   type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type Reply, type TopBuild,
 } from '@spirit/core'
 import { create } from 'zustand'
@@ -27,6 +27,10 @@ export interface SaveData {
   onboarded: { safety: boolean; calibrated: boolean; firstBattle: boolean }
   stats: { battles: number; wins: number; bestRpm: number }
   greet: { day: string; beast: BeastId; line: string; mood: Mood } | null
+  cosmetics: { frame: string; title: string; launcher: string | null; stadium: string }
+  unlocks: string[]
+  entitlements: string[]
+  pass: { season: string; baseXp: number; free: number[]; premium: number[] }
 }
 
 export interface SaveActions {
@@ -43,6 +47,11 @@ export interface SaveActions {
   claimQuest(id: string): number
   patchSettings(p: Partial<Settings>): void
   markOnboarded(k: keyof SaveData['onboarded']): void
+  setName(name: string): void
+  setAvatar(n: number): void
+  setCosmetic(kind: 'frame' | 'title' | 'launcher' | 'stadium', id: string): void
+  setEntitlements(items: string[]): void
+  claimPass(track: 'free' | 'premium', tier: number): boolean
   reset(): void
 }
 
@@ -63,6 +72,10 @@ const fresh = (): SaveData => ({
   onboarded: { safety: false, calibrated: false, firstBattle: false },
   stats: { battles: 0, wins: 0, bestRpm: 0 },
   greet: null,
+  cosmetics: { frame: 'frame-common', title: 'title-rookie', launcher: null, stadium: 'stadium-classic' },
+  unlocks: [],
+  entitlements: [],
+  pass: { season: PASS.season, baseXp: 0, free: [], premium: [] },
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])
@@ -143,6 +156,24 @@ export const useSave = create<SaveData & SaveActions>()(
       },
       patchSettings: p => set(s => ({ settings: { ...s.settings, ...p } })),
       markOnboarded: k => set(s => ({ onboarded: { ...s.onboarded, [k]: true } })),
+      setName: name => set({ name: name.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 16) || 'Spinner' }),
+      setAvatar: n => set(s => (ownsCosmetic(s, `avatar-${n + 1}`) ? { avatar: n } : {})),
+      setCosmetic: (kind, id) => set(s => (ownsCosmetic(s, id) && COSMETICS[id]?.kind === kind ? { cosmetics: { ...(s.cosmetics ?? fresh().cosmetics), [kind]: id } } : {})),
+      setEntitlements: items => set({ entitlements: items }),
+      claimPass: (track, tier) => {
+        const s = get()
+        const pass = s.pass?.season === PASS.season ? s.pass : { season: PASS.season, baseXp: 0, free: [], premium: [] }
+        const t = PASS_TIERS[tier - 1]
+        if (!t || tier > passTier(s.xp - pass.baseXp) || pass[track].includes(tier)) return false
+        if (track === 'premium' && !(s.entitlements ?? []).includes('pass-s1')) return false
+        const reward = t[track]
+        const patch: Partial<SaveData> = { pass: { ...pass, [track]: [...pass[track], tier] } }
+        if ('coins' in reward) patch.coins = s.coins + reward.coins
+        if ('cosmetic' in reward) patch.unlocks = [...new Set([...(s.unlocks ?? []), reward.cosmetic])]
+        set(patch)
+        if ('part' in reward) get().addPart(`${reward.part.kind}s` as keyof Owned, reward.part.id)
+        return true
+      },
       reset: () => set(fresh()),
     }),
     {
@@ -156,3 +187,10 @@ export const useSave = create<SaveData & SaveActions>()(
 )
 
 export const level = () => levelForXp(useSave.getState().xp)
+
+export function ownsCosmetic(s: Pick<SaveData, 'unlocks' | 'entitlements' | 'starter' | 'tower'>, id: string): boolean {
+  if (FREE_COSMETICS.includes(id)) return true
+  if (s.starter && id === `launcher-${s.starter}`) return true
+  if (id === 'title-climber' && s.tower >= 10) return true
+  return (s.unlocks ?? []).includes(id) || (s.entitlements ?? []).includes(id)
+}

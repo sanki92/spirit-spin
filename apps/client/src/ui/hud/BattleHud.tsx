@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { hasAsset, assetUrl } from '../../assets/assets'
 import { BEASTS } from '../../game/beasts'
 import { useHud, type Banner } from '../../state/hud'
+import { useSave } from '../../state/save'
 
 const BANNER_ART: Record<Exclude<Banner, null>, string> = {
   spin: 'ui/banner-finish-spin', ringout: 'ui/banner-finish-ringout', shatter: 'ui/banner-finish-shatter', spirit: 'ui/banner-finish-spirit',
@@ -49,6 +50,7 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
         </div>
       )}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
+      {(h.phase === 'grip' || h.phase === 'countdown' || (h.phase === 'launch' && h.countdown === 'LAUNCH')) && <Launcher fired={h.countdown === 'LAUNCH'} />}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (
         <div key={h.announcer.id} className="announcer" aria-live="polite">
@@ -137,4 +139,12 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
       )}
     </div>
   )
+}
+
+function Launcher({ fired }: { fired: boolean }) {
+  const s = useSave.getState()
+  const id = s.cosmetics?.launcher ?? (s.starter ? `launcher-${s.starter}` : null)
+  const art = id ? `launchers/${id.replace('launcher-', '')}` : null
+  if (!art || !hasAsset(art)) return null
+  return <img className={`launcher-art ${fired ? 'fired' : ''}`} src={assetUrl(art)} alt="" draggable={false} />
 }

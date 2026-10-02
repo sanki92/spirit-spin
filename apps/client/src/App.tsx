@@ -7,9 +7,11 @@ import { currentRoute, useNav, type Route } from './state/nav'
 import { useSave } from './state/save'
 import { settleMatch } from './state/settle'
 import { BattleScreen, type ControllerFactory } from './ui/screens/BattleScreen'
+import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
 import { Friends } from './ui/screens/Friends'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
+import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home, Tower } from './ui/screens/Home'
@@ -65,6 +67,8 @@ export function App() {
     case 'friends': return <Friends join={route.join} />
     case 'live': return <LiveRoute route={route} />
     case 'ranked': return <Ranked />
+    case 'pass': return <Pass />
+    case 'profile': return <Profile />
     case 'cups': return <Cups join={route.join} />
     case 'cup': return <CupScreen id={route.id} />
     case 'ghost': return <GhostRoute route={route} />
@@ -98,7 +102,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     },
     [route, nav],
   )
-  return <BattleScreen setup={setup} theme={route.floor && route.floor > 30 ? 'volcano' : route.floor && route.floor > 15 ? 'frozen-moon' : 'classic'} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
+  return <BattleScreen setup={setup} theme={route.floor ? (route.floor > 30 ? 'volcano' : route.floor > 15 ? 'frozen-moon' : 'classic') : stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
 }
 
 function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
@@ -118,7 +122,7 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
     [route, nav],
   )
   const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, d, route.side), [route])
-  return <BattleScreen setup={setup} theme="classic" onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
 }
 
 function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
@@ -137,5 +141,10 @@ function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
     },
     [issued, route, nav],
   )
-  return <BattleScreen setup={setup} theme={route.kind === 'ranked' ? 'frozen-moon' : 'volcano'} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || s.settings.inputMode === 'swipe'} controller={controller} />
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || s.settings.inputMode === 'swipe'} controller={controller} />
+}
+
+function stadiumTheme(): StadiumTheme {
+  const id = useSave.getState().cosmetics?.stadium ?? 'stadium-classic'
+  return id === 'stadium-volcano' ? 'volcano' : id === 'stadium-frozen-moon' ? 'frozen-moon' : 'classic'
 }
