@@ -134,9 +134,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .part.epic { box-shadow: inset 0 0 0 1px rgba(170, 100, 255, 0.6); }
 .part.legendary { box-shadow: inset 0 0 0 1px rgba(255, 201, 60, 0.7); }
 
-.result { align-items: center; text-align: center; }
+.result { align-items: center; text-align: center; justify-content: safe center; }
 .result-banner { width: min(88vw, 480px); }
-.score { font-size: 18px; color: var(--chrome); margin: 0; }
+.score { font-family: 'Bebas Neue'; font-size: 34px; letter-spacing: 1px; color: var(--chrome); margin: 0; }
 .rewards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .rewards span { padding: 6px 12px; border-radius: 999px; background: var(--steel); font-weight: 700; font-size: 15px; }
 .rewards .gold { color: var(--gold); }
@@ -205,8 +205,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 @keyframes spinSlow { to { transform: rotate(360deg); } }
 .reduce-motion *, .reduce-motion *::before { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 @media (prefers-reduced-motion: reduce) { .tap-hint, .claim, .top-preview .blade { animation: none; } }
-.recovery code { font-size: 18px; letter-spacing: 2px; color: var(--gold); background: var(--steel-2); padding: 8px 10px; border-radius: 8px; user-select: all; }
+.recovery code { white-space: nowrap; font-size: 16px; letter-spacing: 1px; color: var(--gold); background: var(--steel-2); padding: 8px 10px; border-radius: 8px; user-select: all; }
 .recover-form { flex-wrap: wrap; }
+.recover-form > div { flex-basis: 100%; }
 .recover-form input { flex: 1; min-width: 150px; padding: 10px; border-radius: 8px; border: 0; background: var(--steel-2); color: var(--chrome); font-size: 16px; letter-spacing: 1px; }
 .recover-form button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--cyan); color: #04122a; font-weight: 800; }
 .ai-tag { margin-left: 6px; font-size: 12px; color: #6a76a8; }
@@ -219,3 +220,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .room-code { font-family: 'Bebas Neue'; font-size: 64px; letter-spacing: 12px; color: var(--gold); line-height: 1; user-select: all; }
 .waiting { animation: breathe 1.6s ease-in-out infinite; }
 .form-error { margin: 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--red) 18%, var(--steel)); color: var(--chrome); }
+.code-chip { display: grid; justify-items: center; gap: 2px; border: 0; border-radius: 10px; padding: 8px 14px; background: var(--steel-2); color: var(--gold); font-family: 'Bebas Neue'; font-size: 26px; letter-spacing: 4px; cursor: pointer; }
+.code-chip em { font-family: 'Rajdhani', sans-serif; font-style: normal; font-size: 12px; letter-spacing: 0; color: var(--muted); }
+.friend-list { display: grid; gap: 8px; }
+.friend-list h2 { margin: 6px 0 0; font-size: 22px; color: var(--chrome); }
+.friend { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--steel); }
+.friend > div { flex: 1; display: grid; }
+.friend > div span { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+.friend-initial { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--steel-2); color: var(--cyan); font-family: 'Bebas Neue'; font-size: 22px; }

@@ -1,9 +1,8 @@
 import websocket from '@fastify/websocket'
 import { NET, type ServerMsg, type Side } from '@spirit/core'
 import type { FastifyInstance } from 'fastify'
-import { randomInt } from 'node:crypto'
 import { z } from 'zod'
-import type { Tokens } from '../auth'
+import { cleanName, randomCode, type Tokens } from '../auth'
 import { Room } from './room'
 
 const num = z.number().finite()
@@ -21,8 +20,6 @@ const Msg = z.discriminatedUnion('k', [
   z.object({ k: z.literal('leave') }),
 ])
 
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-const cleanName = (s: string) => s.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 16) || 'Spinner'
 
 export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; speed?: number }
 
@@ -31,7 +28,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   const rooms = new Map<string, Room>()
   const newCode = () => {
     for (;;) {
-      const c = Array.from({ length: 4 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')
+      const c = randomCode(4)
       if (!rooms.has(c)) return c
     }
   }

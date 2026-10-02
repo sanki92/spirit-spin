@@ -4,13 +4,13 @@ import { and, eq } from 'drizzle-orm'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
-import { hashRecoveryCode, newRecoveryCode, Tokens } from './auth'
+import { cleanName, hashRecoveryCode, newRecoveryCode, randomCode, Tokens } from './auth'
 import type { Config } from './config'
-import { openDb, players, aiCalls } from './db'
+import { openDb, players, aiCalls, friendships, type Db } from './db'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
-import { gte, sql } from 'drizzle-orm'
+import { desc, gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
   baseVersion: z.number().int().min(0),
@@ -60,7 +60,13 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
-  await registerRealtime(app, tokens, deps.realtime)
+  await registerRealtime(app, tokens, {
+    ...deps.realtime,
+    onResult: room => {
+      const [a, b] = room.seats
+      if (a && b && a.playerId !== b.playerId) void befriend(db, a.playerId, b.playerId).catch(e => app.log.warn({ err: String(e) }, 'befriend failed'))
+    },
+  })
 
   const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
     const h = req.headers.authorization
@@ -81,7 +87,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   app.post('/v1/auth/guest', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()
-    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, cfg.jwtSecret) }).returning({ id: players.id })
+    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, cfg.jwtSecret), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
   })
 
@@ -98,14 +104,33 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.get('/v1/me', { preHandler: requireAuth }, async (req, reply) => {
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
-    return { playerId: row.id, name: row.name, version: row.saveVersion, save: row.save }
+    return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: row.save }
+  })
+
+  app.get('/v1/friends', { preHandler: requireAuth }, async req => {
+    const rows = await db
+      .select({ playerId: players.id, name: players.name, friendCode: players.friendCode })
+      .from(friendships)
+      .innerJoin(players, eq(players.id, friendships.friendId))
+      .where(eq(friendships.playerId, req.playerId))
+      .orderBy(desc(friendships.createdAt))
+      .limit(200)
+    return { friends: rows }
+  })
+
+  app.post('/v1/friends', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ code: z.string().regex(/^[A-Za-z0-9]{6}$/) }) } }, async (req, reply) => {
+    const [friend] = await db.select({ id: players.id }).from(players).where(eq(players.friendCode, req.body.code.toUpperCase())).limit(1)
+    if (!friend) return reply.code(404).send({ error: 'unknown code' })
+    if (friend.id === req.playerId) return reply.code(400).send({ error: 'own code' })
+    await befriend(db, req.playerId, friend.id)
+    return { ok: true }
   })
 
   app.put('/v1/save', { preHandler: requireAuth, schema: { body: SaveBody } }, async (req, reply) => {
     const { baseVersion, save } = req.body
     const updated = await db
       .update(players)
-      .set({ save, saveVersion: baseVersion + 1, updatedAt: new Date() })
+      .set({ save, name: cleanName(save.name), saveVersion: baseVersion + 1, updatedAt: new Date() })
       .where(and(eq(players.id, req.playerId), eq(players.saveVersion, baseVersion)))
       .returning({ version: players.saveVersion })
     if (updated.length) return { version: updated[0]!.version }
@@ -138,4 +163,20 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   await app.ready()
   return app
+}
+
+async function assignFriendCode(db: Db, id: string): Promise<string> {
+  for (;;) {
+    const code = randomCode(6)
+    try {
+      await db.update(players).set({ friendCode: code }).where(eq(players.id, id))
+      return code
+    } catch {
+      continue
+    }
+  }
+}
+
+export async function befriend(db: Db, a: string, b: string): Promise<void> {
+  await db.insert(friendships).values([{ playerId: a, friendId: b }, { playerId: b, friendId: a }]).onConflictDoNothing()
 }

@@ -36,3 +36,7 @@ export class Tokens {
     }
   }
 }
+
+export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+export const randomCode = (n: number) => Array.from({ length: n }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('')
+export const cleanName = (s: unknown) => (typeof s === 'string' ? s.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 16) : '') || 'Spinner'

@@ -63,7 +63,7 @@ export class Stage {
     const halfV = (this.camera.fov * Math.PI) / 360
     const halfH = Math.atan(Math.tan(halfV) * this.camera.aspect)
     const fit = Math.max(1.22 / Math.tan(halfH), 1.6 / Math.tan(halfV))
-    const pitch = h > w ? 0.86 : 0.74
+    const pitch = h > w ? 0.93 : 0.74
     this.base.set(0, fit * Math.sin(pitch), fit * Math.cos(pitch))
     this.look.set(0, 0, h > w ? 0.1 : 0.14)
     this.camera.updateProjectionMatrix()

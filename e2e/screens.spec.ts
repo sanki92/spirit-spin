@@ -1,0 +1,59 @@
+import { expect, test, type Page } from '@playwright/test'
+
+type W = Window & Record<string, any>
+const shot = (p: Page, name: string) => p.screenshot({ path: `e2e/out/screens/${name}.png` })
+const go = async (p: Page, route: object, name: string, wait = 700) => {
+  await p.evaluate(r => { const n = (window as W).__nav.getState(); n.reset({ k: 'home' }); if ((r as { k: string }).k !== 'home') n.push(r) }, route)
+  await p.waitForTimeout(wait)
+  await shot(p, name)
+}
+
+test('capture every screen', async ({ page }) => {
+  await page.goto('/?sim')
+  await page.waitForLoadState('networkidle')
+  await shot(page, '01-splash')
+  await page.getByRole('button', { name: 'Start' }).click()
+  await expect(page.getByRole('button', { name: /continue/i })).toBeVisible({ timeout: 3000 })
+  await shot(page, '02-age')
+  await page.getByRole('button', { name: /continue/i }).click()
+  await expect(page.getByText(/tap to ready/i)).toBeVisible()
+  await shot(page, '03-ready')
+  await page.getByText(/tap to ready/i).click()
+  await page.waitForTimeout(1200)
+  await shot(page, '04-starter')
+  await page.evaluate(() => {
+    const w = window as W
+    w.__save.getState().chooseStarter('agnyx')
+    w.__nav.getState().reset({ k: 'safety' })
+  })
+  await page.waitForTimeout(600)
+  await shot(page, '05-safety')
+  await go(page, { k: 'calibrate' }, '06-calibrate')
+  await page.evaluate(() => { const w = window as W; for (const k of ['safety', 'calibrated', 'firstBattle']) w.__save.getState().markOnboarded(k); w.__save.setState({ coins: 1800, tower: 12 }) })
+  await go(page, { k: 'home' }, '07-home', 1200)
+  await go(page, { k: 'garage' }, '08-garage', 1200)
+  for (const tab of ['Disc', 'Tip', 'Spirit']) {
+    await page.getByRole('tab', { name: tab, exact: true }).click()
+    await page.waitForTimeout(500)
+    await shot(page, `08-garage-${tab.toLowerCase()}`)
+  }
+  await go(page, { k: 'tower' }, '09-tower', 1200)
+  await go(page, { k: 'collection' }, '10-collection', 1200)
+  await go(page, { k: 'shop' }, '11-shop', 1200)
+  await go(page, { k: 'journal' }, '12-journal', 1200)
+  await go(page, { k: 'awaken' }, '13-awaken', 1200)
+  await go(page, { k: 'settings' }, '14-settings', 1000)
+  await go(page, { k: 'friends' }, '15-friends', 1500)
+  await go(page, { k: 'battle', opponent: { bladeId: 'crescent', discId: 'rim', tipId: 'needle', beastId: 'nagara' }, floor: 3, boss: null, opponentName: 'Floor 3 Spinner' }, '16-battle-intro', 1500)
+  await page.waitForTimeout(2600)
+  await shot(page, '17-battle-countdown')
+  await page.waitForTimeout(2200)
+  await shot(page, '18-battle-launch')
+  await page.waitForTimeout(1800)
+  await shot(page, '19-battle')
+  await page.evaluate(() => (window as W).__game.spirits[0].show(true))
+  await page.waitForTimeout(450)
+  await shot(page, '20-summon-flash')
+  await page.waitForTimeout(800)
+  await shot(page, '21-summon-hold')
+})

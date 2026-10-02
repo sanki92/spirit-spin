@@ -76,6 +76,10 @@ describe('realtime', () => {
       if (end.winner !== null) { expect(end.scores[end.winner]).toBeGreaterThanOrEqual(4); break }
     }
     expect(rounds).toBeGreaterThan(0)
+    await new Promise(r => setTimeout(r, 100))
+    const fa = (await app.inject({ method: 'GET', url: '/v1/friends', headers: { authorization: `Bearer ${a.token}` } })).json() as { friends: { name: string }[] }
+    expect(fa.friends.map(f => f.name)).toContain('Spinner')
+    expect(fa.friends).toHaveLength(1)
     a.ws.close(); b.ws.close()
   }, 120000)
 

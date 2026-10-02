@@ -3,7 +3,7 @@ import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
 
-const VISUAL_SCALE = 1.35
+const VISUAL_SCALE = 1.55
 
 export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture }
 

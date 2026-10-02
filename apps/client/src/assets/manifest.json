@@ -1149,6 +1149,11 @@
   "w": 615,
   "h": 768
  },
+ "ui/logo": {
+  "url": "/assets/ui/logo.webp",
+  "w": 768,
+  "h": 524
+ },
  "ui/permission-motion-mic": {
   "url": "/assets/ui/permission-motion-mic.webp",
   "w": 768,

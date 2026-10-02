@@ -1,5 +1,5 @@
-import { awakenedForm, awakeningHints, BLADES, DISCS, shopRotation, TIPS, type BeastId } from '@spirit/core'
-import { useMemo, useState } from 'react'
+import { awakenedForm, awakeningHints, awakeningReady, BLADES, DISCS, shopRotation, TIPS, type BeastId } from '@spirit/core'
+import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
@@ -56,7 +56,11 @@ export function Awaken() {
   const b = s.beasts[id]
   const form = useMemo(() => (b ? awakenedForm(b) : 'storm'), [b])
   const [done, setDone] = useState(false)
-  if (!b) return null
+  const ready = !!b && awakeningReady(b)
+  useEffect(() => {
+    if (!done && !ready) nav.replace({ k: 'journal' })
+  }, [done, ready, nav])
+  if (!b || (!done && !ready)) return null
   return (
     <Screen className="awaken center">
       <Img id={`beasts/${id}/awakened-${form}/cutin`} className={`awaken-art ${done ? 'lit' : ''}`} />

@@ -157,7 +157,7 @@ export class Game {
       const t0 = b.tops[0], t1 = b.tops[1]
       if (sum >= 0) {
         const t = b.tops[sum as 0 | 1]
-        this.stage.follow(t.x * 0.6, -t.y * 0.6, 0.78)
+        this.stage.follow(t.x * 0.35, -t.y * 0.35, 0.88)
       } else {
         const live = [t0, t1].filter(t => !t.out)
         const mx = live.reduce((a, t) => a + t.x, 0) / (live.length || 1), my = live.reduce((a, t) => a + t.y, 0) / (live.length || 1)

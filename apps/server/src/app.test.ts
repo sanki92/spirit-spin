@@ -58,6 +58,28 @@ describe('server', () => {
   })
 })
 
+describe('friends', () => {
+  const me = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/me', headers: auth(token) })).json() as { friendCode: string; playerId: string }
+  const list = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(token) })).json() as { friends: { playerId: string; name: string; friendCode: string }[] }
+  it('every player has a friend code; adding by code is mutual and idempotent', async () => {
+    const a = await guest(), b = await guest()
+    const ma = await me(a.token), mb = await me(b.token)
+    expect(ma.friendCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
+    expect(ma.friendCode).not.toBe(mb.friendCode)
+    await app.inject({ method: 'PUT', url: '/v1/save', headers: auth(b.token), payload: { baseVersion: 0, save: { ...SAVE, name: 'Bo<b>!' } } })
+    const add = await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode.toLowerCase() } })
+    expect(add.statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode } })).statusCode).toBe(200)
+    expect((await list(a.token)).friends).toEqual([{ playerId: b.playerId, name: 'Bob', friendCode: mb.friendCode }])
+    expect((await list(b.token)).friends.map(f => f.playerId)).toEqual([a.playerId])
+  })
+  it('unknown and own codes are refused', async () => {
+    const a = await guest()
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: 'ZZZZZZ' } })).statusCode).toBe(404)
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: (await me(a.token)).friendCode } })).statusCode).toBe(400)
+  })
+})
+
 describe('spirit director route', () => {
   const MOMENT = {
     kind: 'post',

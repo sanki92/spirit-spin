@@ -10,10 +10,17 @@ export const players = pgTable('players', {
   id: uuid('id').primaryKey().defaultRandom(),
   recoveryHash: text('recovery_hash').notNull().unique(),
   name: text('name').notNull().default('Spinner'),
+  friendCode: text('friend_code').unique(),
   save: jsonb('save').$type<Record<string, unknown>>().notNull().default({}),
   saveVersion: integer('save_version').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const friendships = pgTable('friendships', {
+  playerId: uuid('player_id').notNull(),
+  friendId: uuid('friend_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const aiCalls = pgTable('ai_calls', {
@@ -50,6 +57,13 @@ const MIGRATIONS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS ai_calls_player_day ON ai_calls (player_id, created_at)`,
+  `ALTER TABLE players ADD COLUMN IF NOT EXISTS friend_code text UNIQUE;
+  CREATE TABLE IF NOT EXISTS friendships (
+    player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    friend_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (player_id, friend_id)
+  )`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>
