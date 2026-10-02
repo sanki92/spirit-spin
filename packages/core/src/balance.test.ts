@@ -3,7 +3,7 @@ import { runBalance } from './balance'
 import { BOT_LEVELS } from './bot'
 
 describe('balance guard (regression bounds; strict targets live in scripts/balance.ts)', () => {
-  const r = runBalance(16, BOT_LEVELS.hard, 7)
+  const r = runBalance(40, BOT_LEVELS.hard, 7)
   it('no matchup is a blowout', () => {
     for (const [k, v] of Object.entries(r.matchups)) {
       expect(v, k).toBeGreaterThanOrEqual(0.22)
