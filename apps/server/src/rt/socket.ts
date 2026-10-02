@@ -1,5 +1,5 @@
 import websocket from '@fastify/websocket'
-import { NET, type ServerMsg, type Side } from '@spirit/core'
+import { assembleTop, NET, type ServerMsg, type Side } from '@spirit/core'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { cleanName, randomCode, type Tokens } from '../auth'
@@ -27,15 +27,15 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   await app.register(websocket, { options: { maxPayload: NET.maxMessageBytes } })
   const rooms = new Map<string, Room>()
   const newCode = () => {
-    for (;;) {
+    for (let i = 0; i < 100; i++) {
       const c = randomCode(4)
       if (!rooms.has(c)) return c
     }
+    return null
   }
   const make = () => {
-    const room = new Room(newCode(), { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => rooms.delete(r.code), speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) })
-    rooms.set(room.code, room)
-    return room
+    const code = rooms.size < NET.maxRooms ? newCode() : null
+    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => rooms.delete(r.code), speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
   }
   app.addHook('onClose', async () => { for (const r of rooms.values()) r.close() })
 
@@ -46,13 +46,22 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let side: Side | null = null
     let windowStart = Date.now(), count = 0
     const send = (m: ServerMsg) => { if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(m)) }
+    const replaced = () => socket.close(4001, 'replaced')
+    let alive = true
+    socket.on('pong', () => { alive = true })
+    const heartbeat = setInterval(() => {
+      if (!alive) return socket.terminate()
+      alive = false
+      socket.ping()
+    }, NET.heartbeatMs)
     const fail = (code: Extract<ServerMsg, { k: 'error' }>['code'], close = true) => {
       send({ k: 'error', code })
       if (close) socket.close(4000, code)
     }
     const enter = (r: Room, build: Parameters<Room['seat']>[2]) => {
-      const s = r.seat(playerId!, name, build, send)
+      const s = r.seat(playerId!, name, build, send, replaced)
       if (s === null) return fail('full', false)
+      if (!rooms.has(r.code)) rooms.set(r.code, r)
       room = r
       side = s
     }
@@ -81,13 +90,16 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       if (!playerId) return fail('auth')
       if (room?.phase === 'done') { room = null; side = null }
       try {
+        if (m.k === 'create' || m.k === 'join') assembleTop(m.build)
         if ((m.k === 'create' || m.k === 'join') && room && side !== null && room.code !== (m.k === 'join' ? m.code : '')) {
           room.forfeit(side, 'quit')
           room = null
           side = null
         }
         if (m.k === 'create') {
-          enter(make(), m.build)
+          const r = make()
+          if (!r) return fail('rate', false)
+          enter(r, m.build)
         } else if (m.k === 'join' || m.k === 'rejoin') {
           const r = rooms.get(m.code)
           if (!r) return fail('no-room', false)
@@ -104,7 +116,10 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
         fail('bad-message', false)
       }
     })
-    socket.on('close', () => { if (room && side !== null) room.disconnect(side) })
+    socket.on('close', () => {
+      clearInterval(heartbeat)
+      if (room && side !== null) room.disconnect(side, send)
+    })
   })
 
   return rooms

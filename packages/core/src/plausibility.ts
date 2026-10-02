@@ -3,6 +3,7 @@
  * that a trace looks like real hardware: jittery timing, sensor noise, physical limits, no copy-pasted samples.
  */
 import type { MotionSample } from './rip'
+import type { TouchSample } from './rip-swipe'
 
 export function tracePlausible(samples: readonly MotionSample[]): { ok: boolean; reasons: string[] } {
   const reasons: string[] = []
@@ -37,4 +38,14 @@ function stdev(v: readonly number[]): number {
   if (v.length < 2) return 0
   const mean = v.reduce((a, b) => a + b, 0) / v.length
   return Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / v.length)
+}
+
+export function swipePlausible(points: readonly TouchSample[]): boolean {
+  if (points.length < 6) return false
+  for (let i = 1; i < points.length; i++) {
+    const dt = (points[i] as TouchSample).t - (points[i - 1] as TouchSample).t
+    if (!(dt > 0) || dt > 60) return false
+  }
+  const span = (points[points.length - 1] as TouchSample).t - (points[0] as TouchSample).t
+  return span >= 50 && span <= 900
 }

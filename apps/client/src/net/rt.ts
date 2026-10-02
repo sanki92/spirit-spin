@@ -28,6 +28,14 @@ class Realtime {
     return this.latest.get(k) as Extract<ServerMsg, { k: K }> | undefined
   }
 
+  private emit(m: ServerMsg): void {
+    for (const h of this.handlers) h(m)
+  }
+
+  get connected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN && this.welcomed
+  }
+
   send(m: ClientMsg): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m))
   }
@@ -73,15 +81,17 @@ class Realtime {
         if (m.k === 'peer') this.peer = { name: m.name, build: m.build, online: m.online }
         if (m.k === 'error') log('net.error', { code: m.code })
         this.latest.set(m.k, m)
-        for (const h of this.handlers) h(m)
+        this.emit(m)
       }
       ws.onclose = e => {
         if (this.ws === ws) this.welcomed = false
         log('net.close', { code: e.code, welcomed, inRoom: !!this.code })
         if (!welcomed) reject(new Error(`closed ${e.code}`))
-        if (this.wantOpen && this.code && e.code !== 4000 && this.retry < 6) {
-          const wait = 400 * 2 ** this.retry++
-          setTimeout(() => void this.open().catch(() => undefined), wait)
+        if (this.wantOpen && this.code && e.code !== 4000 && e.code !== 4001) {
+          if (this.retry < 6) {
+            const wait = 400 * 2 ** this.retry++
+            setTimeout(() => void this.open().catch(() => undefined), wait)
+          } else this.emit({ k: 'error', code: 'no-room' })
         }
       }
     })

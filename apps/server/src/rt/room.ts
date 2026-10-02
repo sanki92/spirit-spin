@@ -1,5 +1,5 @@
 import {
-  applyRound, assembleTop, composeRip, createBattle, InputTrack, NET, newMatch, scoreRip, scoreSwipe, stepBattle, tracePlausible,
+  applyRound, assembleTop, composeRip, rpmQuality, swipePlausible, createBattle, InputTrack, NET, newMatch, scoreRip, scoreSwipe, stepBattle, tracePlausible,
   type BattleEvent, type BattleState, type MatchState, type MotionSample, type NetInput, type RipResult, type RipView, type ServerMsg,
   type Side, type TopBuild, type TouchSample,
 } from '@spirit/core'
@@ -11,12 +11,14 @@ export interface Seat {
   name: string
   build: TopBuild
   send: (m: ServerMsg) => void
+  close: () => void
   online: boolean
   hold: ReturnType<typeof setTimeout> | null
   rip: RipResult | null
   inputs: Map<number, NetInput>
   last: NetInput
   maxSeq: number
+  maxTick: number
   track: InputTrack
 }
 
@@ -28,8 +30,9 @@ const clamp = (v: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.
 
 export function judgeRip(msg: { motion?: MotionSample[] | undefined; swipe?: { points: TouchSample[]; h: number } | undefined; pull100: number }): { rip: RipResult; view: RipView } {
   const motion = msg.motion?.length ? (tracePlausible(msg.motion).ok ? scoreRip(msg.motion, 0, { pull100: clamp(msg.pull100, 5, 12) }) : { ok: false as const, reason: 'no-pull' as const }) : null
-  const swipe = msg.swipe?.points.length ? scoreSwipe(msg.swipe.points, 0, clamp(msg.swipe.h, 400, 1400)) : null
-  const best = [motion, swipe].filter((r): r is RipResult => !!r?.ok).sort((a, b) => b.rpm - a.rpm)[0]
+  const rawSwipe = !motion && msg.swipe?.points.length ? (swipePlausible(msg.swipe.points) ? scoreSwipe(msg.swipe.points, 0, clamp(msg.swipe.h, 400, 1400)) : { ok: false as const, reason: 'no-pull' as const }) : null
+  const swipe = rawSwipe?.ok && rawSwipe.rpm > NET.swipeRpmCap ? { ...rawSwipe, rpm: NET.swipeRpmCap, quality: rpmQuality(NET.swipeRpmCap) } : rawSwipe
+  const best = [motion, swipe].find((r): r is RipResult => !!r?.ok)
   if (best) return { rip: best, view: view(best, true, null) }
   const fail = FAIL()
   const reason = motion && !motion.ok ? motion.reason : swipe && !swipe.ok ? swipe.reason : 'no-pull'
@@ -61,14 +64,14 @@ export class Room {
     for (const s of this.seats) if (s?.online) s.send(m)
   }
 
-  seat(playerId: string, name: string, build: TopBuild, send: (m: ServerMsg) => void): Side | null {
+  seat(playerId: string, name: string, build: TopBuild, send: (m: ServerMsg) => void, close: () => void = () => undefined): Side | null {
     const existing = this.seats.findIndex(s => s?.playerId === playerId)
-    if (existing >= 0) return this.reconnect(existing as Side, send)
+    if (existing >= 0) return this.reconnect(existing as Side, send, close)
     const free = this.seats.findIndex(s => !s)
     if (free < 0 || this.phase !== 'wait') return null
     const side = free as Side
     assembleTop(build)
-    this.seats[side] = { playerId, name, build, send, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, track: new InputTrack() }
+    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack() }
     send({ k: 'room', code: this.code, side })
     const other = this.seats[(1 - side) as Side]
     if (other) {
@@ -79,12 +82,15 @@ export class Room {
     return side
   }
 
-  private reconnect(side: Side, send: (m: ServerMsg) => void): Side {
+  private reconnect(side: Side, send: (m: ServerMsg) => void, close: () => void): Side {
     const s = this.seats[side]!
     if (s.hold) clearTimeout(s.hold)
     s.hold = null
     s.online = true
+    const previous = s.close
     s.send = send
+    s.close = close
+    if (previous !== close) previous()
     send({ k: 'room', code: this.code, side })
     const other = this.seats[(1 - side) as Side]
     if (other) {
@@ -99,9 +105,10 @@ export class Room {
     return side
   }
 
-  disconnect(side: Side): void {
+  disconnect(side: Side, send?: (m: ServerMsg) => void): void {
     const s = this.seats[side]
-    if (!s || this.phase === 'done') return
+    if (!s || this.phase === 'done' || (send && s.send !== send)) return
+    if (s.hold) clearTimeout(s.hold)
     s.online = false
     const other = this.seats[(1 - side) as Side]
     if (!other) return this.finish()
@@ -123,7 +130,7 @@ export class Room {
     this.phase = 'launch'
     this.battle = null
     this.views = [null, null]
-    for (const s of this.seats) if (s) { s.rip = null; s.inputs.clear(); s.last = { x: 0, y: 0, seq: s.maxSeq }; s.track = new InputTrack(s.maxSeq) }
+    for (const s of this.seats) if (s) { s.rip = null; s.inputs.clear(); s.maxTick = 0; s.last = { x: 0, y: 0, seq: s.maxSeq }; s.track = new InputTrack(s.maxSeq) }
     this.launchAt = this.opts.now() + TIMING.countdownMs
     this.broadcast({ k: 'round', round: this.round, launchAt: this.launchAt })
     const round = this.round
@@ -160,7 +167,11 @@ export class Room {
       const sq = Number.isInteger(seq) ? Math.max(0, seq) : 0
       s.maxSeq = Math.max(s.maxSeq, sq)
       const tick = from + i
-      if (tick > b.tick && tick <= b.tick + NET.maxLead) s.inputs.set(tick, { x: clamp(x, -1, 1), y: clamp(y, -1, 1), seq: sq })
+      const inp = { x: clamp(x, -1, 1), y: clamp(y, -1, 1), seq: sq }
+      if (tick > b.tick && tick <= b.tick + NET.maxLead) {
+        s.inputs.set(tick, inp)
+        s.maxTick = Math.max(s.maxTick, tick)
+      } else if (tick <= b.tick && tick > b.tick - NET.lateCarry && !s.inputs.has(b.tick + 1)) s.inputs.set(b.tick + 1, inp)
     }
   }
 
@@ -192,7 +203,8 @@ export class Room {
 
   snap(): ServerMsg {
     const s = this.seats as [Seat, Seat]
-    return { k: 'snap', tick: this.battle!.tick, state: this.battle!, inputs: [{ ...s[0].last, seq: s[0].track.seq }, { ...s[1].last, seq: s[1].track.seq }] }
+    const t = this.battle!.tick
+    return { k: 'snap', tick: t, state: this.battle!, inputs: [{ ...s[0].last, seq: s[0].track.seq }, { ...s[1].last, seq: s[1].track.seq }], leads: [s[0].maxTick - t, s[1].maxTick - t] }
   }
 
   private endRound(): void {

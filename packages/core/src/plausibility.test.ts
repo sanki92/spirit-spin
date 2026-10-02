@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tracePlausible } from './plausibility'
+import { tracePlausible, swipePlausible } from './plausibility'
 import { pullTrace } from './rip.fixtures'
 
 describe('tracePlausible', () => {
@@ -20,5 +20,17 @@ describe('tracePlausible', () => {
   it('repeated identical vectors are flagged', () => {
     const tr = pullTrace({ start: 0 }); for (let i = 10; i < 22; i++) tr[i] = { ...(tr[i] as typeof tr[number]), ax: 1, ay: 2, az: 3 }
     expect(tracePlausible(tr).reasons).toContain('repeated-samples')
+  })
+})
+
+describe('swipePlausible', () => {
+  const pts = (n: number, dt: number) => Array.from({ length: n }, (_, i) => ({ t: 10 + i * dt, x: 200 + (i % 2), y: 100 + i * 50 }))
+  it('accepts a real swipe sampled at touch rate', () => {
+    expect(swipePlausible(pts(11, 16))).toBe(true)
+  })
+  it('rejects forged two-point or sparse swipes', () => {
+    expect(swipePlausible([{ t: 0, x: 0, y: 0 }, { t: 120, x: 0, y: 900 }])).toBe(false)
+    expect(swipePlausible(pts(8, 90))).toBe(false)
+    expect(swipePlausible(pts(8, 0))).toBe(false)
   })
 })

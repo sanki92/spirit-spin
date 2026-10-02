@@ -52,7 +52,10 @@ export function Friends({ join }: { join?: string | undefined }) {
     clearTimeout(timeout.current)
     timeout.current = window.setTimeout(() => setPhase(p => (p.k === 'connecting' || p.k === 'joining' ? { k: 'error', text: 'The battle server is not answering. Check your connection and try again.' } : p)), 8000)
   }
-  useEffect(() => () => clearTimeout(timeout.current), [])
+  useEffect(() => () => {
+    clearTimeout(timeout.current)
+    if (useNav.getState().stack.at(-1)?.k !== 'live') rt.leave()
+  }, [])
   const host = async () => {
     rt.leave()
     setPhase({ k: 'connecting' })

@@ -5,7 +5,7 @@ import { buildApp, type App } from '../app'
 let app: App
 let url = ''
 beforeAll(async () => {
-  app = await buildApp({ databaseUrl: 'memory://', jwtSecret: 'test-secret-test-secret-test-secret-32', corsOrigins: ['*'], logLevel: 'silent', openaiKey: null }, { realtime: { seatHoldMs: 1500, speed: 8 } })
+  app = await buildApp({ databaseUrl: 'memory://', jwtSecret: 'test-secret-test-secret-test-secret-32', corsOrigins: ['*'], logLevel: 'silent', openaiKey: null }, { realtime: { seatHoldMs: 1500, speed: 8 }, guestPerMinute: 1000 })
   await app.listen({ port: 0, host: '127.0.0.1' })
   const addr = app.server.address()
   url = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/rt`
@@ -99,6 +99,61 @@ describe('realtime', () => {
     a.send({ k: 'create', build: BUILD_A })
     expect((await b.wait('left')).reason).toBe('quit')
     expect((await a.wait('room')).side).toBe(0)
+    a.ws.close(); b.ws.close()
+  })
+
+  it('a create with unknown parts leaves no room behind', async () => {
+    const before = ((await app.inject({ method: 'GET', url: '/healthz' })).json() as { rooms: number }).rooms
+    expect(typeof before).toBe('number')
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'C' })
+    await c.wait('welcome')
+    for (let i = 0; i < 5; i++) c.send({ k: 'create', build: { bladeId: 'x', discId: 'x', tipId: 'x', beastId: 'voltfang' } })
+    expect((await c.wait('error')).code).toBe('bad-message')
+    await new Promise(r => setTimeout(r, 100))
+    expect(((await app.inject({ method: 'GET', url: '/healthz' })).json() as { rooms: number }).rooms).toBeLessThanOrEqual(before)
+    c.ws.close()
+  })
+
+  it('a stale socket closing after a rejoin does not drop the player', async () => {
+    const { a, b, room } = await pair()
+    await b.wait('room')
+    const b2 = await client()
+    b2.send({ k: 'hello', token: b.token, name: 'Bo' })
+    await b2.wait('welcome')
+    b2.send({ k: 'rejoin', code: room.code })
+    expect((await b2.wait('room')).side).toBe(1)
+    await new Promise(r => setTimeout(r, 200))
+    expect(b.closed()).not.toBeNull()
+    await new Promise(r => setTimeout(r, 1800))
+    expect(a.msgs.some(m => m.k === 'left')).toBe(false)
+    expect(a.msgs.filter(m => m.k === 'peer').at(-1)).toMatchObject({ online: true })
+    a.ws.close(); b2.ws.close()
+  })
+
+  it('late inputs carry to the next tick and snapshots report input leads', async () => {
+    const { a, b } = await pair()
+    await a.wait('round'); await b.wait('round')
+    a.send({ k: 'rip', round: 1, swipe: SWIPE, pull100: 7 })
+    b.send({ k: 'rip', round: 1, swipe: SWIPE, pull100: 7 })
+    await a.wait('start')
+    const s1 = await a.wait('snap')
+    a.send({ k: 'inputs', from: Math.max(1, s1.tick - 1), list: [[0.77, -0.5, 0]] })
+    let seen = false
+    for (let i = 0; i < 10 && !seen; i++) { const s = await a.wait('snap'); seen = s.inputs[0].x === 0.77; expect(s.leads).toHaveLength(2) }
+    expect(seen).toBe(true)
+    a.ws.close(); b.ws.close()
+  })
+
+  it('forged swipes are refused and motion data wins over a swipe', async () => {
+    const { a, b } = await pair()
+    await a.wait('round'); await b.wait('round')
+    a.send({ k: 'rip', round: 1, swipe: { points: [{ t: 0, x: 0, y: 0 }, { t: 120, x: 0, y: 900 }], h: 900 }, pull100: 7 })
+    b.send({ k: 'rip', round: 1, swipe: SWIPE, pull100: 7 })
+    const st = await a.wait('start')
+    expect(st.rips[0]).toMatchObject({ ok: false })
+    expect(st.rips[1].ok).toBe(true)
+    expect(st.rips[1].rpm).toBeLessThanOrEqual(13500)
     a.ws.close(); b.ws.close()
   })
 

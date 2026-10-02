@@ -80,7 +80,7 @@ export async function openDb(url: string): Promise<{ db: Db; close: () => Promis
   try {
     return await openPglite(new PGlite(dir))
   } catch (e) {
-    if (process.env.NODE_ENV === 'production' || !existsSync(dir)) throw e
+    if (process.env.DEV_TOOLS !== '1' || !existsSync(dir)) throw e
     const aside = `${dir}.corrupt-${new Date().toISOString().replace(/[:.]/g, '-')}`
     renameSync(dir, aside)
     console.warn(`[db] dev PGlite at ${dir} would not open (${String(e).slice(0, 120)}); moved to ${aside} and starting fresh`)

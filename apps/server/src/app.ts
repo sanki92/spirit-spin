@@ -29,7 +29,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void; guestPerMinute?: number }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -60,7 +60,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
-  await registerRealtime(app, tokens, {
+  const rooms = await registerRealtime(app, tokens, {
     ...deps.realtime,
     onResult: room => {
       const [a, b] = room.seats
@@ -75,7 +75,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     req.playerId = id
   }
 
-  app.get('/healthz', async () => ({ ok: true, time: new Date().toISOString() }))
+  app.get('/healthz', async () => ({ ok: true, time: new Date().toISOString(), rooms: rooms.size }))
   const devShutdown = deps.devShutdown
   if (devShutdown) {
     app.post('/__dev/shutdown', async (req, reply) => {
@@ -85,7 +85,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     })
   }
 
-  app.post('/v1/auth/guest', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async () => {
+  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 20, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()
     const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, cfg.jwtSecret), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
@@ -166,13 +166,14 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 }
 
 async function assignFriendCode(db: Db, id: string): Promise<string> {
-  for (;;) {
+  for (let attempt = 0; ; attempt++) {
     const code = randomCode(6)
     try {
       await db.update(players).set({ friendCode: code }).where(eq(players.id, id))
       return code
-    } catch {
-      continue
+    } catch (e) {
+      const pgCode = (e as { code?: string; cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code
+      if (pgCode !== '23505' || attempt >= 4) throw e
     }
   }
 }

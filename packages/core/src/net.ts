@@ -3,7 +3,7 @@ import type { TopBuild } from './parts'
 import type { MotionSample, RipResult } from './rip'
 import type { TouchSample } from './rip-swipe'
 
-export const NET = { snapEvery: 3, maxLead: 30, seatHoldMs: 15000, tickMs: 1000 / 60, maxMessageBytes: 16384, maxMsgsPerSec: 120 } as const
+export const NET = { snapEvery: 3, maxLead: 30, lateCarry: 6, swipeRpmCap: 13500, maxRooms: 5000, heartbeatMs: 10000, seatHoldMs: 15000, tickMs: 1000 / 60, maxMessageBytes: 16384, maxMsgsPerSec: 120 } as const
 
 export interface NetInput { x: number; y: number; seq: number }
 export type RipView = Pick<RipResult, 'rpm' | 'quality' | 'overspin' | 'style' | 'bankDir' | 'timing' | 'straightness' | 'pullRatio'> & { ok: boolean; reason: string | null }
@@ -24,7 +24,7 @@ export type ServerMsg =
   | { k: 'peer'; name: string; build: TopBuild; online: boolean }
   | { k: 'round'; round: number; launchAt: number }
   | { k: 'start'; round: number; seed: number; rips: [RipView, RipView]; tick: number }
-  | { k: 'snap'; tick: number; state: BattleState; inputs: [NetInput, NetInput] }
+  | { k: 'snap'; tick: number; state: BattleState; inputs: [NetInput, NetInput]; leads: [number, number] }
   | { k: 'end'; round: number; outcome: RoundOutcome; scores: [number, number]; winner: Side | null }
   | { k: 'pong'; t: number; server: number }
   | { k: 'left'; reason: 'forfeit' | 'quit' }

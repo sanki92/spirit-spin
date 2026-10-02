@@ -19,6 +19,8 @@ export class OnlineController extends BattleController {
   private snapTick = 0
   private snapAt = 0
   private ripRound = 0
+  private ended = false
+  private lead: number | null = null
   private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
   private stats = { snaps: 0, corr: 0, maxCorr: 0, doubled: 0, skipped: 0, lag: 0, lagN: 0, at: 0 }
@@ -50,10 +52,23 @@ export class OnlineController extends BattleController {
       this.countdown(Math.max(performance.now() + 900, rt.toLocalPerf(m.launchAt)))
     } else if (m.k === 'start' && m.round === this.ripRound) this.onStart(m)
     else if (m.k === 'snap') this.onSnap(m)
-    else if (m.k === 'end' && m.round === this.ripRound) {
+    else if (m.k === 'end' && m.round === this.ripRound && !this.ended) {
       const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
+      if (!this.game.battle) this.game.setBattle(this.pred ? view(this.pred.state, this.side) : null)
       this.finishRound({ k: 'finish', tick: this.pred?.state.tick ?? 0, outcome })
-    } else if (m.k === 'left') {
+      const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
+      this.match = { ...this.match, scores, winner: this.side === 0 ? m.winner : flipWinner(m.winner) }
+      useHud.getState().set({ scores })
+      if (this.match.winner !== null) this.ended = true
+    } else if (m.k === 'error' && m.code === 'no-room' && !this.ended) {
+      log('net.room-lost', { round: this.ripRound })
+      this.ended = true
+      this.pred = null
+      useHud.getState().set({ notice: 'Connection lost. The match was forfeited.' })
+      this.match = { ...this.match, winner: 1 }
+      this.later(1800, () => this.concludeMatch())
+    } else if (m.k === 'left' && !this.ended) {
+      this.ended = true
       log('net.peer-left', { reason: m.reason })
       useHud.getState().set({ notice: 'Opponent left. You win!' })
       this.match = { ...this.match, winner: 0 }
@@ -79,6 +94,7 @@ export class OnlineController extends BattleController {
     this.pred = new Predictor(s, this.side, [{ x: 0, y: 0, seq: this.side === 0 ? this.seq : 0 }, { x: 0, y: 0, seq: this.side === 1 ? this.seq : 0 }])
     this.snapTick = m.tick
     this.snapAt = performance.now()
+    this.lead = null
     this.batch = []
     this.spiritSeen = [false, false]
     const mine = m.rips[this.side]
@@ -91,12 +107,17 @@ export class OnlineController extends BattleController {
 
   protected override tick(): void {
     const p = this.pred
-    if (!p || p.state.outcome) return
-    const desired = this.snapTick + (performance.now() - this.snapAt + rt.rtt) / NET.tickMs + 4
-    const lag = desired - p.state.tick
-    this.stats.lag += lag
-    this.stats.lagN++
-    const steps = lag > 2 ? 2 : lag < -4 ? 0 : 1
+    if (!p || p.state.outcome || !rt.connected) return
+    let steps: number
+    if (this.lead === null) {
+      const lag = this.snapTick + (performance.now() - this.snapAt + rt.rtt) / NET.tickMs + 4 - p.state.tick
+      steps = lag > 2 ? 2 : lag < -4 ? 0 : 1
+    } else {
+      steps = this.lead < 2 ? 2 : this.lead > 7 ? 0 : 1
+      this.lead += steps - 1
+      this.stats.lag += this.lead
+      this.stats.lagN++
+    }
     if (steps === 2) this.stats.doubled++
     if (steps === 0) this.stats.skipped++
     for (let i = 0; i < steps; i++) this.stepOnce(p)
@@ -124,6 +145,7 @@ export class OnlineController extends BattleController {
     if (!p) return
     const before = view(p.state, this.side).tops.map(t => ({ x: t.x, y: t.y }))
     if (!p.reconcile(m.tick, m.state, m.inputs)) return
+    if (p.state.tick > m.tick) this.lead = m.leads[this.side]
     this.snapTick = m.tick
     this.snapAt = performance.now()
     const after = view(p.state, this.side)
