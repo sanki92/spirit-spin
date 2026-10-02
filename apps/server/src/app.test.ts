@@ -57,3 +57,41 @@ describe('server', () => {
     expect(limited).toBe(true)
   })
 })
+
+describe('spirit director route', () => {
+  const MOMENT = {
+    kind: 'post',
+    beast: { id: 'voltfang', trust: 40, respect: 30, courage: 4, pride: 2, curiosity: 1, calm: -3, battles: 5, awakened: null, memories: [] },
+    battle: { won: true, comeback: false, finishes: ['spin'], perfectRips: 1, overspins: 0, spiritCalls: 1, aggression: 0.6, boss: null, opponent: 'Kaze' },
+    reply: null,
+  }
+  it('returns the AI line, falls back on schema failure, enforces the daily cap and blocks flagged lines', async () => {
+    let calls = 0, flag = false
+    const fake = await buildApp(
+      { databaseUrl: 'memory://', jwtSecret: 'test-secret-test-secret-test-secret-32', corsOrigins: ['*'], logLevel: 'silent', openaiKey: null },
+      {
+        director: async (_m, model) => {
+          calls++
+          const ok = model === 'gpt-4o-mini' || calls > 1
+          return { model, inputTokens: 300, cachedTokens: 0, outputTokens: 40, usd: 0.0001, ms: 5, failure: ok ? null : 'schema', line: ok ? { line: 'Ha! Kaze never saw it.', mood: 'proud', nudge: { trait: 'courage', delta: 1 }, memory: null } : null }
+        },
+        moderator: async () => !flag,
+        perPlayerDaily: 3,
+      },
+    )
+    const g = (await fake.inject({ method: 'POST', url: '/v1/auth/guest' })).json() as { token: string }
+    const h = { authorization: `Bearer ${g.token}` }
+    const first = await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })
+    expect(first.json()).toMatchObject({ line: 'Ha! Kaze never saw it.', mood: 'proud', nudge: { trait: 'courage', delta: 1 } })
+    expect(calls).toBe(2)
+    flag = true
+    expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })).json()).toMatchObject({ line: null })
+    flag = false
+    expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: { ...MOMENT, beast: { ...MOMENT.beast, trust: 999 } } })).statusCode).toBe(400)
+    const before = calls
+    expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })).json()).toMatchObject({ line: 'Ha! Kaze never saw it.' })
+    expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })).json()).toMatchObject({ line: null, reason: 'player-cap' })
+    expect(calls).toBe(before + 1)
+    await fake.close()
+  })
+})

@@ -6,7 +6,10 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import { z } from 'zod'
 import { hashRecoveryCode, newRecoveryCode, Tokens } from './auth'
 import type { Config } from './config'
-import { openDb, players } from './db'
+import { openDb, players, aiCalls } from './db'
+import { directSpirit, moderate, type DirectorResult } from './spirit/director'
+import type { MomentInput } from './spirit/prompt'
+import { gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
   baseVersion: z.number().int().min(0),
@@ -25,7 +28,29 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export async function buildApp(cfg: Config) {
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number }
+
+const Trait = z.number().int().min(-10).max(10)
+const MomentBody = z.object({
+  kind: z.enum(['post', 'reply', 'greet']),
+  beast: z.object({
+    id: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx']),
+    trust: z.number().int().min(0).max(100), respect: z.number().int().min(0).max(100),
+    courage: Trait, pride: Trait, curiosity: Trait, calm: Trait,
+    battles: z.number().int().min(0).max(1_000_000), awakened: z.string().max(20).nullable(),
+    memories: z.array(z.object({ text: z.string().max(120), importance: z.number().int().min(1).max(5) })).max(50),
+  }),
+  battle: z.object({
+    won: z.boolean(), comeback: z.boolean(), finishes: z.array(z.enum(['spin', 'ringout', 'shatter', 'spirit', 'draw'])).max(20),
+    perfectRips: z.number().int().min(0).max(20), overspins: z.number().int().min(0).max(20), spiritCalls: z.number().int().min(0).max(20),
+    aggression: z.number().min(0).max(1), boss: z.enum(['kaze', 'mira', 'brick', 'vex', 'ren']).nullable(), opponent: z.string().min(1).max(40),
+  }).nullable(),
+  reply: z.enum(['celebrate', 'humble', 'push', 'comfort', 'analyze', 'fireup']).nullable(),
+})
+
+export const AI = { primary: 'gpt-4.1-nano', fallback: 'gpt-4o-mini', perPlayerDaily: 30, globalDailyUsd: 3 }
+
+export async function buildApp(cfg: Config, deps: Deps = {}) {
   const app = Fastify({ logger: cfg.logLevel === 'silent' ? false : { level: cfg.logLevel }, bodyLimit: 256 * 1024, trustProxy: true }).withTypeProvider<ZodTypeProvider>()
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
@@ -77,6 +102,28 @@ export async function buildApp(cfg: Config) {
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
     return reply.code(409).send({ error: 'stale save', version: row.saveVersion, save: row.save })
+  })
+
+  const key = cfg.openaiKey
+  const director = deps.director ?? (key ? (m: MomentInput, model: string) => directSpirit(key, model, m) : null)
+  const moderator = deps.moderator ?? (key ? (t: string) => moderate(key, t) : async () => true)
+  const dayStart = () => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d }
+
+  app.post('/v1/spirit/moment', { preHandler: requireAuth, config: { rateLimit: { max: 20, timeWindow: '1 minute' } }, schema: { body: MomentBody } }, async req => {
+    if (!director) return { line: null, reason: 'ai-disabled' }
+    const since = dayStart()
+    const [mine] = await db.select({ n: sql<number>`count(*)::int` }).from(aiCalls).where(and(eq(aiCalls.playerId, req.playerId), gte(aiCalls.createdAt, since)))
+    if ((mine?.n ?? 0) >= (deps.perPlayerDaily ?? AI.perPlayerDaily)) return { line: null, reason: 'player-cap' }
+    const [all] = await db.select({ micros: sql<number>`coalesce(sum(usd_micros),0)::int` }).from(aiCalls).where(gte(aiCalls.createdAt, since))
+    if ((all?.micros ?? 0) / 1e6 >= AI.globalDailyUsd) return { line: null, reason: 'budget' }
+    const input = req.body as MomentInput
+    let r = await director(input, AI.primary)
+    if (!r.line && !r.failure?.startsWith('network')) r = await director(input, AI.fallback)
+    const safe = r.line ? await moderator(r.line.line) : false
+    await db.insert(aiCalls).values({ playerId: req.playerId, kind: input.kind, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, usdMicros: Math.round(r.usd * 1e6), ok: r.line && safe ? 1 : 0 })
+    req.log.info({ ai: { kind: input.kind, model: r.model, ms: Math.round(r.ms), usd: r.usd, failure: r.failure, safe } }, 'spirit moment')
+    if (!r.line || !safe) return { line: null, reason: r.failure ?? 'moderation' }
+    return { line: r.line.line, mood: r.line.mood, nudge: r.line.nudge, memory: r.line.memory }
   })
 
   await app.ready()
