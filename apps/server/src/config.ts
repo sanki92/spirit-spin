@@ -7,7 +7,9 @@ const Env = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8787),
   DATABASE_URL: z.string().default('file://.data/pglite'),
   JWT_SECRET: z.string().min(32).optional(),
-  CORS_ORIGINS: z.string().default('*'),
+  CORS_ORIGINS: z.string().optional(),
+  RECOVERY_PEPPER: z.string().min(32).optional(),
+  TRUST_PROXY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
@@ -23,18 +25,27 @@ export interface Config {
   logLevel: string
   openaiKey: string | null
   port?: number
+  recoveryPepper?: string | undefined
+  trustProxy?: string | boolean | undefined
   staticDir?: string | undefined
   payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const e = Env.parse(env)
-  if (e.NODE_ENV === 'production' && !e.JWT_SECRET) throw new Error('JWT_SECRET is required in production')
+  if (e.NODE_ENV === 'production') {
+    if (!e.JWT_SECRET) throw new Error('JWT_SECRET is required in production')
+    if (!e.RECOVERY_PEPPER) throw new Error('RECOVERY_PEPPER is required in production')
+    if (!e.CORS_ORIGINS) throw new Error('CORS_ORIGINS is required in production')
+    if (env.DEV_TOOLS === '1') throw new Error('DEV_TOOLS must not be enabled in production')
+  }
   return {
     port: e.PORT,
     databaseUrl: e.DATABASE_URL,
     jwtSecret: e.JWT_SECRET ?? devSecret(),
-    corsOrigins: e.CORS_ORIGINS.split(',').map(s => s.trim()),
+    corsOrigins: (e.CORS_ORIGINS ?? '*').split(',').map(s => s.trim()),
+    recoveryPepper: e.RECOVERY_PEPPER,
+    trustProxy: e.TRUST_PROXY === 'false' ? false : e.TRUST_PROXY ?? 'loopback',
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
     staticDir: e.STATIC_DIR,

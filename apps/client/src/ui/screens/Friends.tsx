@@ -131,6 +131,8 @@ interface Friend { playerId: string; name: string; friendCode: string }
 function FriendList({ onChallenge }: { onChallenge: () => void }) {
   const [mine, setMine] = useState<string | null>(null)
   const [friends, setFriends] = useState<Friend[] | null>(null)
+  const [incoming, setIncoming] = useState<Friend[]>([])
+  const [outgoing, setOutgoing] = useState<Friend[]>([])
   const [offline, setOffline] = useState(false)
   const [code, setCode] = useState('')
   const [note, setNote] = useState<string | null>(null)
@@ -139,25 +141,27 @@ function FriendList({ onChallenge }: { onChallenge: () => void }) {
     try {
       const [me, list] = await Promise.all([
         fetch('/v1/me', { headers: authHeader() }).then(r => r.json() as Promise<{ friendCode?: string }>),
-        fetch('/v1/friends', { headers: authHeader() }).then(r => r.json() as Promise<{ friends?: Friend[] }>),
+        fetch('/v1/friends', { headers: authHeader() }).then(r => r.json() as Promise<{ friends?: Friend[]; incoming?: Friend[]; outgoing?: Friend[] }>),
       ])
       setMine(me.friendCode ?? null)
       setFriends(list.friends ?? [])
+      setIncoming(list.incoming ?? [])
+      setOutgoing(list.outgoing ?? [])
       setOffline(false)
     } catch {
       setOffline(true)
     }
   }
   useEffect(() => { void load() }, [])
-  const add = async () => {
+  const add = async (c = code) => {
     setNote(null)
-    const r = await fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ code }) }).catch(() => null)
+    const r = await fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ code: c }) }).catch(() => null)
     if (!r) return setNote('No connection. Try again in a moment.')
     if (r.status === 404) return setNote('No player has that friend code.')
     if (r.status === 400) return setNote('That is your own code.')
     if (!r.ok) return setNote('Could not add that friend. Try again.')
     setCode('')
-    setNote('Friend added.')
+    setNote('Request sent. You become friends when they add you back.')
     log('friends.add', {})
     void load()
   }
@@ -172,20 +176,32 @@ function FriendList({ onChallenge }: { onChallenge: () => void }) {
         <div><strong>Your friend code</strong><span>Friends add you with this code.</span></div>
         <button className="code-chip" onClick={copy} aria-label="Copy your friend code">{mine ?? '······'}<em>{copied ? 'Copied' : 'Copy'}</em></button>
       </section>
-      <form className="setting recover-form" onSubmit={e => { e.preventDefault(); void add() }}>
+      <form className="setting recover-form" onSubmit={e => { e.preventDefault(); void add(code) }}>
         <div><strong>Add a friend</strong><span>{note ?? 'Enter their 6-character friend code.'}</span></div>
         <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase())} placeholder="ABC234" maxLength={6} autoCapitalize="characters" aria-label="Friend code" />
         <button disabled={code.length !== 6}>Add</button>
       </form>
+      {incoming.length > 0 && (
+        <section className="friend-list" aria-label="Friend requests">
+          <h2>Requests</h2>
+          {incoming.map(f => (
+            <div key={f.playerId} className="friend">
+              <span className="friend-initial" aria-hidden>{f.name.slice(0, 1).toUpperCase()}</span>
+              <div><strong>{f.name}</strong><span>Wants to be friends</span></div>
+              <button className="go" onClick={() => void add(f.friendCode)}>Add back</button>
+            </div>
+          ))}
+        </section>
+      )}
       <section className="friend-list" aria-label="Friends">
         <h2>Friends</h2>
-        {friends === null ? <p className="fine">Loading…</p> : friends.length === 0 ? (
+        {friends === null ? <p className="fine">Loading…</p> : friends.length + outgoing.length === 0 ? (
           <p className="fine">No friends yet. Battle someone live or add their code, and they show up here.</p>
-        ) : friends.map(f => (
+        ) : [...friends.map(f => ({ ...f, pending: false })), ...outgoing.map(f => ({ ...f, pending: true }))].map(f => (
           <div key={f.playerId} className="friend">
             <span className="friend-initial" aria-hidden>{f.name.slice(0, 1).toUpperCase()}</span>
-            <div><strong>{f.name}</strong><span>{f.friendCode}</span></div>
-            <button className="go" onClick={onChallenge}>Challenge</button>
+            <div><strong>{f.name}</strong><span>{f.pending ? 'Requested' : f.friendCode}</span></div>
+            {!f.pending && <button className="go" onClick={onChallenge}>Challenge</button>}
           </div>
         ))}
       </section>

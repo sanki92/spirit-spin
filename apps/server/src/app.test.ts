@@ -61,7 +61,7 @@ describe('server', () => {
 describe('friends', () => {
   const me = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/me', headers: auth(token) })).json() as { friendCode: string; playerId: string }
   const list = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(token) })).json() as { friends: { playerId: string; name: string; friendCode: string }[] }
-  it('every player has a friend code; adding by code is mutual and idempotent', async () => {
+  it('every player has a friend code; friendship forms when both add each other, idempotently', async () => {
     const a = await guest(), b = await guest()
     const ma = await me(a.token), mb = await me(b.token)
     expect(ma.friendCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
@@ -70,6 +70,8 @@ describe('friends', () => {
     const add = await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode.toLowerCase() } })
     expect(add.statusCode).toBe(200)
     expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode } })).statusCode).toBe(200)
+    expect((await list(a.token)).friends).toEqual([])
+    await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(b.token), payload: { code: ma.friendCode } })
     expect((await list(a.token)).friends).toEqual([{ playerId: b.playerId, name: 'Bob', friendCode: mb.friendCode }])
     expect((await list(b.token)).friends.map(f => f.playerId)).toEqual([a.playerId])
   })
@@ -111,9 +113,8 @@ describe('spirit director route', () => {
     flag = false
     expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: { ...MOMENT, beast: { ...MOMENT.beast, trust: 999 } } })).statusCode).toBe(400)
     const before = calls
-    expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })).json()).toMatchObject({ line: 'Ha! Kaze never saw it.' })
     expect((await fake.inject({ method: 'POST', url: '/v1/spirit/moment', headers: h, payload: MOMENT })).json()).toMatchObject({ line: null, reason: 'player-cap' })
-    expect(calls).toBe(before + 1)
+    expect(calls).toBe(before)
     await fake.close()
   })
 })

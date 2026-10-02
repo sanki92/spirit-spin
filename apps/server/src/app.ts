@@ -9,14 +9,15 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import { z } from 'zod'
 import { cleanName, hashRecoveryCode, newRecoveryCode, randomCode, Tokens } from './auth'
 import type { Config } from './config'
-import { openDb, players, aiCalls, friendships, type Db } from './db'
+import { openDb, players, aiCalls, entitlements, friendships, type Db } from './db'
+import { PASS_TIERS, SKUS } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
 import { registerTournaments } from './tournaments'
 import { registerStore, type Payments } from './store'
-import { desc, gte, sql } from 'drizzle-orm'
+import { desc, gte, inArray, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
   baseVersion: z.number().int().min(0),
@@ -58,11 +59,20 @@ const MomentBody = z.object({
 export const AI = { primary: 'gpt-4.1-nano', fallback: 'gpt-4o-mini', perPlayerDaily: 30, globalDailyUsd: 3 }
 
 export async function buildApp(cfg: Config, deps: Deps = {}) {
-  const app = Fastify({ logger: cfg.logLevel === 'silent' ? false : { level: cfg.logLevel }, bodyLimit: 256 * 1024, trustProxy: true }).withTypeProvider<ZodTypeProvider>()
+  const app = Fastify({ logger: cfg.logLevel === 'silent' ? false : { level: cfg.logLevel }, bodyLimit: 256 * 1024, trustProxy: cfg.trustProxy ?? 'loopback' }).withTypeProvider<ZodTypeProvider>()
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
   const { db, close } = await openDb(cfg.databaseUrl)
   const tokens = new Tokens(cfg.jwtSecret)
+  const pepper = cfg.recoveryPepper ?? cfg.jwtSecret
+  app.setErrorHandler((err: { statusCode?: number; message?: string; validation?: unknown }, req, reply) => {
+    const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500
+    if (status >= 500) {
+      req.log.error({ err: String(err.message ?? err) }, 'request failed')
+      return reply.code(status).send({ error: 'internal error' })
+    }
+    return reply.code(status).send({ error: err.validation ? 'invalid request' : err.message ?? 'bad request' })
+  })
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
@@ -71,7 +81,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     onResult: room => {
       const [a, b] = room.seats
       if (!a || !b || a.playerId === b.playerId) return
-      const work = [befriend(db, a.playerId, b.playerId), ...[a, b].map(s => recordGhostHistory(db, s.playerId, s.ripLog, s.tiltN ? s.tiltSum / s.tiltN : null))]
+      const work = [a, b].map(s => recordGhostHistory(db, s.playerId, s.ripLog, s.tiltN ? s.tiltSum / s.tiltN : null))
       void Promise.all(work).catch(e => app.log.warn({ err: String(e) }, 'live result bookkeeping failed'))
     },
   })
@@ -112,7 +122,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 20, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()
-    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, cfg.jwtSecret), friendCode: randomCode(6) }).returning({ id: players.id })
+    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
   })
 
@@ -120,7 +130,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     '/v1/auth/recover',
     { config: { rateLimit: { max: 10, timeWindow: '1 minute' } }, schema: { body: z.object({ code: z.string().min(12).max(20) }) } },
     async (req, reply) => {
-      const [row] = await db.select({ id: players.id }).from(players).where(eq(players.recoveryHash, hashRecoveryCode(req.body.code, cfg.jwtSecret))).limit(1)
+      const [row] = await db.select({ id: players.id }).from(players).where(eq(players.recoveryHash, hashRecoveryCode(req.body.code, pepper))).limit(1)
       if (!row) return reply.code(404).send({ error: 'unknown recovery code' })
       return { playerId: row.id, token: await tokens.sign(row.id) }
     },
@@ -129,7 +139,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.get('/v1/me', { preHandler: requireAuth }, async (req, reply) => {
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
-    return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: row.save }
+    return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id) }
   })
 
   const cups = registerTournaments(app, db, requireAuth)
@@ -137,26 +147,31 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   registerLeague(app, db, requireAuth, cups.onVerified)
 
   app.get('/v1/friends', { preHandler: requireAuth }, async req => {
-    const rows = await db
-      .select({ playerId: players.id, name: players.name, friendCode: players.friendCode })
-      .from(friendships)
-      .innerJoin(players, eq(players.id, friendships.friendId))
-      .where(eq(friendships.playerId, req.playerId))
-      .orderBy(desc(friendships.createdAt))
-      .limit(200)
-    return { friends: rows }
+    const mine = await db.select({ id: friendships.friendId, at: friendships.createdAt }).from(friendships).where(eq(friendships.playerId, req.playerId)).limit(300)
+    const theirs = await db.select({ id: friendships.playerId }).from(friendships).where(eq(friendships.friendId, req.playerId)).limit(300)
+    const back = new Set(theirs.map(t => t.id))
+    const ids = [...new Set([...mine.map(m => m.id), ...theirs.map(t => t.id)])]
+    const people = ids.length ? await db.select({ playerId: players.id, name: players.name, friendCode: players.friendCode }).from(players).where(inArray(players.id, ids)) : []
+    const byId = new Map(people.map(p => [p.playerId, p]))
+    const mineIds = new Set(mine.map(m => m.id))
+    return {
+      friends: mine.filter(m => back.has(m.id)).map(m => byId.get(m.id)).filter(Boolean),
+      outgoing: mine.filter(m => !back.has(m.id)).map(m => byId.get(m.id)).filter(Boolean),
+      incoming: theirs.filter(t => !mineIds.has(t.id)).map(t => byId.get(t.id)).filter(Boolean),
+    }
   })
 
   app.post('/v1/friends', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ code: z.string().regex(/^[A-Za-z0-9]{6}$/) }) } }, async (req, reply) => {
     const [friend] = await db.select({ id: players.id }).from(players).where(eq(players.friendCode, req.body.code.toUpperCase())).limit(1)
     if (!friend) return reply.code(404).send({ error: 'unknown code' })
     if (friend.id === req.playerId) return reply.code(400).send({ error: 'own code' })
-    await befriend(db, req.playerId, friend.id)
+    await db.insert(friendships).values({ playerId: req.playerId, friendId: friend.id }).onConflictDoNothing()
     return { ok: true }
   })
 
   app.put('/v1/save', { preHandler: requireAuth, schema: { body: SaveBody } }, async (req, reply) => {
-    const { baseVersion, save } = req.body
+    const { baseVersion } = req.body
+    const save = await sanitizeSave(db, req.playerId, req.body.save)
     const updated = await db
       .update(players)
       .set({ save, name: cleanName(save.name), saveVersion: baseVersion + 1, updatedAt: new Date() })
@@ -165,7 +180,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (updated.length) return { version: updated[0]!.version }
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
-    return reply.code(409).send({ error: 'stale save', version: row.saveVersion, save: row.save })
+    return reply.code(409).send({ error: 'stale save', version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save) })
   })
 
   const key = cfg.openaiKey
@@ -181,12 +196,16 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     const [all] = await db.select({ micros: sql<number>`coalesce(sum(usd_micros),0)::int` }).from(aiCalls).where(gte(aiCalls.createdAt, since))
     if ((all?.micros ?? 0) / 1e6 >= AI.globalDailyUsd) return { line: null, reason: 'budget' }
     const input = req.body as MomentInput
+    const record = (x: DirectorResult, ok: boolean) => db.insert(aiCalls).values({ playerId: req.playerId, kind: input.kind, model: x.model, inputTokens: x.inputTokens, outputTokens: x.outputTokens, usdMicros: Math.round(x.usd * 1e6), ok: ok ? 1 : 0 })
     let r = await director(input, AI.primary)
-    if (!r.line && !r.failure?.startsWith('network')) r = await director(input, AI.fallback)
+    if (!r.line && !r.failure?.startsWith('network')) {
+      await record(r, false)
+      r = await director(input, AI.fallback)
+    }
     const safe = r.line ? await moderator(r.line.line) : false
-    await db.insert(aiCalls).values({ playerId: req.playerId, kind: input.kind, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, usdMicros: Math.round(r.usd * 1e6), ok: r.line && safe ? 1 : 0 })
+    await record(r, !!r.line && safe)
     req.log.info({ ai: { kind: input.kind, model: r.model, ms: Math.round(r.ms), usd: r.usd, failure: r.failure, safe } }, 'spirit moment')
-    if (!r.line || !safe) return { line: null, reason: r.failure ?? 'moderation' }
+    if (!r.line || !safe) return { line: null, reason: !r.line ? (r.failure?.startsWith('network') ? 'network' : r.failure === 'schema' ? 'schema' : 'ai-error') : 'moderation' }
     return { line: r.line.line, mood: r.line.mood, nudge: r.line.nudge, memory: r.line.memory }
   })
 
@@ -210,3 +229,22 @@ async function assignFriendCode(db: Db, id: string): Promise<string> {
 export async function befriend(db: Db, a: string, b: string): Promise<void> {
   await db.insert(friendships).values([{ playerId: a, friendId: b }, { playerId: b, friendId: a }]).onConflictDoNothing()
 }
+
+export async function sanitizeSave(db: Db, playerId: string, raw: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const rows = await db.select({ item: entitlements.item }).from(entitlements).where(eq(entitlements.playerId, playerId))
+  const owned = rows.map(r => r.item).sort()
+  const premium = owned.includes('pass-s1')
+  const pass = (raw.pass ?? null) as { season?: string; baseXp?: number; free?: number[]; premium?: number[] } | null
+  const freeClaims = new Set(Array.isArray(pass?.free) ? pass!.free : [])
+  const premiumClaims = new Set(premium && Array.isArray(pass?.premium) ? pass!.premium : [])
+  const allowed = new Set<string>([...owned])
+  for (const t of PASS_TIERS) {
+    if (freeClaims.has(t.tier) && 'cosmetic' in t.free) allowed.add(t.free.cosmetic)
+    if (premiumClaims.has(t.tier) && 'cosmetic' in t.premium) allowed.add(t.premium.cosmetic)
+  }
+  const unlocks = Array.isArray(raw.unlocks) ? (raw.unlocks as unknown[]).filter((u): u is string => typeof u === 'string' && (allowed.has(u) || !SELLABLE.has(u) && !PREMIUM_ONLY.has(u))) : []
+  return { ...raw, entitlements: owned, unlocks, ...(pass ? { pass: { ...pass, premium: [...premiumClaims] } } : {}) }
+}
+
+const SELLABLE = new Set(Object.values(SKUS).flatMap(k => k.grants))
+const PREMIUM_ONLY = new Set(PASS_TIERS.flatMap(t => ('cosmetic' in t.premium ? [t.premium.cosmetic] : [])))

@@ -39,6 +39,8 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => rooms.delete(r.code), speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
   }
   app.addHook('onClose', async () => { for (const r of rooms.values()) r.close() })
+  const perIp = new Map<string, number>()
+  const owned = new Map<string, Room>()
 
   app.get('/rt', { websocket: true }, (socket, req) => {
     let playerId: string | null = null
@@ -46,6 +48,10 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let room: Room | null = null
     let side: Side | null = null
     let watching: Room | null = null
+    let misses = 0
+    const ip = req.ip
+    perIp.set(ip, (perIp.get(ip) ?? 0) + 1)
+    if ((perIp.get(ip) ?? 0) > 12) { socket.close(4002, 'too many connections'); perIp.set(ip, perIp.get(ip)! - 1); return }
     let windowStart = Date.now(), count = 0
     const send = (m: ServerMsg) => { if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(m)) }
     const replaced = () => socket.close(4001, 'replaced')
@@ -108,12 +114,21 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           side = null
         }
         if (m.k === 'create') {
+          const prev = owned.get(playerId)
+          if (prev && prev !== room && prev.phase !== 'done') {
+            const ps = prev.seats.findIndex(x => x?.playerId === playerId)
+            if (ps >= 0) prev.forfeit(ps as Side, 'quit')
+          }
           const r = make()
           if (!r) return fail('rate', false)
           enter(r, m.build)
+          owned.set(playerId, r)
         } else if (m.k === 'join' || m.k === 'rejoin') {
           const r = rooms.get(m.code)
-          if (!r) return fail('no-room', false)
+          if (!r) {
+            if (++misses >= 5) return fail('no-room')
+            return fail('no-room', false)
+          }
           const build = m.k === 'join' ? m.build : r.seats.find(s => s?.playerId === playerId)?.build
           if (!build) return fail('no-room', false)
           enter(r, build)
@@ -129,6 +144,10 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     })
     socket.on('close', () => {
       clearInterval(heartbeat)
+      const n = (perIp.get(ip) ?? 1) - 1
+      if (n > 0) perIp.set(ip, n)
+      else perIp.delete(ip)
+      if (playerId && owned.get(playerId) === room && room?.phase === 'done') owned.delete(playerId)
       if (room && side !== null) room.disconnect(side, send)
       watching?.unwatch(send)
     })

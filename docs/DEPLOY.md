@@ -15,7 +15,7 @@ python tools/build_audio.py
 
 ```bash
 docker build -t spirit-spin .
-docker run -d --name spirit --env-file .env -p 8787:8787 spirit-spin
+docker run -d --name spirit --env-file .env -p 127.0.0.1:8787:8787 spirit-spin
 ```
 
 Without Docker:
@@ -32,14 +32,16 @@ Copy `.env.example` to `.env` and fill it in.
 
 | Variable | Required | Notes |
 |---|---|---|
-| `JWT_SECRET` | yes | 32+ random characters. Rotating it signs everyone out (players restore with their recovery code). |
+| `JWT_SECRET` | yes | 32+ random characters. Rotating it signs everyone out; their apps sign back in automatically with the stored recovery code. |
+| `RECOVERY_PEPPER` | yes | 32+ random characters used to hash recovery codes. Never rotate it: every recovery code depends on it. |
 | `DATABASE_URL` | yes | `postgres://…`. Migrations run on boot. Without it the server uses an embedded PGlite file, fine for a single small box. |
-| `CORS_ORIGINS` | yes | Comma-separated origins allowed to call the API, e.g. `https://play.example.com`. |
+| `CORS_ORIGINS` | yes | Comma-separated origins allowed to call the API, e.g. `https://play.example.com`. The server refuses to start in production without it. |
+| `TRUST_PROXY` | no | Which hop may set `X-Forwarded-For`. Default `loopback` (a proxy on the same host). Use `false` if nothing sits in front. |
 | `STATIC_DIR` | yes in Docker | Set by the image to the built client. |
 | `OPENAI_API_KEY` | no | Enables the Spirit Director (beast lines). Without it, beasts use the written line bank. Spend is capped at $3/day globally and 30 calls/day per player. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | no | Enables purchases. Without them the store shows "Purchases open soon". |
 | `RAZORPAY_WEBHOOK_SECRET` | with Razorpay | Configure a webhook to `https://<host>/v1/store/webhook` for `payment.captured` and `order.paid`. |
-| `DEV_TOOLS` | never in production | `1` turns on the dev payment provider, the loopback shutdown endpoint and the dev database self-heal. |
+| `DEV_TOOLS` | never in production | `1` turns on the dev payment provider, the loopback shutdown endpoint and the dev database self-heal. The server refuses to start with it in production. |
 
 ## 4. Reverse proxy and TLS
 
@@ -52,12 +54,12 @@ location / {
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection "upgrade";
   proxy_set_header Host $host;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-For $remote_addr;
   proxy_read_timeout 75s;
 }
 ```
 
-The server trusts `X-Forwarded-For` for rate limiting, so keep it behind your proxy only.
+Rate limits key on the client address from `X-Forwarded-For`, trusted only from your proxy. Publish the container port on `127.0.0.1` so nothing reaches it except the proxy. Inside Docker the host proxy arrives from the bridge gateway, not loopback: set `TRUST_PROXY=172.17.0.1` (your bridge gateway) or run the container with `--network host` and keep `loopback`.
 
 ## 5. Scaling notes
 

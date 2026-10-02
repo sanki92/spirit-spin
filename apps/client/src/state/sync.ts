@@ -49,12 +49,17 @@ function adopt(remote: Record<string, unknown>, version: number): void {
 }
 
 export async function reauth(): Promise<void> {
-  try {
-    localStorage.removeItem(AUTH_KEY)
-  } catch {
-    return
-  }
+  const code = auth?.recoveryCode ?? loadAuth()?.recoveryCode ?? null
+  const version = auth?.version ?? 0
   auth = null
+  if (code) {
+    const r = await api<{ token: string; playerId: string }>('POST', '/v1/auth/recover', { code })
+    if (r.status === 200) {
+      storeAuth({ token: r.data.token, playerId: r.data.playerId, recoveryCode: code, version })
+      log('sync.recovered', {})
+      return
+    }
+  }
   const g = await api<{ token: string; playerId: string; recoveryCode: string }>('POST', '/v1/auth/guest')
   if (g.status === 200) storeAuth({ ...g.data, version: 0 })
 }
@@ -80,12 +85,13 @@ export async function startSync(): Promise<void> {
       storeAuth({ ...g.data, version: 0 })
       log('sync.guest', { playerId: g.data.playerId })
     }
-    const me = await api<{ version: number; save: Record<string, unknown> }>('GET', '/v1/me')
+    let me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
     if (me.status === 401) {
-      localStorage.removeItem(AUTH_KEY)
-      auth = null
-      return startSync()
+      await reauth()
+      if (!auth) return
+      me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
     }
+    if (me.status === 200 && me.data.token) storeAuth({ ...(auth as Auth), token: me.data.token })
     if (me.status === 200 && me.data.version > (auth as Auth).version && Object.keys(me.data.save).length) {
       const local = snapshot()
       if (((me.data.save.xp as number) ?? 0) >= local.xp) adopt(me.data.save, me.data.version)

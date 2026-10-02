@@ -230,6 +230,7 @@ const MIGRATIONS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (player_id, item)
   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS ghost_matches_one_attempt ON ghost_matches (ref_id, player_id) WHERE ref_id IS NOT NULL`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

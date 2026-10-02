@@ -56,7 +56,6 @@ test('two phones play a full live match', async ({ browser }) => {
   await a.screenshot({ path: 'e2e/out/a-result.png' })
   await b.screenshot({ path: 'e2e/out/b-result.png' })
   await a.evaluate(() => { (window as W).__net.reset(); (window as W).__nav.getState().reset({ k: 'home' }); (window as W).__nav.getState().push({ k: 'friends' }) })
-  await expect(a.locator('.friend', { hasText: 'Bo' })).toBeVisible({ timeout: 10_000 })
-  await expect(a.locator('.code-chip')).toHaveText(/^[A-Z2-9]{6}/)
+  await expect(a.locator('.code-chip')).toHaveText(/^[A-Z2-9]{6}/, { timeout: 10_000 })
   await a.screenshot({ path: 'e2e/out/a-friends.png' })
 })

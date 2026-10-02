@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { randomInt } from 'node:crypto'
 import { z } from 'zod'
-import { randomCode } from './auth'
+import { cleanText, randomCode } from './auth'
 import { ghostMatches, players, tournamentEntries, tournamentPairings, tournaments, type Db } from './db'
 import { ghostOf, issueGhostMatch, type GhostSpec } from './league'
 
@@ -148,7 +148,9 @@ export function registerTournaments(app: FastifyInstance, db: Db, requireAuth: A
   r.post('/v1/tournaments', { preHandler: requireAuth, config: { rateLimit: { max: 10, timeWindow: '1 minute' } }, schema: { body: z.object({ name: z.string().min(1).max(40), roundHours: z.number().int().min(1).max(48).optional(), webhook: z.string().max(300).optional() }) } }, async (req, reply) => {
     const { name, roundHours, webhook } = req.body
     if (webhook && !WEBHOOK.test(webhook)) return reply.code(400).send({ error: 'webhook must be a Discord webhook URL' })
-    const clean = name.replace(/[^\p{L}\p{N} '!?&._-]/gu, '').trim().slice(0, 40) || 'Spirit Cup'
+    const clean = cleanText(name, 40, 'Spirit Cup')
+    const open = (await db.select({ n: sql<number>`count(*)::int` }).from(tournaments).where(and(eq(tournaments.ownerId, req.playerId), sql`${tournaments.status} <> 'done'`)))[0]?.n ?? 0
+    if (open >= 5) return reply.code(429).send({ error: 'finish your open tournaments first' })
     for (let i = 0; i < 5; i++) {
       try {
         const [t] = await db.insert(tournaments).values({ code: randomCode(6), name: clean, ownerId: req.playerId, roundHours: roundHours ?? 24, webhook: webhook ?? null }).returning({ id: tournaments.id })
@@ -217,7 +219,11 @@ export function registerTournaments(app: FastifyInstance, db: Db, requireAuth: A
     const opponent = p.a === req.playerId ? p.b : p.a
     const [me, them] = await Promise.all([ghostOf(db, req.playerId, FALLBACK_DECK), ghostOf(db, opponent, FALLBACK_DECK)])
     const spec: GhostSpec = { deck: me.deck, ghostDeck: them.deck, ghostRips: them.rips, brain: ghostBrain({ rips: them.rips, aggression: them.aggression }), ghostRating: them.rating, ghostName: them.name }
-    return issueGhostMatch(db, { playerId: req.playerId, opponentId: opponent, kind: 'tournament', pool: req.body.pool, refId: p.id, spec })
+    try {
+      return await issueGhostMatch(db, { playerId: req.playerId, opponentId: opponent, kind: 'tournament', pool: req.body.pool, refId: p.id, spec })
+    } catch {
+      return reply.code(409).send({ error: 'already played' })
+    }
   })
 
   return {
