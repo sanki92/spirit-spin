@@ -9,6 +9,7 @@ import { todayKey, useSave } from '../../state/save'
 import type { Settlement } from '../../state/settle'
 import { Img, Screen, Slash } from '../kit'
 
+const requested = new WeakSet<object>()
 const TRAIT_LABEL: Record<string, string> = { trust: 'Trust', respect: 'Respect', courage: 'Courage', pride: 'Pride', curiosity: 'Curiosity', calm: 'Calm' }
 
 export function Result({ result, settlement, opponentName }: { result: MatchResult; settlement: Settlement; opponentName: string }) {
@@ -41,7 +42,8 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
   }
   useEffect(() => {
     const b = useSave.getState().beasts[beastId]
-    if (!b) return
+    if (!b || requested.has(result)) return
+    requested.add(result)
     let live = true
     void spiritMoment('post', b, summary, null).then(ai => {
       if (!live || !ai) return

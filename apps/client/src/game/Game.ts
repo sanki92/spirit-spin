@@ -140,6 +140,7 @@ export class Game {
   private draw(alpha: number, dt: number): void {
     const b = this.battle
     const scaled = dt * (this.stepper.scale || 0.05)
+    if (!b && this.tops) for (const t of this.tops) t.group.visible = false
     if (b && this.tops && this.spirits) {
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], p = this.prev[i] as Snap

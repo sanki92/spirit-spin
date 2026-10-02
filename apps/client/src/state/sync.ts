@@ -30,7 +30,7 @@ function storeAuth(a: Auth): void {
 async function api<T>(method: string, path: string, body?: unknown): Promise<{ status: number; data: T }> {
   const res = await fetch(path, {
     method,
-    headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer ${auth.token}` } : {}) },
+    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...(auth ? { authorization: `Bearer ${auth.token}` } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   return { status: res.status, data: (await res.json().catch(() => ({}))) as T }
@@ -46,6 +46,17 @@ function adopt(remote: Record<string, unknown>, version: number): void {
   useSave.setState(remote as Partial<SaveData>)
   applyingRemote = false
   storeAuth({ ...(auth as Auth), version })
+}
+
+export async function reauth(): Promise<void> {
+  try {
+    localStorage.removeItem(AUTH_KEY)
+  } catch {
+    return
+  }
+  auth = null
+  const g = await api<{ token: string; playerId: string; recoveryCode: string }>('POST', '/v1/auth/guest')
+  if (g.status === 200) storeAuth({ ...g.data, version: 0 })
 }
 
 export function authHeader(): Record<string, string> {
@@ -101,6 +112,10 @@ async function push(): Promise<void> {
         inflight = false
         return push()
       }
+    } else if (r.status === 401) {
+      await reauth()
+      inflight = false
+      return push()
     } else log('sync.push-failed', { status: r.status })
   } catch (e) {
     log('sync.offline', { error: String(e) })

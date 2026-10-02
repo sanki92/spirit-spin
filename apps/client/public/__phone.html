@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phone harness</title>
+<style>
+  body { margin: 0; background: #1b1b22; display: flex; gap: 16px; justify-content: center; align-items: flex-start; height: 100vh; overflow: hidden; font: 13px system-ui; color: #ccd; }
+  iframe { width: 390px; height: 720px; border: 0; border-radius: 26px; margin-top: 6px; background: #000; }
+  #ctl { display: none; }
+</style>
+</head>
+<body>
+<iframe id="phone" src="/" allow="autoplay; microphone"></iframe>
+<script>
+const frame = document.getElementById('phone')
+function install() {
+  const w = frame.contentWindow
+  const st = { g: { x: 0, y: 7, z: 6.5 }, lin: 0, auto: true, peak: 28, ms: 140, delay: 40 }
+  w.__sim = st
+  w.setInterval(() => w.dispatchEvent(new w.DeviceMotionEvent('devicemotion', {
+    acceleration: { x: (Math.random() - 0.5) * 0.3, y: st.lin + (Math.random() - 0.5) * 0.3, z: (Math.random() - 0.5) * 0.3 },
+    accelerationIncludingGravity: { x: st.g.x, y: st.g.y + st.lin, z: st.g.z },
+    rotationRate: { alpha: 0, beta: 0, gamma: 0 }, interval: 16.7,
+  })), 16.7)
+  st.rip = () => {
+    const t0 = w.performance.now()
+    const id = w.setInterval(() => {
+      const u = w.performance.now() - t0
+      st.lin = u < st.ms ? -st.peak * Math.sin(Math.PI * u / st.ms) : u < st.ms + 110 ? st.peak * 0.8 * Math.sin(Math.PI * (u - st.ms) / 110) : 0
+      if (u > st.ms + 120) { st.lin = 0; w.clearInterval(id) }
+    }, 8)
+  }
+  st.tilt = (x, y) => { st.g = { x: -x * 3, y: 7 - y * 3, z: 6.5 } }
+  let armed = true
+  w.setInterval(() => {
+    const img = w.document.querySelector('.countdown')
+    const label = img && (img.getAttribute('alt') || img.textContent)
+    if (label === 'LAUNCH' && armed && st.auto) { armed = false; w.setTimeout(st.rip, st.delay); w.setTimeout(() => { armed = true }, 2000) }
+  }, 5)
+}
+frame.addEventListener('load', install)
+</script>
+</body>
+</html>

@@ -1,10 +1,10 @@
 import type { BattleSummary, BeastState, Mood, Reply } from '@spirit/core'
 import { log } from '../telemetry'
-import { authHeader } from './sync'
+import { authHeader, reauth } from './sync'
 
 export interface AiLine { line: string; mood: Mood; nudge: { trait: 'none' | 'courage' | 'pride' | 'curiosity' | 'calm'; delta: -1 | 0 | 1 }; memory: { text: string; importance: number } | null }
 
-export async function spiritMoment(kind: 'post' | 'reply' | 'greet', beast: BeastState, battle: BattleSummary | null, reply: Reply | null): Promise<AiLine | null> {
+export async function spiritMoment(kind: 'post' | 'reply' | 'greet', beast: BeastState, battle: BattleSummary | null, reply: Reply | null, retry = true): Promise<AiLine | null> {
   const t0 = performance.now()
   try {
     const res = await fetch('/v1/spirit/moment', {
@@ -18,6 +18,10 @@ export async function spiritMoment(kind: 'post' | 'reply' | 'greet', beast: Beas
         reply,
       }),
     })
+    if (res.status === 401 && retry) {
+      await reauth()
+      return spiritMoment(kind, beast, battle, reply, false)
+    }
     const data = (await res.json()) as Partial<AiLine> & { line: string | null; reason?: string }
     log('spirit.ai', { kind, ms: Math.round(performance.now() - t0), status: res.status, ok: !!data.line, reason: data.reason ?? null, line: data.line ?? null })
     return data.line ? (data as AiLine) : null

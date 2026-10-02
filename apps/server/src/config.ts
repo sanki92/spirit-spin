@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
 
 const Env = z.object({
@@ -26,9 +27,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: e.PORT,
     databaseUrl: e.DATABASE_URL,
-    jwtSecret: e.JWT_SECRET ?? randomBytes(32).toString('hex'),
+    jwtSecret: e.JWT_SECRET ?? devSecret(),
     corsOrigins: e.CORS_ORIGINS.split(',').map(s => s.trim()),
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
   }
+}
+
+function devSecret(): string {
+  const file = '.data/dev-jwt-secret'
+  if (existsSync(file)) return readFileSync(file, 'utf8').trim()
+  const secret = randomBytes(32).toString('hex')
+  mkdirSync('.data', { recursive: true })
+  writeFileSync(file, secret)
+  return secret
 }
