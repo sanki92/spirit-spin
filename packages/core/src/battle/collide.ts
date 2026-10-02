@@ -7,7 +7,7 @@ const atk = (s: TopSpec) => 0.6 + 0.08 * s.stats.attack
 const def = (s: TopSpec) => 0.6 + 0.08 * s.stats.defense
 
 export function resolveWall(t: TopState, spec: TopSpec, side: Side, tick: number, out: BattleEvent[]): void {
-  const grace = tick <= T.launchGraceTicks && t.overspinTicks === 0
+  const grace = tick <= (t.overspinTicks > 0 ? T.launchGraceTicks / 2 : T.launchGraceTicks)
   const d = Math.sqrt(t.x * t.x + t.y * t.y)
   if (d + spec.radius <= 1 || d === 0) return
   const nx = t.x / d, ny = t.y / d

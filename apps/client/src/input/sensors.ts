@@ -2,7 +2,9 @@ import type { GravitySample, MotionSample } from '@spirit/core'
 
 const IOS = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1))
 const KEEP_MS = 3000
-const TILT_RANGE = 0.34
+const TILT_RANGE = 0.3
+const NEUTRAL_DRIFT = 1 / 240
+const deadzone = (v: number) => (Math.abs(v) < 0.08 ? 0 : (v - Math.sign(v) * 0.08) / 0.92)
 
 export interface Tilt { x: number; y: number }
 
@@ -34,8 +36,12 @@ export class SensorFeed {
 
   tilt(): Tilt {
     const m = Math.hypot(this.g.x, this.g.y, this.g.z) || 1
-    const tx = clamp(-(this.g.x / m - this.neutral.x) / TILT_RANGE)
-    const ty = clamp((this.neutral.y - this.g.y / m) / TILT_RANGE)
+    const nx = this.g.x / m, ny = this.g.y / m, nz = this.g.z / m
+    this.neutral.x += (nx - this.neutral.x) * NEUTRAL_DRIFT
+    this.neutral.y += (ny - this.neutral.y) * NEUTRAL_DRIFT
+    this.neutral.z += (nz - this.neutral.z) * NEUTRAL_DRIFT
+    const tx = clamp(deadzone(-(nx - this.neutral.x) / TILT_RANGE))
+    const ty = clamp(deadzone((this.neutral.y - ny) / TILT_RANGE))
     this.smooth.x += (tx - this.smooth.x) * 0.35
     this.smooth.y += (ty - this.smooth.y) * 0.35
     return { x: this.smooth.x, y: this.smooth.y }

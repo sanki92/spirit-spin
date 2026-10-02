@@ -30,7 +30,7 @@ export function botRip(rng: RngState, brain: BotBrain, spec: TopSpec): RipResult
   const timing = clamp(0.25 + 0.75 * k + gauss(rng) * spread, 0, 1)
   const straight = clamp(0.3 + 0.7 * k + gauss(rng) * spread, 0, 1)
   const overspin = rngNext(rng) < 0.15 * (1 - k) * (1 - k)
-  const pullRatio = overspin ? 1.2 + rngNext(rng) * 0.3 : clamp(0.55 + 0.35 * k + gauss(rng) * 0.12, 0.2, 1.08)
+  const pullRatio = overspin ? 1.7 + rngNext(rng) * 0.4 : clamp(0.55 + 0.35 * k + gauss(rng) * 0.12, 0.2, 1.08)
   const bank = spec.type === 'attack' || spec.type === 'balance'
   const roll = bank ? (rngNext(rng) < 0.5 ? 30 : -30) : 0
   return composeRip(timing, straight, pullRatio, roll, 0)

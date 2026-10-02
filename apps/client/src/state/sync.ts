@@ -48,6 +48,10 @@ function adopt(remote: Record<string, unknown>, version: number): void {
   storeAuth({ ...(auth as Auth), version })
 }
 
+export function authHeader(): Record<string, string> {
+  return auth ? { authorization: `Bearer ${auth.token}` } : {}
+}
+
 export function recoveryCode(): string | null {
   return auth?.recoveryCode ?? null
 }

@@ -111,7 +111,6 @@ export class BattleController {
     this.game.setBattle(null)
     this.game.fx.clearDecals()
     hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, inputMode: this.inputMode, round: this.match.round })
-    this.deps.sensors?.calibrateNeutral()
     const t0 = performance.now() + GRIP_MS + BEAT_MS * 3
     this.launchAt = t0
     const s = this.deps.sound
@@ -131,9 +130,11 @@ export class BattleController {
   private resolveLaunch(): void {
     const t0 = this.launchAt
     let res: RipResult | RipFail
-    if (this.swipe) res = scoreSwipe(this.swipe, t0, window.innerHeight)
-    else if (this.deps.sensors?.live) res = scoreRip(this.deps.sensors.window(t0 - 1100, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration)
-    else res = { ok: false, reason: 'no-pull' }
+    const motion = this.deps.sensors?.live ? scoreRip(this.deps.sensors.window(t0 - 1100, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration) : null
+    const swiped = this.swipe ? scoreSwipe(this.swipe, t0, window.innerHeight) : null
+    const usedSwipe = !!swiped?.ok && (!motion?.ok || swiped.rpm > motion.rpm)
+    res = usedSwipe ? (swiped as RipResult) : motion ?? swiped ?? { ok: false, reason: 'no-pull' }
+    if (!usedSwipe) this.swipe = null
     const rip = res.ok ? res : FAIL_RIP(t0)
     const win = this.swipe ? null : this.deps.sensors?.window(t0 - 1100, t0 + CAPTURE_AFTER_MS) ?? []
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
@@ -164,6 +165,7 @@ export class BattleController {
     this.game.setBattle(battle)
     this.later(1100, () => {
       if (useHud.getState().phase === 'launch') useHud.getState().set({ phase: 'battle', callout: null })
+      this.deps.sensors?.calibrateNeutral()
     })
   }
 

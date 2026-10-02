@@ -9,7 +9,7 @@ export interface MotionSample {
   roll: number // phone roll, degrees
 }
 export interface Calibration { pull100: number } // integrated pull (m/s) of this player's normal rip
-export const DEFAULT_CALIBRATION: Calibration = { pull100: 4 }
+export const DEFAULT_CALIBRATION: Calibration = { pull100: 7 }
 
 export type RipQuality = 'PERFECT' | 'GREAT' | 'GOOD' | 'WEAK'
 export interface RipResult {
@@ -32,7 +32,7 @@ export const RIP = {
   earliestMs: -400, latestMs: 600, // accepted start window around the LAUNCH beat
   perfectMs: 80, zeroTimingMs: 280,
   bankRollDeg: 15,
-  overspinRatio: 1.1,
+  overspinRatio: 1.6,
   weights: { timing: 0.4, straightness: 0.35, pull: 0.25 },
   maxRpm: 15000,
 } as const
@@ -44,7 +44,7 @@ export function rpmQuality(rpm: number): RipQuality {
   return rpm >= 13000 ? 'PERFECT' : rpm >= 10000 ? 'GREAT' : rpm >= 6000 ? 'GOOD' : 'WEAK'
 }
 
-/** 0 below 30% of calibration, linear to 1 at 70%, flat above (overspin flagged separately). */
+
 export function pullCurve(ratio: number): number {
   return clamp01((ratio - 0.3) / 0.4)
 }
@@ -99,7 +99,7 @@ export function scoreRip(samples: readonly MotionSample[], launchAt: number, cal
     sumAbs += m
   }
   const rawStraight = sumAbs > 0 ? Math.sqrt(vx * vx + vy * vy + vz * vz) / sumAbs : 0
-  const straightness = clamp01((rawStraight - 0.55) / 0.4)
+  const straightness = clamp01((rawStraight - 0.35) / 0.45)
   return composeRip(timingScore(start.t - launchAt), straightness, pull / cal.pull100, start.roll, start.t)
 }
 

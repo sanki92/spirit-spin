@@ -1,10 +1,11 @@
-import { awakeningReady, moodAfter, type BeastId, type Change, type Reply } from '@spirit/core'
-import { useState } from 'react'
+import { applyNudges, awakeningReady, moodAfter, type BattleSummary, type BeastId, type Change, type Mood, type Reply } from '@spirit/core'
+import { useEffect, useState } from 'react'
+import { spiritMoment, type AiLine } from '../../state/spiritAi'
 import type { MatchResult } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
 import { lineFor, LINES, REPLIES_LOSS, REPLIES_WIN, REPLY_LABEL } from '../../game/lines'
 import { useNav } from '../../state/nav'
-import { useSave } from '../../state/save'
+import { todayKey, useSave } from '../../state/save'
 import type { Settlement } from '../../state/settle'
 import { Img, Screen, Slash } from '../kit'
 
@@ -20,11 +21,42 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
   const [reply, setReply] = useState<Reply | null>(null)
   const [changes, setChanges] = useState<Change[]>(settlement.changes)
   const mood = beast ? moodAfter({ won, comeback: result.comeback, finishes: [], perfectRips: 0, overspins: 0, spiritCalls: 0, aggression: 0, boss: null, opponent: '' }, beast) : 'neutral'
-  const [line] = useState(() => lineFor(beastId, won && result.comeback ? 'comeback' : won ? 'win' : 'loss'))
+  const [line, setLine] = useState(() => lineFor(beastId, won && result.comeback ? 'comeback' : won ? 'win' : 'loss'))
+  const [aiMood, setAiMood] = useState<Mood | null>(null)
+  const [replyLine, setReplyLine] = useState<string | null>(null)
+  const summary: BattleSummary = { won, comeback: result.comeback, finishes: result.finishes, perfectRips: result.perfectRips, overspins: result.overspins, spiritCalls: result.spiritCalls, aggression: result.aggression, boss: null, opponent: opponentName }
+  const applyAi = (ai: AiLine) => {
+    const b = useSave.getState().beasts[beastId]
+    if (!b) return
+    let next = b
+    const extra: Change[] = []
+    if (ai.nudge.trait !== 'none' && ai.nudge.delta !== 0) {
+      const r = applyNudges(next, { [ai.nudge.trait]: ai.nudge.delta }, 'Your beast noticed how you fight', todayKey())
+      next = r.beast
+      extra.push(...r.changes)
+    }
+    if (ai.memory) next = { ...next, memories: [{ at: todayKey(), text: ai.memory.text, importance: ai.memory.importance, tags: ['ai'] }, ...next.memories].slice(0, 50) }
+    useSave.getState().setBeast(next)
+    if (extra.length) setChanges(c => [...c, ...extra])
+  }
+  useEffect(() => {
+    const b = useSave.getState().beasts[beastId]
+    if (!b) return
+    let live = true
+    void spiritMoment('post', b, summary, null).then(ai => {
+      if (!live || !ai) return
+      setLine(ai.line)
+      setAiMood(ai.mood)
+      applyAi(ai)
+    })
+    return () => { live = false }
+  }, [])
   const choices = won ? REPLIES_WIN : REPLIES_LOSS
   const answer = (r: Reply) => {
     setReply(r)
     setChanges(c => [...c, ...save.reply(r)])
+    const b = useSave.getState().beasts[beastId]
+    if (b) void spiritMoment('reply', b, summary, r).then(ai => { if (ai) { setReplyLine(ai.line); setAiMood(ai.mood); applyAi(ai) } })
   }
   const next = () => {
     const b = useSave.getState().beasts[beastId]
@@ -48,9 +80,9 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
         </div>
       )}
       <section className="moment" style={{ ['--c' as string]: BEASTS[beastId].color }}>
-        <Img id={`beasts/${beastId}/expressions/${reply ? (won ? 'joyful' : 'neutral') : mood}`} className="moment-face" />
+        <Img id={`beasts/${beastId}/expressions/${aiMood ?? (reply ? (won ? 'joyful' : 'neutral') : mood)}`} className="moment-face" />
         <div className="moment-talk">
-          <p className="moment-line">{reply ? LINES[beastId].reply[reply] : line}</p>
+          <p className="moment-line" aria-live="polite">{reply ? (replyLine ?? LINES[beastId].reply[reply]) : line}<span className="ai-tag" title="Spirit voice written by AI">✦</span></p>
           {!reply && (
             <div className="replies">
               {choices.map(c => <button key={c} onClick={() => answer(c)}>{REPLY_LABEL[c]}</button>)}

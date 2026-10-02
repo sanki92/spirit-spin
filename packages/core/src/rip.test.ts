@@ -25,9 +25,10 @@ describe('scoreRip', () => {
     const tr = pullTrace({ start: 0, zigzag: true })
     expect(ok(scoreRip(tr, 0, calFor(tr, 0.9))).straightness).toBeLessThan(0.5)
   })
-  it('pulling 150% of calibration overspins', () => {
+  it('pulling 180% of calibration overspins, 140% does not', () => {
     const tr = pullTrace({ start: 0 })
-    expect(ok(scoreRip(tr, 0, calFor(tr, 1.5))).overspin).toBe(true)
+    expect(ok(scoreRip(tr, 0, calFor(tr, 1.8))).overspin).toBe(true)
+    expect(ok(scoreRip(tr, 0, calFor(tr, 1.4))).overspin).toBe(false)
   })
   it('noPull: no strong motion -> no-pull failure', () => {
     expect(scoreRip(pullTrace({ start: 0, noPull: true }), 0, { pull100: 4 })).toEqual({ ok: false, reason: 'no-pull' })
@@ -56,7 +57,7 @@ describe('calibrate / quality', () => {
   it('median, clamped', () => {
     expect(calibrate([3, 5, 100]).pull100).toBe(5)
     expect(calibrate([0.1]).pull100).toBe(1.5)
-    expect(calibrate([]).pull100).toBe(4)
+    expect(calibrate([]).pull100).toBe(7)
   })
   it('quality thresholds', () => {
     expect(rpmQuality(13000)).toBe('PERFECT'); expect(rpmQuality(12990)).toBe('GREAT')

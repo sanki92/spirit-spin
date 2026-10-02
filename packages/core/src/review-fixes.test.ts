@@ -44,9 +44,10 @@ describe('review fixes', () => {
     const s = createBattle([assembleTop(STARTER_BUILDS.voltfang), assembleTop(STARTER_BUILDS.aegiron)], [{ rip: rip(Number.NaN), hesitate: false }, { rip: rip(12000), hesitate: false }], 1)
     expect(Number.isFinite(s.tops[0].spin)).toBe(true)
   })
-  it('an overspinning top can fly out of a pocket even during launch grace', () => {
+  it('an overspinning top gets only half the launch grace, then can fly out', () => {
     const specs = [assembleTop(STARTER_BUILDS.voltfang), assembleTop(STARTER_BUILDS.aegiron)] as [ReturnType<typeof assembleTop>, ReturnType<typeof assembleTop>]
     const s = createBattle(specs, [{ rip: rip(14000, { overspin: true }), hesitate: false }, { rip: rip(12000), hesitate: false }], 1)
+    s.tick = 31
     const t = s.tops[0]; t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
     s.tops[1].x = 0; s.tops[1].y = -0.5
     const ev: BattleEvent[] = []
