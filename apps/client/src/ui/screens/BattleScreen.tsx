@@ -8,7 +8,7 @@ import { BattleHud } from '../hud/BattleHud'
 
 export type ControllerFactory = (game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2]) => BattleController
 
-export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controller }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean; controller?: ControllerFactory | undefined }) {
+export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controller, spectator = false, names }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean; controller?: ControllerFactory | undefined; spectator?: boolean; names?: [string, string] }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const ctrl = useRef<BattleController | null>(null)
   const rt = useRuntime()
@@ -26,7 +26,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
         return
       }
       game.start()
-      const deps = { sound: rt.sound, sensors: forceSwipe ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd }
+      const deps = { sound: rt.sound, sensors: forceSwipe || spectator ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd }
       const c = controller ? controller(game, setup, deps) : new BattleController(game, setup, deps)
       ctrl.current = c
       if (import.meta.env.DEV) Object.assign(window, { __ctrl: c, __game: game })
@@ -55,7 +55,8 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       {loading && <div className="loading">LOADING STADIUM…</div>}
       {!loading && (
         <BattleHud
-          names={[BEASTS[setup.player.beastId].name, BEASTS[setup.opponent.beastId].name]}
+          names={names ?? [BEASTS[setup.player.beastId].name, BEASTS[setup.opponent.beastId].name]}
+          spectator={spectator}
           onSpirit={onSpirit}
           onSwipeZone={onSwipeZone}
           onStick={onStick}

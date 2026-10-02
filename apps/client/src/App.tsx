@@ -12,6 +12,7 @@ import { OnlineController } from './game/OnlineController'
 import { Friends } from './ui/screens/Friends'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
+import { Stadium } from './ui/screens/Stadium'
 import { GhostController } from './game/GhostController'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home, Tower } from './ui/screens/Home'
@@ -36,6 +37,7 @@ export function App() {
 
   const onReady = useCallback(() => {
     const s = useSave.getState()
+    if (new URLSearchParams(location.search).has('stadium')) return nav.reset({ k: 'stadium' })
     if (!s.starter) nav.reset({ k: 'starter' })
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
     else {
@@ -68,6 +70,7 @@ export function App() {
     case 'live': return <LiveRoute route={route} />
     case 'ranked': return <Ranked />
     case 'pass': return <Pass />
+    case 'stadium': return <Stadium />
     case 'profile': return <Profile />
     case 'cups': return <Cups join={route.join} />
     case 'cup': return <CupScreen id={route.id} />

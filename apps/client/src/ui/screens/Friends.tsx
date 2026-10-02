@@ -8,7 +8,7 @@ import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
 import { Screen, Slash, TopBar } from '../kit'
 
-type Phase = { k: 'idle' } | { k: 'connecting' } | { k: 'hosting'; code: string } | { k: 'joining' } | { k: 'error'; text: string }
+type Phase = { k: 'idle' } | { k: 'connecting' } | { k: 'hosting'; code: string } | { k: 'joining' } | { k: 'waiting'; code: string } | { k: 'error'; text: string }
 
 const ERRORS: Record<string, string> = {
   'no-room': 'No battle with that code. Check it with your friend.',
@@ -26,7 +26,7 @@ export function Friends({ join }: { join?: string | undefined }) {
   const name = useSave(s => s.name)
 
   useEffect(() => rt.on((m: ServerMsg) => {
-    if (m.k === 'room') setPhase(p => (p.k === 'connecting' ? { k: 'hosting', code: m.code } : p))
+    if (m.k === 'room') setPhase(p => (p.k === 'connecting' ? { k: 'hosting', code: m.code } : p.k === 'joining' ? { k: 'waiting', code: m.code } : p))
     if (m.k === 'peer' && rt.side !== null && rt.peer) nav.replace({ k: 'live', side: rt.side, peer: { name: rt.peer.name, build: rt.peer.build } })
     if (m.k === 'error') setPhase({ k: 'error', text: ERRORS[m.code] ?? 'Something went wrong. Try again.' })
   }), [nav])
@@ -87,7 +87,14 @@ export function Friends({ join }: { join?: string | undefined }) {
   return (
     <Screen className="friends">
       <TopBar title="Live battle" />
-      {phase.k === 'hosting' ? (
+      {phase.k === 'waiting' ? (
+        <section className="host-card">
+          <div className="room-code" aria-label="Battle code">{phase.code}</div>
+          <p>You're in! Waiting for the other player to join…</p>
+          <p className="fine waiting">Keep this screen open. The battle starts by itself.</p>
+          <button className="text-btn" onClick={cancel}>Leave</button>
+        </section>
+      ) : phase.k === 'hosting' ? (
         <section className="host-card">
           <p>Your friend scans this or opens the link. The battle starts when they join.</p>
           {qr && <img className="qr" src={qr} alt={`QR code for battle ${phase.code}`} />}
@@ -108,6 +115,10 @@ export function Friends({ join }: { join?: string | undefined }) {
             <button disabled={code.length !== 4 || phase.k === 'joining'}>{phase.k === 'joining' ? 'Joining…' : 'Join'}</button>
           </form>
           {phase.k === 'error' && <p className="form-error" role="alert">{phase.text}</p>}
+          <section className="setting stadium-card">
+            <div><strong>Stadium Mode</strong><span>Play on a TV or laptop: the big screen shows the stadium, two phones are the launchers.</span></div>
+            <button className="text-btn" onClick={() => nav.push({ k: 'stadium' })}>Use this device as the stadium</button>
+          </section>
           <FriendList onChallenge={() => void host()} />
         </>
       )}

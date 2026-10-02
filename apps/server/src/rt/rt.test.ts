@@ -159,6 +159,30 @@ describe('realtime', () => {
     a.ws.close(); b.ws.close()
   })
 
+  it('stadium mode: a spectator screen hosts, two phones join, the screen sees the whole match', async () => {
+    const tv = await client()
+    tv.send({ k: 'hello', token: tv.token, name: 'Living Room' })
+    await tv.wait('welcome')
+    tv.send({ k: 'stadium' })
+    const { code } = await tv.wait('watching')
+    const a = await client(), b = await client()
+    for (const [c, n] of [[a, 'Aki'], [b, 'Bo']] as const) { c.send({ k: 'hello', token: c.token, name: n }); await c.wait('welcome') }
+    a.send({ k: 'join', code, build: BUILD_A })
+    expect((await a.wait('room')).side).toBe(0)
+    b.send({ k: 'join', code, build: BUILD_B })
+    expect((await b.wait('room')).side).toBe(1)
+    let seats = await tv.wait('seats')
+    while (seats.seats.filter(Boolean).length < 2) seats = await tv.wait('seats')
+    expect(seats.seats.map(x => x?.name)).toEqual(['Aki', 'Bo'])
+    const r = await tv.wait('round')
+    a.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
+    b.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
+    expect((await tv.wait('start')).round).toBe(1)
+    expect((await tv.wait('snap')).leads).toHaveLength(2)
+    expect((await tv.wait('end', 20000)).round).toBe(1)
+    a.ws.close(); b.ws.close(); tv.ws.close()
+  })
+
   it('rejects bad tokens and malformed messages', async () => {
     const c = await client()
     c.send({ k: 'hello', token: 'a.b.c', name: 'x' })

@@ -17,6 +17,7 @@ export type ClientMsg =
   | { k: 'inputs'; from: number; list: [number, number, number][] }
   | { k: 'ping'; t: number }
   | { k: 'leave' }
+  | { k: 'stadium' }
 
 export type ServerMsg =
   | { k: 'welcome'; playerId: string }
@@ -29,6 +30,8 @@ export type ServerMsg =
   | { k: 'pong'; t: number; server: number }
   | { k: 'left'; reason: 'forfeit' | 'quit' }
   | { k: 'error'; code: 'auth' | 'bad-message' | 'no-room' | 'full' | 'rate' }
+  | { k: 'watching'; code: string }
+  | { k: 'seats'; seats: ({ name: string; build: TopBuild; online: boolean } | null)[] }
 
 const IDLE: NetInput = { x: 0, y: 0, seq: 0 }
 

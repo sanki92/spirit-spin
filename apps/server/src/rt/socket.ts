@@ -18,6 +18,7 @@ const Msg = z.discriminatedUnion('k', [
   z.object({ k: z.literal('inputs'), from: z.number().int().min(0).max(1e6), list: z.array(z.tuple([num, num, z.number().int().min(0).max(1000)])).max(12) }),
   z.object({ k: z.literal('ping'), t: num }),
   z.object({ k: z.literal('leave') }),
+  z.object({ k: z.literal('stadium') }),
 ])
 
 
@@ -44,6 +45,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let name = 'Spinner'
     let room: Room | null = null
     let side: Side | null = null
+    let watching: Room | null = null
     let windowStart = Date.now(), count = 0
     const send = (m: ServerMsg) => { if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(m)) }
     const replaced = () => socket.close(4001, 'replaced')
@@ -90,6 +92,15 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       if (!playerId) return fail('auth')
       if (room?.phase === 'done') { room = null; side = null }
       try {
+        if (m.k === 'stadium') {
+          if (watching) watching.unwatch(send)
+          const r = make()
+          if (!r) return fail('rate', false)
+          rooms.set(r.code, r)
+          r.watch(send)
+          watching = r
+          return
+        }
         if (m.k === 'create' || m.k === 'join') assembleTop(m.build)
         if ((m.k === 'create' || m.k === 'join') && room && side !== null && room.code !== (m.k === 'join' ? m.code : '')) {
           room.forfeit(side, 'quit')
@@ -119,6 +130,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     socket.on('close', () => {
       clearInterval(heartbeat)
       if (room && side !== null) room.disconnect(side, send)
+      watching?.unwatch(send)
     })
   })
 

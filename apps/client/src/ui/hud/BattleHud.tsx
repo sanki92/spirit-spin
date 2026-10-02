@@ -20,7 +20,8 @@ function Art({ id, text, className }: { id: string; text: string; className: str
   return hasAsset(id) ? <img className={className} src={assetUrl(id)} alt={text} draggable={false} /> : <div className={`${className} art-text`}>{text}</div>
 }
 
-export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
+export function BattleHud({ names, onSpirit, onSwipeZone, onStick, spectator = false }: {
+  spectator?: boolean
   names: [string, string]
   onSpirit: () => void
   onSwipeZone: (el: HTMLDivElement | null) => void
@@ -36,10 +37,10 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
         <Side name={names[1]} score={h.scores[1]} side={1} active={h.spiritActive[1]} align="right" />
       </div>
       {(h.phase === 'grip' || h.phase === 'countdown') && (
-        <div className="launch-overlay" ref={onSwipeZone}>
-          {h.phase === 'grip' && <div className="grip">{h.inputMode === 'motion' ? 'GRIP YOUR PHONE' : 'GET READY TO SWIPE DOWN'}</div>}
+        <div className="launch-overlay" ref={spectator ? undefined : onSwipeZone}>
+          {h.phase === 'grip' && <div className="grip">{spectator ? 'PHONES READY' : h.inputMode === 'motion' ? 'GRIP YOUR PHONE' : 'GET READY TO SWIPE DOWN'}</div>}
           {h.countdown && <Art key={h.countdown} id={COUNT_ART[h.countdown] ?? ''} text={h.countdown} className="countdown pop" />}
-          <div className="launch-hint">{h.inputMode === 'motion' ? 'Both hands · pull DOWN toward you on LAUNCH' : 'Swipe DOWN fast on LAUNCH'}</div>
+          <div className="launch-hint">{spectator ? 'Rip your phones on LAUNCH' : h.inputMode === 'motion' ? 'Both hands · pull DOWN toward you on LAUNCH' : 'Swipe DOWN fast on LAUNCH'}</div>
         </div>
       )}
       {h.countdown === 'LAUNCH' && h.phase !== 'grip' && h.phase !== 'countdown' && null}
@@ -50,7 +51,7 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
         </div>
       )}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
-      {(h.phase === 'grip' || h.phase === 'countdown' || (h.phase === 'launch' && h.countdown === 'LAUNCH')) && <Launcher fired={h.countdown === 'LAUNCH'} />}
+      {!spectator && (h.phase === 'grip' || h.phase === 'countdown' || (h.phase === 'launch' && h.countdown === 'LAUNCH')) && <Launcher fired={h.countdown === 'LAUNCH'} />}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (
         <div key={h.announcer.id} className="announcer" aria-live="polite">
@@ -59,7 +60,7 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick }: {
         </div>
       )}
       {h.cutin && <CutIn beast={h.cutin.beast} side={h.cutin.side} hesitate={h.cutin.hesitate} />}
-      {h.phase === 'battle' && (
+      {h.phase === 'battle' && !spectator && (
         <>
           <Stick onStick={onStick} />
           <button className={`spirit-btn ${ready ? 'ready' : ''}`} onPointerDown={onSpirit} disabled={!ready}>

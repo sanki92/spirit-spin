@@ -24,6 +24,7 @@ export type Route =
   | { k: 'friends'; join?: string }
   | { k: 'ranked' }
   | { k: 'pass' }
+  | { k: 'stadium' }
   | { k: 'profile' }
   | { k: 'cups'; join?: string }
   | { k: 'cup'; id: string }

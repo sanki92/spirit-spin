@@ -42,6 +42,7 @@ export class Room {
   private acc = 0
   private lastAt = 0
   private events: BattleEvent[] = []
+  readonly spectators = new Set<(m: ServerMsg) => void>()
 
   constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number }) {}
 
@@ -51,6 +52,34 @@ export class Room {
 
   broadcast(m: ServerMsg): void {
     for (const s of this.seats) if (s?.online) s.send(m)
+    for (const w of this.spectators) w(m)
+  }
+
+  private seatsMsg(): ServerMsg {
+    return { k: 'seats', seats: this.seats.map(s => (s ? { name: s.name, build: s.build, online: s.online } : null)) }
+  }
+
+  watch(send: (m: ServerMsg) => void): boolean {
+    if (this.spectators.size >= 4) return false
+    this.spectators.add(send)
+    send({ k: 'watching', code: this.code })
+    send(this.seatsMsg())
+    if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
+    if (this.phase === 'battle' && this.battle) {
+      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick })
+      send(this.snap())
+    }
+    return true
+  }
+
+  unwatch(send: (m: ServerMsg) => void): void {
+    this.spectators.delete(send)
+    if (!this.spectators.size && this.seats.every(s => !s)) this.finish()
+  }
+
+  private seatsChanged(): void {
+    const m = this.seatsMsg()
+    for (const w of this.spectators) w(m)
   }
 
   seat(playerId: string, name: string, build: TopBuild, send: (m: ServerMsg) => void, close: () => void = () => undefined): Side | null {
@@ -62,6 +91,7 @@ export class Room {
     assembleTop(build)
     this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack(), ripLog: [], tiltSum: 0, tiltN: 0 }
     send({ k: 'room', code: this.code, side })
+    this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
     if (other) {
       send({ k: 'peer', name: other.name, build: other.build, online: other.online })
@@ -80,6 +110,7 @@ export class Room {
     s.send = send
     s.close = close
     if (previous !== close) previous()
+    this.seatsChanged()
     send({ k: 'room', code: this.code, side })
     const other = this.seats[(1 - side) as Side]
     if (other) {
@@ -99,6 +130,7 @@ export class Room {
     if (!s || this.phase === 'done' || (send && s.send !== send)) return
     if (s.hold) clearTimeout(s.hold)
     s.online = false
+    this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
     if (!other) return this.finish()
     other.send({ k: 'peer', name: s.name, build: s.build, online: false })
