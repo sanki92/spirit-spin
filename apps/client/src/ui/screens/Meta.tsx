@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
+import { recover, recoveryCode } from '../../state/sync'
 import { Axis, Bar, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
 
@@ -147,6 +148,11 @@ export function Settings() {
       {toggle('sound', 'Sound', 'Music and effects.')}
       {toggle('haptics', 'Vibration', 'Android only.')}
       {toggle('reducedMotion', 'Reduce motion', 'Fewer screen shakes and flashes.')}
+      <div className="setting recovery">
+        <div><strong>Your recovery code</strong><span>Write it down. It restores your progress on a new phone.</span></div>
+        <code>{recoveryCode() ?? 'Offline'}</code>
+      </div>
+      <RecoverForm />
       <Slash tone="ghost" onClick={() => nav.push({ k: 'calibrate' })}>Recalibrate launcher</Slash>
       {confirmReset ? (
         <div className="danger">
@@ -158,5 +164,17 @@ export function Settings() {
         <button className="text-btn" onClick={() => setConfirmReset(true)}>Erase progress…</button>
       )}
     </Screen>
+  )
+}
+
+function RecoverForm() {
+  const [code, setCode] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'bad' | 'ok'>('idle')
+  return (
+    <form className="setting recover-form" onSubmit={async e => { e.preventDefault(); setState('busy'); setState((await recover(code)) ? 'ok' : 'bad') }}>
+      <div><strong>Restore progress</strong><span>{state === 'bad' ? 'That code did not match any player.' : state === 'ok' ? 'Progress restored.' : 'Enter a recovery code from another device.'}</span></div>
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder="ABCD-EFGH-JKLM" maxLength={14} autoCapitalize="characters" aria-label="Recovery code" />
+      <button disabled={code.length < 12 || state === 'busy'}>Restore</button>
+    </form>
   )
 }
