@@ -1,6 +1,7 @@
 import { assembleTop, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
 import type { Texture } from 'three'
-import { hasAsset, texture } from '../assets/assets'
+import { hasAsset } from '../assets/assets'
+import { texture } from './render/textures'
 import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'

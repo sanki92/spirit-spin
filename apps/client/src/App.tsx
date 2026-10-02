@@ -1,18 +1,17 @@
 import { BOT_LEVELS, hesitates, towerFloor, type BeastId, type TopBuild } from '@spirit/core'
-import { useCallback, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { MatchResult, MatchSetup } from './game/BattleController'
 import { setHaptics } from './input/haptics'
 import { useRuntime } from './runtime'
 import { currentRoute, useNav, type Route } from './state/nav'
 import { useSave } from './state/save'
 import { settleMatch } from './state/settle'
-import { BattleScreen, type ControllerFactory } from './ui/screens/BattleScreen'
+import type { ControllerFactory } from './ui/screens/BattleScreen'
 import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
 import { Friends } from './ui/screens/Friends'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
-import { Stadium } from './ui/screens/Stadium'
 import { GhostController } from './game/GhostController'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home, Tower } from './ui/screens/Home'
@@ -20,6 +19,11 @@ import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
 import { AgeGate, Calibrate, Safety, Splash, StarterSelect } from './ui/screens/Onboarding'
 import { ReadyScreen } from './ui/screens/ReadyScreen'
 import { Result } from './ui/screens/Result'
+
+const BattleScreen = lazy(() => import('./ui/screens/BattleScreen').then(m => ({ default: m.BattleScreen })))
+const Stadium = lazy(() => import('./ui/screens/Stadium').then(m => ({ default: m.Stadium })))
+const Loading = () => <div className="screen center"><div className="loading">LOADING STADIUM…</div></div>
+const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<Loading />}>{children}</Suspense>
 
 export function App() {
   const route = useNav(currentRoute)
@@ -34,6 +38,11 @@ export function App() {
   useEffect(() => {
     if (route.k !== 'splash' && route.k !== 'age' && route.k !== 'ready' && !rt.ready) nav.reset({ k: 'ready' })
   }, [route.k, rt, nav])
+  useEffect(() => {
+    if (route.k !== 'home') return
+    const idle = (window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500))
+    idle(() => void import('./ui/screens/BattleScreen'))
+  }, [route.k])
 
   const onReady = useCallback(() => {
     const s = useSave.getState()
@@ -65,16 +74,16 @@ export function App() {
     case 'journal': return <Journal />
     case 'settings': return <Settings />
     case 'awaken': return <Awaken />
-    case 'battle': return <BattleRoute route={route} />
+    case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
     case 'friends': return <Friends join={route.join} />
-    case 'live': return <LiveRoute route={route} />
+    case 'live': return <Lazy><LiveRoute route={route} /></Lazy>
     case 'ranked': return <Ranked />
     case 'pass': return <Pass />
-    case 'stadium': return <Stadium />
+    case 'stadium': return <Lazy><Stadium /></Lazy>
     case 'profile': return <Profile />
     case 'cups': return <Cups join={route.join} />
     case 'cup': return <CupScreen id={route.id} />
-    case 'ghost': return <GhostRoute route={route} />
+    case 'ghost': return <Lazy><GhostRoute route={route} /></Lazy>
     case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} then={route.next} />
   }
 }

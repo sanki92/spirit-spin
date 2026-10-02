@@ -1,4 +1,7 @@
 import cors from '@fastify/cors'
+import fastifyStatic from '@fastify/static'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import rateLimit from '@fastify/rate-limit'
 import { and, eq } from 'drizzle-orm'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
@@ -78,6 +81,23 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     const id = h?.startsWith('Bearer ') ? await tokens.verify(h.slice(7)) : null
     if (!id) return reply.code(401).send({ error: 'unauthorized' })
     req.playerId = id
+  }
+
+  if (cfg.staticDir && existsSync(cfg.staticDir)) {
+    const root = resolve(cfg.staticDir)
+    await app.register(fastifyStatic, {
+      root,
+      wildcard: false,
+      setHeaders: (res, path) => {
+        if (/[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(path)) res.header('cache-control', 'public, max-age=31536000, immutable')
+        else if (/\.(webp|png|mp3|woff2?)$/.test(path)) res.header('cache-control', 'public, max-age=604800')
+        else res.header('cache-control', 'no-cache')
+      },
+    })
+    app.setNotFoundHandler((req, reply) => {
+      if (req.method === 'GET' && !req.url.startsWith('/v1') && !req.url.startsWith('/rt') && !req.url.includes('.')) return reply.header('cache-control', 'no-cache').sendFile('index.html', root)
+      return reply.code(404).send({ error: 'not found' })
+    })
   }
 
   app.get('/healthz', async () => ({ ok: true, time: new Date().toISOString(), rooms: rooms.size }))
