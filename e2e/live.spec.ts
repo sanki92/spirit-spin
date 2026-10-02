@@ -22,7 +22,7 @@ async function player(browser: Browser, name: string, beast: string): Promise<Pa
     w.__save.setState({ name: n })
     w.__nav.getState().reset({ k: 'home' })
   }, [name, beast])
-  await expect(page.getByText(/battle a friend live/i)).toBeVisible()
+  await expect(page.getByRole('button', { name: /battle a friend/i })).toBeVisible()
   return page
 }
 
@@ -32,13 +32,13 @@ test('two phones play a full live match', async ({ browser }) => {
   const a = await player(browser, 'Aki', 'voltfang')
   const b = await player(browser, 'Bo', 'nagara')
 
-  await a.getByText(/battle a friend live/i).click()
+  await a.getByRole('button', { name: /battle a friend/i }).click()
   await a.getByRole('button', { name: /create battle/i }).click()
   const code = (await a.locator('.room-code').textContent())!.trim()
   expect(code).toMatch(/^[A-Z2-9]{4}$/)
   await expect(a.locator('.qr')).toBeVisible()
 
-  await b.getByText(/battle a friend live/i).click()
+  await b.getByRole('button', { name: /battle a friend/i }).click()
   await b.getByLabel('Battle code').fill(code.toLowerCase())
   await b.getByRole('button', { name: /^join$/i }).click()
 

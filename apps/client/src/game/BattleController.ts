@@ -30,6 +30,7 @@ export interface MatchResult {
   overspins: number
   finishes: FinishKind[]
   aggression: number
+  verdict?: { winner: 0 | 1; scores: [number, number]; rating?: number; delta?: number } | null
 }
 
 const GRIP_MS = 1100
@@ -290,8 +291,13 @@ export class BattleController {
         overspins: this.overspins,
         finishes: this.match.history.filter(h => h.winner === 0).map(h => h.finish),
         aggression: this.tiltTicks ? this.tiltSum / this.tiltTicks : 0,
+        ...this.extra(),
       }),
     )
+  }
+
+  protected extra(): Partial<MatchResult> {
+    return {}
   }
 
   protected frame(dt: number): void {

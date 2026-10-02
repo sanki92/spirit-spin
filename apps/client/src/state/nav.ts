@@ -1,6 +1,7 @@
 import type { BossId, Side, TopBuild } from '@spirit/core'
 import { create } from 'zustand'
 import type { MatchResult } from '../game/BattleController'
+import type { IssuedGhost } from '../game/GhostController'
 import type { Settlement } from './settle'
 
 export type Route =
@@ -18,9 +19,13 @@ export type Route =
   | { k: 'journal' }
   | { k: 'settings' }
   | { k: 'battle'; opponent: TopBuild; floor: number | null; boss: BossId | null; opponentName: string }
-  | { k: 'result'; result: MatchResult; settlement: Settlement; opponentName: string }
+  | { k: 'result'; result: MatchResult; settlement: Settlement; opponentName: string; next?: Route }
   | { k: 'awaken' }
   | { k: 'friends'; join?: string }
+  | { k: 'ranked' }
+  | { k: 'cups'; join?: string }
+  | { k: 'cup'; id: string }
+  | { k: 'ghost'; issued: IssuedGhost; kind: 'ranked' | 'tournament'; cupId?: string }
   | { k: 'live'; side: Side; peer: { name: string; build: TopBuild } }
 
 interface Nav {

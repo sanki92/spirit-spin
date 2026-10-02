@@ -6,8 +6,11 @@ import { useRuntime } from './runtime'
 import { currentRoute, useNav, type Route } from './state/nav'
 import { useSave } from './state/save'
 import { settleMatch } from './state/settle'
-import { BattleScreen } from './ui/screens/BattleScreen'
+import { BattleScreen, type ControllerFactory } from './ui/screens/BattleScreen'
+import { OnlineController } from './game/OnlineController'
 import { Friends } from './ui/screens/Friends'
+import { CupScreen, Cups, Ranked } from './ui/screens/League'
+import { GhostController } from './game/GhostController'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home, Tower } from './ui/screens/Home'
 import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
@@ -35,11 +38,11 @@ export function App() {
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
     else {
       nav.reset({ k: 'home' })
-      const join = new URLSearchParams(location.search).get('join')
-      if (join && /^[A-Za-z0-9]{4}$/.test(join)) {
-        history.replaceState(null, '', location.pathname)
-        nav.push({ k: 'friends', join })
-      }
+      const q = new URLSearchParams(location.search)
+      const join = q.get('join'), cup = q.get('cup')
+      if (join || cup) history.replaceState(null, '', location.pathname)
+      if (join && /^[A-Za-z0-9]{4}$/.test(join)) nav.push({ k: 'friends', join })
+      else if (cup && /^[A-Za-z0-9]{6}$/.test(cup)) nav.push({ k: 'cups', join: cup })
     }
   }, [nav])
 
@@ -61,7 +64,11 @@ export function App() {
     case 'battle': return <BattleRoute route={route} />
     case 'friends': return <Friends join={route.join} />
     case 'live': return <LiveRoute route={route} />
-    case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} />
+    case 'ranked': return <Ranked />
+    case 'cups': return <Cups join={route.join} />
+    case 'cup': return <CupScreen id={route.id} />
+    case 'ghost': return <GhostRoute route={route} />
+    case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} then={route.next} />
   }
 }
 
@@ -110,5 +117,25 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
     },
     [route, nav],
   )
-  return <BattleScreen setup={setup} theme="classic" onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} online={route.side} />
+  const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, d, route.side), [route])
+  return <BattleScreen setup={setup} theme="classic" onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
+}
+
+function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
+  const nav = useNav()
+  const s = useSave.getState()
+  const { issued } = route
+  const setup = useMemo<MatchSetup>(
+    () => ({ player: issued.deck[0]!, opponent: issued.opponent.deck[0]!, bot: issued.opponent.brain, playerHesitates: false, seed: issued.seed, art: [`beasts/${issued.deck[0]!.beastId}`, `beasts/${issued.opponent.deck[0]!.beastId}`] }),
+    [issued],
+  )
+  const controller = useCallback<ControllerFactory>((g, st, d) => new GhostController(g, st, d, issued, b => `beasts/${b.beastId}`), [issued])
+  const onEnd = useCallback(
+    (r: MatchResult) => {
+      const settlement = settleMatch(r, null, null, issued.opponent.name)
+      nav.replace({ k: 'result', result: r, settlement, opponentName: issued.opponent.name, ...(route.kind === 'tournament' && route.cupId ? { next: { k: 'cup', id: route.cupId } } : { next: { k: 'ranked' } }) })
+    },
+    [issued, route, nav],
+  )
+  return <BattleScreen setup={setup} theme={route.kind === 'ranked' ? 'frozen-moon' : 'volcano'} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || s.settings.inputMode === 'swipe'} controller={controller} />
 }

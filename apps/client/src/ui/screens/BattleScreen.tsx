@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Side } from '@spirit/core'
 import { BattleController, type MatchResult, type MatchSetup } from '../../game/BattleController'
-import { OnlineController } from '../../game/OnlineController'
 import { BEASTS } from '../../game/beasts'
 import { Game, type StadiumTheme } from '../../game/Game'
 import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
 import { BattleHud } from '../hud/BattleHud'
 
-export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, online }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean; online?: Side | undefined }) {
+export type ControllerFactory = (game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2]) => BattleController
+
+export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controller }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean; controller?: ControllerFactory | undefined }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const ctrl = useRef<BattleController | null>(null)
   const rt = useRuntime()
@@ -27,7 +27,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, online }
       }
       game.start()
       const deps = { sound: rt.sound, sensors: forceSwipe ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd }
-      const c = online === undefined ? new BattleController(game, setup, deps) : new OnlineController(game, setup, deps, online)
+      const c = controller ? controller(game, setup, deps) : new BattleController(game, setup, deps)
       ctrl.current = c
       if (import.meta.env.DEV) Object.assign(window, { __ctrl: c, __game: game })
       setLoading(false)
@@ -39,7 +39,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, online }
       game?.stop()
       game?.stage.renderer.dispose()
     }
-  }, [setup, theme, onEnd, rt, forceSwipe, online])
+  }, [setup, theme, onEnd, rt, forceSwipe, controller])
 
   const swipeCleanup = useRef<(() => void) | null>(null)
   const onSwipeZone = useCallback((el: HTMLDivElement | null) => {

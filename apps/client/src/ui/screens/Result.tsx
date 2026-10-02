@@ -4,15 +4,18 @@ import { spiritMoment, type AiLine } from '../../state/spiritAi'
 import type { MatchResult } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
 import { lineFor, LINES, REPLIES_LOSS, REPLIES_WIN, REPLY_LABEL } from '../../game/lines'
-import { useNav } from '../../state/nav'
+import { useNav, type Route } from '../../state/nav'
+import { shareCard } from '../share'
 import { todayKey, useSave } from '../../state/save'
 import type { Settlement } from '../../state/settle'
 import { Img, Screen, Slash } from '../kit'
+import { beastArt } from './Home'
+import { log } from '../../telemetry'
 
 const pending = new WeakMap<object, Promise<AiLine | null>>()
 const TRAIT_LABEL: Record<string, string> = { trust: 'Trust', respect: 'Respect', courage: 'Courage', pride: 'Pride', curiosity: 'Curiosity', calm: 'Calm' }
 
-export function Result({ result, settlement, opponentName }: { result: MatchResult; settlement: Settlement; opponentName: string }) {
+export function Result({ result, settlement, opponentName, then }: { result: MatchResult; settlement: Settlement; opponentName: string; then?: Route | undefined }) {
   const nav = useNav()
   const save = useSave()
   const won = result.winner === 0
@@ -65,10 +68,27 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
     const b = useSave.getState().beasts[beastId]
     if (b) void spiritMoment('reply', b, summary, r).then(ai => { if (ai) { setReplyLine(ai.line); setAiMood(ai.mood); applyAi(ai) } })
   }
+  const [sharing, setSharing] = useState(false)
+  const share = async () => {
+    setSharing(true)
+    const b = useSave.getState().beasts[beastId]
+    const how = await shareCard({
+      won,
+      score: `${result.match.scores[0]} – ${result.match.scores[1]} vs ${opponentName}`,
+      beastArt: beastArt(beastId, b?.awakened),
+      color: BEASTS[beastId].color,
+      lines: [`Best rip ${result.bestRpm.toLocaleString()} RPM`, `${BEASTS[beastId].name} and me · Spirit Spin`],
+    })
+    log('share.card', { how })
+    setSharing(false)
+  }
   const next = () => {
     const b = useSave.getState().beasts[beastId]
     if (b && awakeningReady(b)) nav.replace({ k: 'awaken' })
-    else nav.reset({ k: 'home' })
+    else {
+      nav.reset({ k: 'home' })
+      if (then) nav.push(then)
+    }
   }
   return (
     <Screen className="result" bg="backgrounds/share">
@@ -79,6 +99,8 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
         <span>+{recorded.current.xp} XP</span>
         <span>Best rip {result.bestRpm.toLocaleString()} RPM</span>
         {recorded.current.part && <span className="gold">New part: {recorded.current.part}</span>}
+        {result.verdict?.rating !== undefined && <span className="gold">Rating {result.verdict.rating} ({(result.verdict.delta ?? 0) >= 0 ? '+' : ''}{result.verdict.delta})</span>}
+        {result.verdict === null && <span className="warn-chip">Not verified · did not count</span>}
       </div>
       {recorded.current.unlocked && (
         <div className="unlock pop" style={{ ['--c' as string]: BEASTS[recorded.current.unlocked].color }}>
@@ -102,7 +124,10 @@ export function Result({ result, settlement, opponentName }: { result: MatchResu
           {changes.slice(-4).map((c, i) => <li key={i}><b>{TRAIT_LABEL[c.trait]} {c.delta > 0 ? '+' : ''}{c.delta}</b> {c.reason}</li>)}
         </ul>
       )}
-      <Slash tone={reply ? 'gold' : 'ghost'} onClick={next}>{reply ? 'Continue' : 'Skip'}</Slash>
+      <div className="result-actions">
+        <button className="share-btn" onClick={() => void share()} disabled={sharing}>{sharing ? 'Making card…' : 'Share'}</button>
+        <Slash tone={reply ? 'gold' : 'ghost'} onClick={next}>{reply ? 'Continue' : 'Skip'}</Slash>
+      </div>
     </Screen>
   )
 }

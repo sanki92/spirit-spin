@@ -11,8 +11,8 @@ export function TopPreview({ build, size = 220 }: { build: TopBuild; size?: numb
   const beast = useSave(s => s.beasts[build.beastId])
   return (
     <div className="top-preview" style={{ width: size, height: size }}>
-      <Img id={`parts/disc-${build.discId}`} className="layer disc" />
-      <Img id={`parts/blade-${build.bladeId}`} className="layer blade" />
+      <Img id={`parts/disc-${build.discId}`} className="layer disc" eager />
+      <Img id={`parts/blade-${build.bladeId}`} className="layer blade" eager />
       <Img id={`${beastArt(build.beastId, beast?.awakened)}/emblem`} className="layer chip" fallback={<Img id={`beasts/${build.beastId}/emblem`} className="layer chip" />} />
     </div>
   )

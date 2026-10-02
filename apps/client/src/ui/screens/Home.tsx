@@ -65,7 +65,13 @@ export function Home() {
         {!s.onboarded.firstBattle ? 'First battle · Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Tower cleared · Rematch' : `Tower floor ${next}${floor.boss ? ` · Boss ${BOSSES[floor.boss].name}` : ''}`}
       </Slash>
 
-      {s.onboarded.firstBattle && <Slash tone="ghost" className="play-friend" onClick={() => nav.push({ k: 'friends' })}>Battle a friend live</Slash>}
+      {s.onboarded.firstBattle && (
+        <div className="compete">
+          <button onClick={() => nav.push({ k: 'friends' })}><strong>Live</strong><span>Battle a friend</span></button>
+          <button onClick={() => nav.push({ k: 'ranked' })}><strong>Ranked</strong><span>Climb the ladder</span></button>
+          <button onClick={() => nav.push({ k: 'cups' })}><strong>Cups</strong><span>Friend tournaments</span></button>
+        </div>
+      )}
 
       <section className="quests">
         {s.quests.list.map(q => {

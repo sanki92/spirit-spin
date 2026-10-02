@@ -3,9 +3,9 @@ import { assetUrl, hasAsset } from '../assets/assets'
 import { useNav } from '../state/nav'
 import { useSave } from '../state/save'
 
-export function Img({ id, alt = '', className, fallback }: { id: string; alt?: string; className?: string; fallback?: ReactNode }) {
+export function Img({ id, alt = '', className, fallback, eager = false }: { id: string; alt?: string; className?: string; fallback?: ReactNode; eager?: boolean }) {
   if (!hasAsset(id)) return <>{fallback ?? null}</>
-  return <img className={className} src={assetUrl(id)} alt={alt} draggable={false} loading="lazy" decoding="async" />
+  return <img className={className} src={assetUrl(id)} alt={alt} draggable={false} loading={eager ? 'eager' : 'lazy'} decoding="async" />
 }
 
 export function Screen({ children, bg, className = '' }: { children: ReactNode; bg?: string; className?: string }) {
