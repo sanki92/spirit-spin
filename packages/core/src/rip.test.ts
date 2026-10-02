@@ -17,8 +17,8 @@ describe('scoreRip', () => {
     const tr = pullTrace({ start: 0, decelMs: 200 })
     expect(ok(scoreRip(tr, 0, calFor(tr, 0.9))).straightness).toBeGreaterThan(0.9)
   })
-  it('300 ms late drops to GOOD or worse', () => {
-    const tr = pullTrace({ start: 300 })
+  it('500 ms late drops to GOOD or worse', () => {
+    const tr = pullTrace({ start: 500 })
     expect(['GOOD', 'WEAK']).toContain(ok(scoreRip(tr, 0, calFor(tr, 0.9))).quality)
   })
   it('zig-zag pull scores low straightness', () => {

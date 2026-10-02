@@ -29,7 +29,7 @@ describe('scoreSwipe', () => {
     if (!r.ok) throw new Error('expected ok'); expect(r.straightness).toBeLessThan(0.6)
   })
   it('late swipe is penalized like a late rip', () => {
-    const r = scoreSwipe(swipe({ start: 350, ms: 160, dy: 500 }), 0, 800)
+    const r = scoreSwipe(swipe({ start: 450, ms: 160, dy: 500 }), 0, 800)
     if (!r.ok) throw new Error('expected ok'); expect(r.timing).toBe(0)
   })
 })

@@ -30,7 +30,7 @@ export const RIP = {
   startThreshold: 12, // m/s² (~1.2g) marks the start of a pull
   windowMs: 250,
   earliestMs: -400, latestMs: 600, // accepted start window around the LAUNCH beat
-  perfectMs: 80, zeroTimingMs: 280,
+  perfectMs: 120, zeroTimingMs: 320, timingCenterMs: 60,
   bankRollDeg: 15,
   overspinRatio: 1.6,
   weights: { timing: 0.4, straightness: 0.35, pull: 0.25 },
@@ -50,7 +50,7 @@ export function pullCurve(ratio: number): number {
 }
 
 export function timingScore(offsetMs: number): number {
-  return 1 - clamp01((Math.abs(offsetMs) - RIP.perfectMs) / (RIP.zeroTimingMs - RIP.perfectMs))
+  return 1 - clamp01((Math.abs(offsetMs - RIP.timingCenterMs) - RIP.perfectMs) / (RIP.zeroTimingMs - RIP.perfectMs))
 }
 
 export function composeRip(timing: number, straightness: number, pullRatio: number, roll: number, startT: number): RipResult {

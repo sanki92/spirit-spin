@@ -3,6 +3,8 @@ import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
 
+const VISUAL_SCALE = 1.35
+
 export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture }
 
 function disc(r: number, map: Texture, y: number, extra: { opacity?: number; additive?: boolean; color?: number } = {}): Mesh {
@@ -30,7 +32,8 @@ export class TopMesh {
   private angle = 0
   private precess = 0
 
-  constructor(tex: TopTextures, radius: number, type: string) {
+  constructor(tex: TopTextures, physicsRadius: number, type: string) {
+    const radius = physicsRadius * VISUAL_SCALE
     const tint = TYPE_TINT[type] ?? 0xffffff
     const body = new Mesh(
       new CylinderGeometry(radius * 0.9, radius * 0.7, 0.05, 32),

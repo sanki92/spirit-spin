@@ -52,8 +52,12 @@ export class Stage {
   resize(w: number, h: number): void {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
-    const portrait = h > w
-    this.base.set(0, portrait ? 3.9 : 3.05, portrait ? 3.0 : 2.35)
+    const halfV = (this.camera.fov * Math.PI) / 360
+    const halfH = Math.atan(Math.tan(halfV) * this.camera.aspect)
+    const fit = Math.max(1.22 / Math.tan(halfH), 1.6 / Math.tan(halfV))
+    const pitch = h > w ? 1.05 : 0.92
+    this.base.set(0, fit * Math.sin(pitch), fit * Math.cos(pitch))
+    this.look.set(0, 0, h > w ? 0.05 : 0.12)
     this.camera.updateProjectionMatrix()
   }
 
