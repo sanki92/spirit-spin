@@ -12,3 +12,4 @@ tools/__pycache__/
 apps/client/public/assets/
 apps/client/public/icons/
 packages/core/scripts/tuning.best.json
+assets/audio/src/

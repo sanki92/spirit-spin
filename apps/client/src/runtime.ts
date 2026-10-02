@@ -15,6 +15,7 @@ export class Runtime {
 
   async arm(wantMic: boolean): Promise<{ motion: boolean; mic: boolean }> {
     const p = await requestAll(this.sound.ctx, wantMic)
+    await this.sound.loadAll()
     if (p.motion) {
       const feed = new SensorFeed()
       feed.start()

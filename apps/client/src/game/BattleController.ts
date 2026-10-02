@@ -64,6 +64,7 @@ export class BattleController {
 
   dispose(): void {
     this.disposed = true
+    this.deps.sound.stopHums()
     for (const t of this.timers) clearTimeout(t)
     this.game.setBattle(null)
   }
@@ -228,6 +229,10 @@ export class BattleController {
     }
     this.hudTimer += dt
     const b = this.game.battle
+    if (b) {
+      this.deps.sound.hum(0, b.outcome || b.tops[0].out ? 0 : b.tops[0].spin)
+      this.deps.sound.hum(1, b.outcome || b.tops[1].out ? 0 : b.tops[1].spin)
+    } else this.deps.sound.stopHums()
     if (b && this.hudTimer > 0.1) {
       this.hudTimer = 0
       useHud.getState().set({

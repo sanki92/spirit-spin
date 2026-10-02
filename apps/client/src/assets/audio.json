@@ -1,0 +1,65 @@
+{
+ "tick": [
+  "/assets/audio/tick-0.mp3"
+ ],
+ "launch": [
+  "/assets/audio/launch-0.mp3"
+ ],
+ "rip": [
+  "/assets/audio/rip-0.mp3",
+  "/assets/audio/rip-1.mp3"
+ ],
+ "clash": [
+  "/assets/audio/clash-0.mp3",
+  "/assets/audio/clash-1.mp3",
+  "/assets/audio/clash-2.mp3",
+  "/assets/audio/clash-3.mp3",
+  "/assets/audio/clash-4.mp3"
+ ],
+ "clashHeavy": [
+  "/assets/audio/clashHeavy-0.mp3",
+  "/assets/audio/clashHeavy-1.mp3",
+  "/assets/audio/clashHeavy-2.mp3",
+  "/assets/audio/clashHeavy-3.mp3",
+  "/assets/audio/clashHeavy-4.mp3"
+ ],
+ "wall": [
+  "/assets/audio/wall-0.mp3",
+  "/assets/audio/wall-1.mp3",
+  "/assets/audio/wall-2.mp3"
+ ],
+ "ringout": [
+  "/assets/audio/ringout-0.mp3"
+ ],
+ "shatter": [
+  "/assets/audio/shatter-0.mp3",
+  "/assets/audio/shatter-1.mp3"
+ ],
+ "spirit": [
+  "/assets/audio/spirit-0.mp3"
+ ],
+ "spinDown": [
+  "/assets/audio/spinDown-0.mp3"
+ ],
+ "finish": [
+  "/assets/audio/finish-0.mp3"
+ ],
+ "victory": [
+  "/assets/audio/victory-0.mp3"
+ ],
+ "defeat": [
+  "/assets/audio/defeat-0.mp3"
+ ],
+ "ui": [
+  "/assets/audio/ui-0.mp3"
+ ],
+ "callout": [
+  "/assets/audio/callout-0.mp3"
+ ],
+ "hesitate": [
+  "/assets/audio/hesitate-0.mp3"
+ ],
+ "hum": [
+  "/assets/audio/hum-0.mp3"
+ ]
+}

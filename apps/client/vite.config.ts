@@ -1,3 +1,4 @@
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -5,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
+    basicSsl({ name: 'spirit-spin-dev', domains: ['*.sslip.io', 'localhost'] }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
@@ -31,7 +33,7 @@ export default defineConfig({
       },
     }),
   ],
-  server: { port: 5173 },
+  server: { port: 5173, host: true, allowedHosts: ['.sslip.io', '.trycloudflare.com', 'localhost'] },
   build: { target: 'es2022', chunkSizeWarningLimit: 900 },
   test: { include: ['src/**/*.test.ts'], environment: 'node' },
 } as never)
