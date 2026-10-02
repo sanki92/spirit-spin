@@ -111,6 +111,7 @@ export class BattleController {
     this.game.setBattle(null)
     this.game.fx.clearDecals()
     hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, inputMode: this.inputMode, round: this.match.round })
+    this.game.stage.introSweep()
     const t0 = performance.now() + GRIP_MS + BEAT_MS * 3
     this.launchAt = t0
     const s = this.deps.sound
@@ -136,6 +137,7 @@ export class BattleController {
     res = usedSwipe ? (swiped as RipResult) : motion ?? swiped ?? { ok: false, reason: 'no-pull' }
     if (!usedSwipe) this.swipe = null
     const rip = res.ok ? res : FAIL_RIP(t0)
+    const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
     const win = this.swipe ? null : this.deps.sensors?.window(t0 - 1100, t0 + CAPTURE_AFTER_MS) ?? []
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
     log('rip', {
@@ -146,7 +148,7 @@ export class BattleController {
       samples: win?.length ?? null, peakMs2: mags.length ? +Math.max(...mags).toFixed(1) : null,
       firstOver12Ms: win ? (win.find(s => Math.hypot(s.ax, s.ay, s.az) > 12)?.t ?? null) && Math.round((win.find(s => Math.hypot(s.ax, s.ay, s.az) > 12)!.t) - t0) : null,
       swipePts: this.swipe?.length ?? null, swipeDy: this.swipe ? Math.round((this.swipe[this.swipe.length - 1]?.y ?? 0) - (this.swipe[0]?.y ?? 0)) : null,
-      opponentRpm: 0,
+      opponentRpm: opp.rpm, opponentQuality: opp.quality,
     })
     this.bestRpm = Math.max(this.bestRpm, rip.rpm)
     if (res.ok && res.quality === 'PERFECT' && !res.overspin) this.perfectRips++
@@ -158,7 +160,6 @@ export class BattleController {
     })
     this.deps.sound.play('rip', { volume: 0.9 })
     this.deps.sound.play('callout', { rate: res.ok && res.quality === 'PERFECT' ? 1.15 : 1 })
-    const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
     const hesitate = this.hesitationLeft
     const battle = createBattle(this.game.specs!, [{ rip, hesitate }, { rip: opp, hesitate: false }], (this.setup.seed + this.match.round * 7919) >>> 0)
     this.game.dropT = 0
@@ -197,7 +198,10 @@ export class BattleController {
         g.fx.clash(e.x, e.y, e.energy, heavy ? g.elementOf(Math.random() < 0.5 ? 0 : 1) : null)
         s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3), rate: 0.9 + Math.random() * 0.25 })
         g.stage.shake(Math.min(0.08, e.energy * 0.025))
-        if (heavy) g.hitstop(40 + Math.min(60, e.energy * 20))
+        if (heavy) {
+          g.hitstop(40 + Math.min(60, e.energy * 20))
+          g.stage.punch(Math.min(0.07, e.energy * 0.02))
+        }
         buzz(heavy ? 35 : 10)
         break
       }

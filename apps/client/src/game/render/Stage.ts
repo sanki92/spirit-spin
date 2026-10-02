@@ -20,6 +20,14 @@ export class Stage {
   private shakeAmp = 0
   private base = new Vector3(0, 3.05, 2.35)
   private look = new Vector3(0, 0, 0.12)
+  private focus = new Vector3()
+  private focusGoal = new Vector3()
+  private push = 1
+  private pushGoal = 1
+  private punchAmt = 0
+  private sweep = 0
+  private clock = 0
+  private tmp = new Vector3()
   zoom = 1
   dpr = 1
   private maxDpr = 1
@@ -55,9 +63,9 @@ export class Stage {
     const halfV = (this.camera.fov * Math.PI) / 360
     const halfH = Math.atan(Math.tan(halfV) * this.camera.aspect)
     const fit = Math.max(1.22 / Math.tan(halfH), 1.6 / Math.tan(halfV))
-    const pitch = h > w ? 1.05 : 0.92
+    const pitch = h > w ? 0.86 : 0.74
     this.base.set(0, fit * Math.sin(pitch), fit * Math.cos(pitch))
-    this.look.set(0, 0, h > w ? 0.05 : 0.12)
+    this.look.set(0, 0, h > w ? 0.1 : 0.14)
     this.camera.updateProjectionMatrix()
   }
 
@@ -85,13 +93,38 @@ export class Stage {
     this.shakeAmp = Math.min(0.12, this.shakeAmp + amount)
   }
 
+  punch(amount: number): void {
+    this.punchAmt = Math.min(0.09, this.punchAmt + amount)
+  }
+
+  follow(x: number, z: number, push = 1): void {
+    this.focusGoal.set(x, 0, z)
+    this.pushGoal = push
+  }
+
+  introSweep(): void {
+    this.sweep = 1
+  }
+
   render(dt: number): void {
+    this.clock += dt
     this.shakeAmp *= Math.exp(-dt * 9)
+    this.punchAmt *= Math.exp(-dt * 7)
+    this.sweep = Math.max(0, this.sweep - dt / 1.6)
+    const k = 1 - Math.exp(-dt * 3)
+    this.focus.lerp(this.focusGoal, k)
+    this.push += (this.pushGoal - this.push) * (1 - Math.exp(-dt * 4))
+    const e = this.sweep * this.sweep * (3 - 2 * this.sweep)
+    const yaw = Math.sin(this.clock * 0.21) * 0.07 + e * 0.9
+    const c = Math.cos(yaw), sn = Math.sin(yaw)
+    const z = this.zoom * this.push * (1 - this.punchAmt) * (1 + e * 0.35)
+    this.tmp.set(this.base.x * c + this.base.z * sn, this.base.y * (1 + e * 0.25), -this.base.x * sn + this.base.z * c).multiplyScalar(z)
     const s = this.shakeAmp
-    this.camera.position.copy(this.base).multiplyScalar(this.zoom)
+    this.camera.position.copy(this.tmp).add(this.focus)
     this.camera.position.x += (Math.random() - 0.5) * s
     this.camera.position.y += (Math.random() - 0.5) * s
-    this.camera.lookAt(this.look)
+    this.tmp.copy(this.look).add(this.focus)
+    this.camera.lookAt(this.tmp)
     this.renderer.render(this.scene, this.camera)
   }
 }

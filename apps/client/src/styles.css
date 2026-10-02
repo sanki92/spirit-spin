@@ -27,6 +27,7 @@ button { font-family: inherit; }
 .ready-screen { justify-content: space-between; padding: calc(24px + var(--safe-top)) 16px calc(32px + var(--safe-bottom)); }
 .ready-screen .logo { width: min(86vw, 520px); filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.6)); }
 .ready-body { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ready-body .fine { color: var(--chrome); background: rgba(7, 11, 31, 0.78); padding: 8px 14px; border-radius: 10px; }
 .ready-art { width: min(52vw, 260px); }
 
 .battle-screen { background: #05081a; }

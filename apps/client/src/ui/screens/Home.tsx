@@ -4,7 +4,7 @@ import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
 import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
-import { Bar, Coins, Img, Screen, Slash } from '../kit'
+import { Bar, Coins, Img, Screen, Slash, TopBar } from '../kit'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
@@ -86,11 +86,7 @@ export function Tower() {
   }
   return (
     <Screen className="tower" bg="backgrounds/tower">
-      <header className="topbar">
-        <button className="icon-btn" onClick={nav.back} aria-label="Back">‹</button>
-        <h1 className="slant">Spirit Tower</h1>
-        <Coins />
-      </header>
+      <TopBar title="Spirit Tower" />
       <ol className="floors">
         {floors.map(f => {
           const state = f.floor <= cleared ? 'cleared' : f.floor === current ? 'current' : 'locked'

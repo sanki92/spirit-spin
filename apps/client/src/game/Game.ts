@@ -14,6 +14,8 @@ export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
 interface Snap { x: number; y: number }
 
 const tex = (id: string, fallback: string): Promise<Texture> => texture(hasAsset(id) ? id : fallback)
+const summonTex = (art: string, beast: string): Promise<Texture> =>
+  texture([`${art}/summon`, `beasts/${beast}/summon`, `${art}/emblem`].find(hasAsset) ?? `beasts/${beast}/emblem`)
 
 export class Game {
   readonly stage: Stage
@@ -67,15 +69,16 @@ export class Game {
     const [[b0, d0, e0], [b1, d1, e1], c0, c1] = await Promise.all([
       load(builds[0], `${beastArt[0]}/emblem`),
       load(builds[1], `${beastArt[1]}/emblem`),
-      tex(`${beastArt[0]}/cutin`, `beasts/${builds[0].beastId}/cutin`),
-      tex(`${beastArt[1]}/cutin`, `beasts/${builds[1].beastId}/cutin`),
+      summonTex(beastArt[0], builds[0].beastId),
+      summonTex(beastArt[1], builds[1].beastId),
     ])
+    const shock = await tex('vfx/shockwave', 'vfx/impact-flash')
     if (this.tops) for (const t of this.tops) this.stage.world.remove(t.group)
-    if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.sprite)
+    if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
     this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
-    this.spirits = [new SpiritBillboard(c0), new SpiritBillboard(c1)]
+    this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color)]
     for (const t of this.tops) this.stage.world.add(t.group)
-    for (const s of this.spirits) this.stage.world.add(s.sprite)
+    for (const s of this.spirits) this.stage.world.add(s.group)
     for (const t of [b0, d0, e0, b1, d1, e1, c0, c1]) this.stage.renderer.initTexture(t)
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
@@ -141,14 +144,26 @@ export class Game {
     const b = this.battle
     const scaled = dt * (this.stepper.scale || 0.05)
     if (!b && this.tops) for (const t of this.tops) t.group.visible = false
+    if (!b) this.stage.follow(0, 0)
     if (b && this.tops && this.spirits) {
+      const sum = this.spirits.findIndex(s => s.summoning)
+      const t0 = b.tops[0], t1 = b.tops[1]
+      if (sum >= 0) {
+        const t = b.tops[sum as 0 | 1]
+        this.stage.follow(t.x * 0.6, -t.y * 0.6, 0.78)
+      } else {
+        const live = [t0, t1].filter(t => !t.out)
+        const mx = live.reduce((a, t) => a + t.x, 0) / (live.length || 1), my = live.reduce((a, t) => a + t.y, 0) / (live.length || 1)
+        this.stage.follow(mx * 0.22, -my * 0.22, 1)
+      }
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], p = this.prev[i] as Snap
         const x = p.x + (t.x - p.x) * alpha, y = p.y + (t.y - p.y) * alpha
         const top = this.tops[i as 0 | 1]
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out)
         top.group.position.y += (1 - this.dropT) ** 2 * 1.4
-        this.spirits[i as 0 | 1].update(x, y, dt)
+        const o = b.tops[(1 - i) as 0 | 1]
+        this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
       }
     }
     this.fx.update(scaled, this.stage.camera)

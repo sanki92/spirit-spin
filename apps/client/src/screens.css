@@ -10,7 +10,8 @@
   --skew: -8deg;
 }
 
-.page { justify-content: flex-start; align-items: stretch; overflow-y: auto; touch-action: pan-y; padding: calc(10px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); gap: 12px; background: var(--abyss); }
+.page::-webkit-scrollbar { display: none; }
+.page { scrollbar-width: none; justify-content: flex-start; align-items: stretch; overflow-y: auto; touch-action: pan-y; padding: calc(10px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); gap: 12px; background: var(--abyss); }
 .page.center { justify-content: center; align-items: center; text-align: center; }
 .slant { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; transform: skewX(var(--skew)); margin: 0; font-weight: 400; }
 h2.slant { font-size: 38px; color: var(--chrome); }
@@ -29,6 +30,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .icon-btn { width: 44px; height: 44px; border-radius: 10px; border: 0; background: var(--steel); color: var(--chrome); font-size: 30px; line-height: 1; cursor: pointer; }
 
 .topbar { display: flex; align-items: center; gap: 10px; }
+.page > .topbar { position: sticky; top: calc(-10px - var(--safe-top)); z-index: 5; margin: calc(-10px - var(--safe-top)) -16px 0; padding: calc(10px + var(--safe-top)) 16px 8px; background: linear-gradient(180deg, var(--abyss) 70%, rgba(7,11,31,0)); }
 .topbar h1 { flex: 1; font-size: 30px; color: var(--chrome); }
 .coins { display: flex; align-items: center; gap: 6px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--steel); font-weight: 700; font-size: 18px; color: var(--gold); }
 .coin-icon { width: 26px; height: 26px; }
@@ -112,10 +114,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .floor.cleared .go { background: var(--steel-2); color: var(--chrome); }
 
 .top-preview { position: relative; flex: none; }
-.top-preview .layer { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-.top-preview .disc { width: 82%; }
-.top-preview .blade { width: 100%; animation: spinSlow 8s linear infinite; }
-.top-preview .chip { width: 34%; border-radius: 50%; }
+.top-preview .layer { position: absolute; inset: 0; margin: auto; object-fit: contain; }
+.top-preview .disc { width: 82%; height: 82%; }
+.top-preview .blade { width: 100%; height: 100%; animation: spinSlow 8s linear infinite; }
+.top-preview .chip { width: 34%; height: 34%; border-radius: 50%; }
 .garage-stage { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .garage-meta { flex: 1; min-width: 200px; display: grid; gap: 6px; }
 .garage-meta strong { font-size: 32px; }
@@ -172,7 +174,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .card-grid.blades, .card-grid.discs, .card-grid.tips { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
 .card { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; }
 .card-inner { position: relative; width: 100%; aspect-ratio: 2 / 3; }
-.card-img { position: absolute; inset: 7%; width: 86%; height: 86%; object-fit: cover; border-radius: 6px; }
+.card-img { position: absolute; top: 11%; left: 13%; width: 74%; height: 70%; object-fit: cover; border-radius: 4px; }
 .card-grid:not(.beasts) .card-img { object-fit: contain; }
 .card-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
 .card.locked .card-img { filter: grayscale(1) brightness(0.3); }
@@ -200,7 +202,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .danger-btn { border: 0; border-radius: 10px; padding: 12px; background: var(--red); color: #fff; font-weight: 800; cursor: pointer; }
 
 @keyframes breathe { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-@keyframes spinSlow { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes spinSlow { to { transform: rotate(360deg); } }
 .reduce-motion *, .reduce-motion *::before { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 @media (prefers-reduced-motion: reduce) { .tap-hint, .claim, .top-preview .blade { animation: none; } }
 .recovery code { font-size: 18px; letter-spacing: 2px; color: var(--gold); background: var(--steel-2); padding: 8px 10px; border-radius: 8px; user-select: all; }

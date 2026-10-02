@@ -31,7 +31,15 @@ def trim(img):
 
 
 def squared(img, size):
-    img = trim(img)
+    a = np.array(img)
+    alpha = a[:, :, 3]
+    labels, n = ndimage.label(alpha > 128)
+    if n:
+        sizes = ndimage.sum(np.ones_like(alpha), labels, range(1, n + 1))
+        keep = np.nonzero(sizes >= sizes.max() * 0.02)[0] + 1
+        ys, xs = np.nonzero(np.isin(labels, keep))
+        a[:, :, 3] = np.where(alpha < 24, 0, alpha)
+        img = Image.fromarray(a).crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
     side = max(img.size)
     canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     canvas.paste(img, ((side - img.width) // 2, (side - img.height) // 2))

@@ -113,7 +113,7 @@ export function Shop() {
         {items.map(it => (
           <div key={it.id} className={`shop-item ${it.rarity}`}>
             <Img id={`parts/${it.kind}-${it.partId}`} className="shop-img" />
-            <strong>{it.partId}</strong>
+            <strong>{(it.kind === 'blade' ? BLADES[it.partId]?.name : it.kind === 'disc' ? DISCS[it.partId]?.name : TIPS[it.partId]?.name) ?? it.partId}</strong>
             <span>{it.kind} · {it.rarity}</span>
             {owns(it.kind, it.partId) ? <em>Owned</em> : <button onClick={() => buy(it.kind, it.partId, it.price)}><Img id="ui/icon-coin" />{it.price}</button>}
           </div>
