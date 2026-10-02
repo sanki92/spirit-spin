@@ -1,5 +1,5 @@
 import {
-  applyRound, assembleTop, composeRip, rpmQuality, swipePlausible, createBattle, InputTrack, NET, newMatch, scoreRip, scoreSwipe, stepBattle, tracePlausible,
+  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, InputTrack, NET, newMatch, stepBattle,
   type BattleEvent, type BattleState, type MatchState, type MotionSample, type NetInput, type RipResult, type RipView, type ServerMsg,
   type Side, type TopBuild, type TouchSample,
 } from '@spirit/core'
@@ -23,21 +23,7 @@ export interface Seat {
 }
 
 const FAIL = (): RipResult => composeRip(0.15, 0.3, 0.45, 0, 0)
-const view = (r: RipResult, ok: boolean, reason: string | null): RipView => ({
-  ok, reason, rpm: r.rpm, quality: r.quality, overspin: r.overspin, style: r.style, bankDir: r.bankDir, timing: r.timing, straightness: r.straightness, pullRatio: r.pullRatio,
-})
 const clamp = (v: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0)
-
-export function judgeRip(msg: { motion?: MotionSample[] | undefined; swipe?: { points: TouchSample[]; h: number } | undefined; pull100: number }): { rip: RipResult; view: RipView } {
-  const motion = msg.motion?.length ? (tracePlausible(msg.motion).ok ? scoreRip(msg.motion, 0, { pull100: clamp(msg.pull100, 5, 12) }) : { ok: false as const, reason: 'no-pull' as const }) : null
-  const rawSwipe = !motion && msg.swipe?.points.length ? (swipePlausible(msg.swipe.points) ? scoreSwipe(msg.swipe.points, 0, clamp(msg.swipe.h, 400, 1400)) : { ok: false as const, reason: 'no-pull' as const }) : null
-  const swipe = rawSwipe?.ok && rawSwipe.rpm > NET.swipeRpmCap ? { ...rawSwipe, rpm: NET.swipeRpmCap, quality: rpmQuality(NET.swipeRpmCap) } : rawSwipe
-  const best = [motion, swipe].find((r): r is RipResult => !!r?.ok)
-  if (best) return { rip: best, view: view(best, true, null) }
-  const fail = FAIL()
-  const reason = motion && !motion.ok ? motion.reason : swipe && !swipe.ok ? swipe.reason : 'no-pull'
-  return { rip: fail, view: view(fail, false, reason) }
-}
 
 export class Room {
   readonly seats: [Seat | null, Seat | null] = [null, null]
@@ -149,7 +135,7 @@ export class Room {
   private startBattle(): void {
     const [a, b] = this.seats
     if (!a || !b) return
-    for (const [i, s] of [a, b].entries()) if (!s.rip) { s.rip = FAIL(); this.views[i] = view(s.rip, false, 'no-pull') }
+    for (const [i, s] of [a, b].entries()) if (!s.rip) { s.rip = FAIL(); this.views[i] = toView(s.rip, false, 'no-pull') }
     this.seed = Math.floor(Math.random() * 2 ** 31)
     this.battle = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
     this.phase = 'battle'
