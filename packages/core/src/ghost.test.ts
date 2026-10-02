@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createBattle, stepBattle, type BattleEvent, type TickInput } from './battle'
 import { botInput } from './bot'
-import { decodeInputs, deckTop, deckValid, encodeInputs, ghostBrain, ghostRip, ghostSeeds, quantize, replayMatch, type GhostRound } from './ghost'
+import { decodeInputs, deckTop, deckValid, encodeInputs, simulateGhosts, ghostBrain, ghostRip, ghostSeeds, quantize, replayMatch, type GhostRound } from './ghost'
 import { applyRound, newMatch } from './match'
 import { assembleTop, STARTER_BUILDS } from './parts'
 import { composeRip, type RipResult } from './rip'
@@ -80,5 +80,13 @@ describe('ghost', () => {
     expect(def.skill).toBeGreaterThan(0.3)
     expect(def.skill).toBeLessThan(0.7)
     expect(ghostRip([], 3).rpm).toBeGreaterThan(8000)
+  })
+
+  it('ghost vs ghost is deterministic per seed and always finishes', () => {
+    const A = { deck: [player], rips: ghostRips, brain }
+    const B = { deck: [ghost], rips: [], brain: ghostBrain({ rips: [], aggression: 0.4 }) }
+    const m1 = simulateGhosts(A, B, 99), m2 = simulateGhosts(A, B, 99)
+    expect(m1).toEqual(m2)
+    expect(m1.winner).not.toBeNull()
   })
 })

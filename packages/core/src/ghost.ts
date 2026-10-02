@@ -102,3 +102,21 @@ export function replayMatch(o: { player: TopSpec | readonly TopSpec[]; ghost: To
   const consistent = ticks.length === o.rounds.length && ticks.every((t, i) => o.rounds[i]!.inputs.length === t)
   return { match, outcomes, ticks, complete: match.winner !== null, consistent }
 }
+
+export interface GhostSide { deck: readonly TopSpec[]; rips: readonly RipView[]; brain: BotBrain }
+
+export function simulateGhosts(a: GhostSide, b: GhostSide, seed: number): MatchState {
+  const seeds = ghostSeeds(seed)
+  const botA = createRng((seed ^ 0x51ed270b) >>> 0)
+  const ev: BattleEvent[] = []
+  let match = newMatch()
+  for (let r = 1; match.winner === null && r <= 40; r++) {
+    const s = createBattle([deckTop(a.deck, r), deckTop(b.deck, r)], [{ rip: ghostRip(a.rips, r), hesitate: false }, { rip: ghostRip(b.rips, r), hesitate: false }], seeds.battle(r))
+    while (!s.outcome) {
+      stepBattle(s, [botInput(s, 0, a.brain, botA), botInput(s, 1, b.brain, seeds.bot)], ev)
+      ev.length = 0
+    }
+    match = applyRound(match, s.outcome)
+  }
+  return match
+}

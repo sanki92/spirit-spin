@@ -49,7 +49,7 @@ const meanTilt = (rounds: readonly { inputs: readonly TickInput[] }[]) => {
 export async function issueGhostMatch(db: Db, o: { playerId: string; opponentId: string | null; kind: 'ranked' | 'tournament'; pool: Pool; refId?: string; spec: GhostSpec }) {
   const seed = randomInt(2 ** 31 - 1)
   const [row] = await db.insert(ghostMatches).values({ playerId: o.playerId, opponentId: o.opponentId, kind: o.kind, pool: o.pool, refId: o.refId ?? null, seed, spec: o.spec as unknown as Record<string, unknown> }).returning({ id: ghostMatches.id })
-  return { matchId: row!.id, seed, pool: o.pool, opponent: { name: o.spec.ghostName, rating: o.spec.ghostRating, deck: o.spec.ghostDeck, rips: o.spec.ghostRips, brain: o.spec.brain } }
+  return { matchId: row!.id, seed, pool: o.pool, deck: o.spec.deck, opponent: { name: o.spec.ghostName, rating: o.spec.ghostRating, deck: o.spec.ghostDeck, rips: o.spec.ghostRips, brain: o.spec.brain } }
 }
 
 export async function ghostOf(db: Db, id: string, fallbackDeck: TopBuild[]) {

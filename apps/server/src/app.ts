@@ -11,6 +11,7 @@ import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
+import { registerTournaments } from './tournaments'
 import { desc, gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
@@ -110,7 +111,8 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: row.save }
   })
 
-  registerLeague(app, db, requireAuth)
+  const cups = registerTournaments(app, db, requireAuth)
+  registerLeague(app, db, requireAuth, cups.onVerified)
 
   app.get('/v1/friends', { preHandler: requireAuth }, async req => {
     const rows = await db

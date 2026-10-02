@@ -2,7 +2,7 @@ import { existsSync, renameSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
-import { integer, jsonb, pgTable, real, text, timestamp, uuid, type PgDatabase, type PgQueryResultHKT } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, real, text, timestamp, uuid, type PgDatabase, type PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import pg from 'pg'
 
@@ -47,6 +47,44 @@ export const ghostMatches = pgTable('ghost_matches', {
   status: text('status').notNull().default('issued'),
   result: jsonb('result').$type<Record<string, unknown> | null>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const tournaments = pgTable('tournaments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  ownerId: uuid('owner_id').notNull(),
+  status: text('status').notNull().default('lobby'),
+  format: text('format').notNull().default('rr'),
+  roundsTotal: integer('rounds_total').notNull().default(0),
+  currentRound: integer('current_round').notNull().default(0),
+  roundHours: integer('round_hours').notNull().default(24),
+  roundDeadline: timestamp('round_deadline', { withTimezone: true }),
+  webhook: text('webhook'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const tournamentEntries = pgTable('tournament_entries', {
+  tournamentId: uuid('tournament_id').notNull(),
+  playerId: uuid('player_id').notNull(),
+  points: integer('points').notNull().default(0),
+  wins: integer('wins').notNull().default(0),
+  losses: integer('losses').notNull().default(0),
+  scoreFor: integer('score_for').notNull().default(0),
+  scoreAgainst: integer('score_against').notNull().default(0),
+  bye: boolean('bye').notNull().default(false),
+})
+
+export const tournamentPairings = pgTable('tournament_pairings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tournamentId: uuid('tournament_id').notNull(),
+  round: integer('round').notNull(),
+  a: uuid('a').notNull(),
+  b: uuid('b'),
+  winner: uuid('winner'),
+  scores: jsonb('scores').$type<[number, number] | null>(),
+  resolvedBy: text('resolved_by'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 })
 
 export const aiCalls = pgTable('ai_calls', {
@@ -116,6 +154,44 @@ const MIGRATIONS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS ghost_matches_player ON ghost_matches (player_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS tournaments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code text NOT NULL UNIQUE,
+    name text NOT NULL,
+    owner_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    status text NOT NULL DEFAULT 'lobby',
+    format text NOT NULL DEFAULT 'rr',
+    rounds_total integer NOT NULL DEFAULT 0,
+    current_round integer NOT NULL DEFAULT 0,
+    round_hours integer NOT NULL DEFAULT 24,
+    round_deadline timestamptz,
+    webhook text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS tournament_entries (
+    tournament_id uuid NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+    player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    points integer NOT NULL DEFAULT 0,
+    wins integer NOT NULL DEFAULT 0,
+    losses integer NOT NULL DEFAULT 0,
+    score_for integer NOT NULL DEFAULT 0,
+    score_against integer NOT NULL DEFAULT 0,
+    bye boolean NOT NULL DEFAULT false,
+    PRIMARY KEY (tournament_id, player_id)
+  );
+  CREATE TABLE IF NOT EXISTS tournament_pairings (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tournament_id uuid NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+    round integer NOT NULL,
+    a uuid NOT NULL,
+    b uuid,
+    winner uuid,
+    scores jsonb,
+    resolved_by text,
+    resolved_at timestamptz
+  );
+  CREATE INDEX IF NOT EXISTS tournament_pairings_t ON tournament_pairings (tournament_id, round);
+  CREATE INDEX IF NOT EXISTS tournaments_running ON tournaments (status, round_deadline)`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>
