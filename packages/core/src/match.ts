@@ -3,6 +3,7 @@ import type { RoundOutcome } from './battle/types'
 
 export const POINTS_TO_WIN = 4
 export const MAX_ROUNDS = 12
+export const HARD_ROUND_CAP = MAX_ROUNDS + 8
 
 export interface MatchState {
   round: number // 1-based round about to be played
@@ -24,8 +25,8 @@ export function applyRound(m: MatchState, o: RoundOutcome): MatchState {
   let winner: 0 | 1 | null = null
   if (scores[0] >= POINTS_TO_WIN || scores[1] >= POINTS_TO_WIN || (m.suddenDeath && o.winner !== null)) {
     winner = scores[0] > scores[1] ? 0 : 1
-  } else if (history.length >= MAX_ROUNDS && scores[0] !== scores[1]) {
-    winner = scores[0] > scores[1] ? 0 : 1
+  } else if ((history.length >= MAX_ROUNDS && scores[0] !== scores[1]) || history.length >= HARD_ROUND_CAP) {
+    winner = scores[0] >= scores[1] ? 0 : 1
   }
   const suddenDeath = winner === null && history.length >= MAX_ROUNDS
   return { round: m.round + 1, scores, history, winner, suddenDeath }

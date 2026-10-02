@@ -14,6 +14,16 @@ LEDGER = "F:/tmp/tp-proj-game/docs/art/cost-ledger.csv"
 PRICES = {"gpt-image-2": (5, 8, 30), "gpt-image-2.5-sunburst": (5, 8, 30), "gpt-image-2.5-flare": (5, 8, 30),
           "gpt-image-1.5": (5, 8, 32), "gpt-image-1": (5, 10, 40), "gpt-image-1-mini": (2, 2.5, 8)}
 _lock = threading.Lock()
+BUDGET = float(os.environ.get("IMAGE_BUDGET_USD", "10"))
+BUDGET_SINCE = os.environ.get("IMAGE_BUDGET_SINCE", "2026-10-02T23:53:00")
+
+
+def spent_since() -> float:
+    if not os.path.exists(LEDGER):
+        return 0.0
+    with open(LEDGER, encoding="utf-8") as f:
+        next(f, None)
+        return sum(float(r.split(",")[8]) for r in f if r.strip() and r.split(",")[0] >= BUDGET_SINCE)
 
 
 def log_cost(job, model, usage):
@@ -54,6 +64,10 @@ def post_multipart(url, fields, files):
 def run(job):
     if os.path.exists(job["out"]):
         return f"SKIP {job['out']}"
+    with _lock:
+        spent = spent_since()
+    if spent >= BUDGET:
+        return f"BUDGET ${spent:.2f} >= ${BUDGET:.2f} cap, not generated: {job['out']}"
     model = job.get("model", DEFAULT_MODEL)
     fields = {"model": model, "prompt": job["prompt"], "size": job.get("size", "1536x1024"),
               "quality": job.get("quality", "high"), "n": 1}

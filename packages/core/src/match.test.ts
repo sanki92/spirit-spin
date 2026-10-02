@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyRound, newMatch, MAX_ROUNDS } from './match'
+import { applyRound, newMatch, MAX_ROUNDS, HARD_ROUND_CAP } from './match'
 
 const spin0 = { winner: 0 as const, finish: 'spin' as const, points: 1 as const }
 describe('match', () => {
@@ -33,5 +33,10 @@ describe('match', () => {
     expect(lead.winner).toBe(0)
     const tie = applyRound(m, { winner: null, finish: 'draw', points: 0 })
     expect(tie.winner).toBeNull(); expect(tie.suddenDeath).toBe(true)
+  })
+  it('never loops forever: hard cap decides endless draws', () => {
+    let m = newMatch()
+    for (let i = 0; i < HARD_ROUND_CAP && m.winner === null; i++) m = applyRound(m, { winner: null, finish: 'draw', points: 0 })
+    expect(m.winner).not.toBeNull()
   })
 })

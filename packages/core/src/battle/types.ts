@@ -14,6 +14,7 @@ export interface TopState {
   strikeArmed: boolean // next clash gets the type's one-shot bonus (attack / balance)
   hesitate: boolean // beast will refuse its first call this round
   overspinTicks: number
+  lastHitTick: number
   out: boolean; stopped: boolean; shattered: boolean
 }
 

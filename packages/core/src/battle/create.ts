@@ -20,8 +20,8 @@ function launchTop(spec: TopSpec, l: LaunchParams, side: Side): TopState {
   const power = l.rip.rpm / 15000
   const bank = l.rip.style === 'bank'
   const spin = T.spinBase + T.spinFromRpm * power + (l.rip.overspin ? T.overspinBonus : 0)
-  const r = bank ? 0.72 : 0.55
-  const speed = bank ? 0.9 * T.vmax * TIP[spec.tip].drive * (0.6 + 0.4 * power) : 0.25
+  const r = bank ? 0.6 : 0.3
+  const speed = bank ? 0.6 * T.vmax * TIP[spec.tip].drive * (0.6 + 0.4 * power) : 0.1
   // Bank: tangential velocity (direction picked by bank roll); flat: drift toward center.
   const dir = l.rip.bankDir === 0 ? 1 : l.rip.bankDir
   return {
@@ -33,6 +33,7 @@ function launchTop(spec: TopSpec, l: LaunchParams, side: Side): TopState {
     shatter: 0, gauge: 0, spiritTicks: 0, strikeArmed: false,
     hesitate: l.hesitate,
     overspinTicks: l.rip.overspin ? T.overspinTicks : 0,
+    lastHitTick: -1000,
     out: false, stopped: false, shattered: false,
   }
 }
@@ -41,7 +42,7 @@ export function battleHash(s: BattleState): string {
   const n: number[] = [s.tick, s.rng.s]
   for (const t of s.tops) {
     n.push(t.x, t.y, t.vx, t.vy, t.spin, t.wobble, t.shatter, t.gauge, t.spiritTicks, t.overspinTicks,
-      +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered)
+      t.lastHitTick, +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered)
   }
   return hashNumbers(n)
 }

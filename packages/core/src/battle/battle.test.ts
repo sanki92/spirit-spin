@@ -53,12 +53,27 @@ describe('battle rules', () => {
     expect(s.outcome).toEqual({ winner: 0, finish: 'spin', points: 1 })
     expect(ev.some(e => e.k === 'finish')).toBe(true)
   })
-  it('a top driven out through a pocket loses by RING OUT (2 pts)', () => {
+  it('no ring-out during the launch grace second', () => {
     const s = fresh(); const t = s.tops[1]
-    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3   // pocket at 90 degrees
+    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
+    s.tops[0].x = 0; s.tops[0].y = -0.5
+    run(s, 10)
+    expect(s.tops[1].out).toBe(false)
+  })
+  it('a top driven out through a pocket loses by RING OUT (2 pts)', () => {
+    const s = fresh(); s.tick = 100; const t = s.tops[1]
+    t.lastHitTick = 95
+    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
     s.tops[0].x = 0; s.tops[0].y = -0.5
     run(s, 10)
     expect(s.outcome).toEqual({ winner: 0, finish: 'ringout', points: 2 })
+  })
+  it('an un-hit, steady top scrapes off a pocket instead of falling out', () => {
+    const s = fresh(); s.tick = 100; const t = s.tops[1]
+    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
+    s.tops[0].x = 0; s.tops[0].y = -0.5
+    run(s, 10)
+    expect(s.tops[1].out).toBe(false)
   })
   it('the same push into plain wall bounces instead', () => {
     const s = fresh(); const t = s.tops[1]
@@ -68,16 +83,22 @@ describe('battle rules', () => {
     expect(s.outcome).toBeNull(); expect(ev.some(e => e.k === 'wall')).toBe(true)
   })
   it('ring out while your beast is manifested is SPIRIT FINISH (3 pts)', () => {
-    const s = fresh(); s.tops[0].spiritTicks = 100
-    const t = s.tops[1]; t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
+    const s = fresh(); s.tick = 100; s.tops[0].spiritTicks = 100
+    const t = s.tops[1]; t.lastHitTick = 95; t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
     s.tops[0].x = 0; s.tops[0].y = -0.5
     run(s, 10)
     expect(s.outcome).toEqual({ winner: 0, finish: 'spirit', points: 3 })
   })
-  it('simultaneous stop is a draw worth 0', () => {
-    const s = fresh(); s.tops[0].spin = 0.015; s.tops[1].spin = 0.015
-    run(s, 2)
+  it('simultaneous stop with identical spin is a draw worth 0', () => {
+    const s = fresh(); s.tops[0].spin = -1; s.tops[1].spin = -1
+    run(s, 1)
     expect(s.outcome).toEqual({ winner: null, finish: 'draw', points: 0 })
+  })
+  it('simultaneous shatter goes to the top with more spin left', () => {
+    const s = fresh(); s.tops[0].shattered = true; s.tops[1].shattered = true; s.tops[0].spin = 0.6; s.tops[1].spin = 0.4
+    s.tops[0].x = -0.5; s.tops[1].x = 0.5
+    run(s, 1)
+    expect(s.outcome).toEqual({ winner: 0, finish: 'shatter', points: 2 })
   })
   it('timeout: higher spin wins a SPIN FINISH', () => {
     const s = fresh(); s.tick = ROUND_TICKS - 1; s.tops[0].spin = 0.9; s.tops[1].spin = 0.4

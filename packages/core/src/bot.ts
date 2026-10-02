@@ -38,13 +38,14 @@ export function botRip(rng: RngState, brain: BotBrain, spec: TopSpec): RipResult
 
 export function botInput(s: BattleState, side: Side, brain: BotBrain, rng: RngState): TickInput {
   const t = s.tops[side], f = s.tops[(1 - side) as Side], spec = s.specs[side]
-  const dx = f.x - t.x, dy = f.y - t.y
+  // Aim where the opponent will be (lead by ~0.15 s), not where it is.
+  const dx = f.x + f.vx * 0.15 - t.x, dy = f.y + f.vy * 0.15 - t.y
   const dist = Math.sqrt(dx * dx + dy * dy) || 1
   const r = Math.sqrt(t.x * t.x + t.y * t.y)
   let ix = 0, iy = 0
 
   const chase = spec.type === 'attack' || (spec.type === 'balance' && f.spin < t.spin)
-  if (chase) { ix += (dx / dist) * brain.aggression; iy += (dy / dist) * brain.aggression }
+  if (chase) { const k = 0.6 + 0.4 * brain.aggression; ix += (dx / dist) * k; iy += (dy / dist) * k }
   else if (r > 0.15) { ix -= (t.x / r) * 0.8; iy -= (t.y / r) * 0.8 }
 
   // Steer away from a pocket when close to the wall.

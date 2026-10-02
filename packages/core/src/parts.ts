@@ -99,7 +99,7 @@ export function assembleTop(build: TopBuild): TopSpec {
     type: topType(b, t.kind),
     stats,
     mass: d.mass,
-    radius: 0.085,
+    radius: 0.11,
     shatterRes: b.shatterRes,
     tip: t.kind,
     driveMod: t.driveMod,
