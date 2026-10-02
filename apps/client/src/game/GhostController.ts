@@ -29,14 +29,17 @@ export class GhostController extends BattleController {
     const r = this.match.round
     if (r === 1 || (this.issued.deck.length < 2 && this.issued.opponent.deck.length < 2)) return super.beginRound()
     const mine = deckTop(this.issued.deck, r), theirs = deckTop(this.issued.opponent.deck, r)
-    void this.game.setTops([mine, theirs], [this.art(mine), `beasts/${theirs.beastId}`]).then(() => { if (!this.disposed) super.beginRound() })
+    const go = () => { if (!this.disposed) super.beginRound() }
+    void this.game.setTops([mine, theirs], [this.art(mine), `beasts/${theirs.beastId}`]).then(go, go)
   }
 
   protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {
     const t0 = this.launchAt
     const round = this.match.round
-    const m = motion?.filter(s => s.t >= t0 - 400 && s.t <= t0 + 700).map(s => ({ t: r2(s.t - t0), ax: r2(s.ax), ay: r2(s.ay), az: r2(s.az), gx: r2(s.gx), gy: r2(s.gy), gz: r2(s.gz), roll: r2(s.roll) }))
-    const sw = swipe?.length ? { points: swipe.map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: Math.round(innerHeight) } : undefined
+    const trace = this.deps.sensors?.window(t0 - 400, t0 + 700) ?? motion ?? []
+    const m = trace.filter(s => s.t >= t0 - 400 && s.t <= t0 + 700).map(s => ({ t: r2(s.t - t0), ax: r2(s.ax), ay: r2(s.ay), az: r2(s.az), gx: r2(s.gx), gy: r2(s.gy), gz: r2(s.gz), roll: r2(s.roll) }))
+    const pts = (swipe ?? []).filter(p => p.t >= t0 - 400 && p.t <= t0 + 700).slice(-200)
+    const sw = pts.length ? { points: pts.map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: Math.round(innerHeight) } : undefined
     this.payload = this.issued.pool === 'motion' ? { motion: m ?? [], pull100: this.deps.calibration.pull100 } : { swipe: sw, pull100: this.deps.calibration.pull100 }
     const judged = judgeRip(this.payload)
     const rip = judged.rip

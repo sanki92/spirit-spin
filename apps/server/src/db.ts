@@ -73,6 +73,7 @@ export const tournamentEntries = pgTable('tournament_entries', {
   scoreFor: integer('score_for').notNull().default(0),
   scoreAgainst: integer('score_against').notNull().default(0),
   bye: boolean('bye').notNull().default(false),
+  pool: text('pool'),
 })
 
 export const tournamentPairings = pgTable('tournament_pairings', {
@@ -192,6 +193,8 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX IF NOT EXISTS tournament_pairings_t ON tournament_pairings (tournament_id, round);
   CREATE INDEX IF NOT EXISTS tournaments_running ON tournaments (status, round_deadline)`,
+  `ALTER TABLE tournament_entries ADD COLUMN IF NOT EXISTS pool text;
+  CREATE INDEX IF NOT EXISTS ghost_matches_ref ON ghost_matches (ref_id)`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

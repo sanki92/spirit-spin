@@ -1,5 +1,5 @@
 import {
-  assembleTop, decodeInputs, deckValid, elo, ghostBrain, judgeRip, replayMatch, STARTER_BUILDS,
+  assembleTop, decodeInputs, deckValid, elo, ghostBrain, inputTicks, judgeRip, MAX_ROUND_INPUTS, replayMatch, STARTER_BUILDS,
   type BotBrain, type RipView, type TickInput, type TopBuild,
 } from '@spirit/core'
 import { and, eq, gte, lte, ne, sql } from 'drizzle-orm'
@@ -23,7 +23,8 @@ export const SubmitBody = z.object({ rounds: z.array(RoundBody).min(1).max(20) }
 export const ISSUE_TTL_MS = 30 * 60 * 1000
 const HOUSE = { name: 'Spirit Echo', deck: [STARTER_BUILDS.agnyx, STARTER_BUILDS.aegiron, STARTER_BUILDS.nagara], rips: [] as RipView[], aggression: 0.5 }
 
-export interface GhostSpec { deck: TopBuild[]; ghostDeck: TopBuild[]; ghostRips: RipView[]; brain: BotBrain; ghostRating: number; ghostName: string }
+export interface EloPlan { col: 'rating' | 'ratingSwipe'; lossDelta: number; winDelta: number; oppWin: number; oppLoss: number }
+export interface GhostSpec { deck: TopBuild[]; ghostDeck: TopBuild[]; ghostRips: RipView[]; brain: BotBrain; ghostRating: number; ghostName: string; elo?: EloPlan }
 type Auth = (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>
 type Pool = 'motion' | 'swipe'
 
@@ -46,6 +47,12 @@ const meanTilt = (rounds: readonly { inputs: readonly TickInput[] }[]) => {
   return n ? sum / n : null
 }
 
+async function bump(db: Db, id: string, col: 'rating' | 'ratingSwipe', delta: number) {
+  await ensureStats(db, id)
+  const c = col === 'rating' ? playerStats.rating : playerStats.ratingSwipe
+  await db.update(playerStats).set({ [col]: sql`${c} + ${delta}`, updatedAt: new Date() }).where(eq(playerStats.playerId, id))
+}
+
 export async function issueGhostMatch(db: Db, o: { playerId: string; opponentId: string | null; kind: 'ranked' | 'tournament'; pool: Pool; refId?: string; spec: GhostSpec }) {
   const seed = randomInt(2 ** 31 - 1)
   const [row] = await db.insert(ghostMatches).values({ playerId: o.playerId, opponentId: o.opponentId, kind: o.kind, pool: o.pool, refId: o.refId ?? null, seed, spec: o.spec as unknown as Record<string, unknown> }).returning({ id: ghostMatches.id })
@@ -56,7 +63,11 @@ export async function ghostOf(db: Db, id: string, fallbackDeck: TopBuild[]) {
   const st = await ensureStats(db, id)
   const [p] = await db.select({ name: players.name, save: players.save }).from(players).where(eq(players.id, id)).limit(1)
   const loadout = (p?.save as { loadout?: TopBuild } | undefined)?.loadout
-  const deck = (st.deck as TopBuild[] | null) ?? (loadout ? [loadout] : fallbackDeck)
+  const valid = (d: unknown): d is TopBuild[] => {
+    if (!Array.isArray(d) || !d.length) return false
+    try { d.forEach(b => assembleTop(b as TopBuild)); return true } catch { return false }
+  }
+  const deck = valid(st.deck) ? st.deck : valid(loadout ? [loadout] : null) ? [loadout!] : fallbackDeck
   return { name: p?.name ?? 'Spinner', deck, rips: st.rips as RipView[], aggression: st.aggression, rating: st.rating }
 }
 
@@ -68,7 +79,7 @@ export function registerLeague(app: FastifyInstance, db: Db, requireAuth: Auth, 
     return { rating: st.rating, ratingSwipe: st.ratingSwipe, played: st.rankedPlayed, won: st.rankedWon, deck: st.deck, ghostRips: (st.rips as unknown[]).length }
   })
 
-  r.post('/v1/ranked/start', { preHandler: requireAuth, schema: { body: z.object({ deck: z.array(Build).length(3), pool: z.enum(['motion', 'swipe']) }) } }, async (req, reply) => {
+  r.post('/v1/ranked/start', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ deck: z.array(Build).length(3), pool: z.enum(['motion', 'swipe']) }) } }, async (req, reply) => {
     const { deck, pool } = req.body
     if (!deckValid(deck)) return reply.code(400).send({ error: 'deck parts must not repeat' })
     try { deck.forEach(assembleTop) } catch { return reply.code(400).send({ error: 'unknown part' }) }
@@ -88,11 +99,20 @@ export function registerLeague(app: FastifyInstance, db: Db, requireAuth: Auth, 
       if (opp) break
     }
     const ghost = opp ? { name: opp.name, deck: opp.deck as TopBuild[], rips: opp.rips as RipView[], aggression: opp.aggression, rating: opp.rating } : { ...HOUSE, rating: mine }
-    const spec: GhostSpec = { deck, ghostDeck: ghost.deck, ghostRips: ghost.rips, brain: ghostBrain({ rips: ghost.rips, aggression: ghost.aggression }), ghostRating: ghost.rating, ghostName: ghost.name }
+    const key = pool === 'motion' ? 'rating' : 'ratingSwipe'
+    const plan: EloPlan = { col: key, lossDelta: elo(mine, ghost.rating, 0)[0] - mine, winDelta: elo(mine, ghost.rating, 1)[0] - mine, oppWin: elo(ghost.rating, mine, 1)[0] - ghost.rating, oppLoss: elo(ghost.rating, mine, 0)[0] - ghost.rating }
+    const abandoned = await db.update(ghostMatches).set({ status: 'abandoned' }).where(and(eq(ghostMatches.playerId, req.playerId), eq(ghostMatches.kind, 'ranked'), eq(ghostMatches.status, 'issued'))).returning()
+    for (const a of abandoned) {
+      const ap = (a.spec as unknown as GhostSpec).elo
+      if (ap && a.opponentId) await bump(db, a.opponentId, ap.col, ap.oppWin)
+    }
+    await db.update(playerStats).set({ [key]: sql`${col} + ${plan.lossDelta}`, rankedPlayed: sql`${playerStats.rankedPlayed} + 1`, updatedAt: new Date() }).where(eq(playerStats.playerId, req.playerId))
+    const spec: GhostSpec = { deck, ghostDeck: ghost.deck, ghostRips: ghost.rips, brain: ghostBrain({ rips: ghost.rips, aggression: ghost.aggression }), ghostRating: ghost.rating, ghostName: ghost.name, elo: plan }
     return issueGhostMatch(db, { playerId: req.playerId, opponentId: opp?.id ?? null, kind: 'ranked', pool, spec })
   })
 
   r.post('/v1/matches/:id/submit', { preHandler: requireAuth, bodyLimit: 1024 * 1024, schema: { params: z.object({ id: z.string().uuid() }), body: SubmitBody } }, async (req, reply) => {
+    if (req.body.rounds.some(rd => inputTicks(rd.inputs) > MAX_ROUND_INPUTS)) return reply.code(400).send({ error: 'round too long' })
     const [gm] = await db.update(ghostMatches).set({ status: 'verifying' }).where(and(eq(ghostMatches.id, req.params.id), eq(ghostMatches.playerId, req.playerId), eq(ghostMatches.status, 'issued'))).returning()
     if (!gm) {
       const [exists] = await db.select({ id: ghostMatches.id }).from(ghostMatches).where(and(eq(ghostMatches.id, req.params.id), eq(ghostMatches.playerId, req.playerId))).limit(1)
@@ -113,20 +133,28 @@ export function registerLeague(app: FastifyInstance, db: Db, requireAuth: Auth, 
     const winner = rep.match.winner as 0 | 1
     const scores = rep.match.scores
     const result: Record<string, unknown> = { winner, scores }
-    await recordGhostHistory(db, req.playerId, judged.map(j => j.view), meanTilt(rounds))
-    if (gm.kind === 'ranked') {
-      const col = pool === 'motion' ? 'rating' : 'ratingSwipe'
+    const plan = spec.elo
+    await db.transaction(async tx => {
+      const t = tx as unknown as Db
+      if (gm.kind === 'ranked' && plan) {
+        if (winner === 0) {
+          await t.update(playerStats).set({ [plan.col]: sql`${plan.col === 'rating' ? playerStats.rating : playerStats.ratingSwipe} + ${plan.winDelta - plan.lossDelta}`, rankedWon: sql`${playerStats.rankedWon} + 1`, updatedAt: new Date() }).where(eq(playerStats.playerId, req.playerId))
+          if (gm.opponentId) await bump(t, gm.opponentId, plan.col, plan.oppLoss)
+        } else if (gm.opponentId) await bump(t, gm.opponentId, plan.col, plan.oppWin)
+      }
+      await t.update(ghostMatches).set({ status: 'verified', result }).where(eq(ghostMatches.id, gm.id))
+    })
+    if (gm.kind === 'ranked' && plan) {
       const st = await ensureStats(db, req.playerId)
-      const before = st[col]
-      const oppSt = gm.opponentId ? await ensureStats(db, gm.opponentId) : null
-      const [mine, theirs] = elo(before, oppSt ? oppSt[col] : spec.ghostRating, winner === 0 ? 1 : 0)
-      await db.update(playerStats).set({ [col]: mine, rankedPlayed: st.rankedPlayed + 1, rankedWon: st.rankedWon + (winner === 0 ? 1 : 0), updatedAt: new Date() }).where(eq(playerStats.playerId, req.playerId))
-      if (oppSt) await db.update(playerStats).set({ [col]: theirs, updatedAt: new Date() }).where(eq(playerStats.playerId, gm.opponentId!))
-      result.rating = mine
-      result.delta = mine - before
+      result.rating = st[plan.col]
+      result.delta = winner === 0 ? plan.winDelta : plan.lossDelta
     }
-    await onVerified?.(gm, { winner, scores })
-    await db.update(ghostMatches).set({ status: 'verified', result }).where(eq(ghostMatches.id, gm.id))
+    try {
+      await recordGhostHistory(db, req.playerId, judged.map(j => j.view), meanTilt(rounds))
+      await onVerified?.(gm, { winner, scores })
+    } catch (e) {
+      req.log.error({ err: String(e), match: gm.id }, 'post-verification bookkeeping failed')
+    }
     return result
   })
 }

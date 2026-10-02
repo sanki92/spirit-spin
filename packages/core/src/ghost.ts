@@ -1,4 +1,4 @@
-import { createBattle, stepBattle, type BattleEvent, type RoundOutcome, type TickInput } from './battle'
+import { createBattle, ROUND_TICKS, stepBattle, type BattleEvent, type RoundOutcome, type TickInput } from './battle'
 import { botInput, type BotBrain } from './bot'
 import { applyRound, newMatch, type MatchState } from './match'
 import { NET, type RipView } from './net'
@@ -42,11 +42,19 @@ export function encodeInputs(ticks: readonly TickInput[]): number[] {
   return out
 }
 
-export function decodeInputs(enc: readonly number[]): TickInput[] {
+export const MAX_ROUND_INPUTS = ROUND_TICKS + 10
+
+export function inputTicks(enc: readonly number[]): number {
+  let n = 0
+  for (let i = 3; i < enc.length; i += 4) n += Math.max(0, Math.floor(Number.isFinite(enc[i]!) ? enc[i]! : 0))
+  return n
+}
+
+export function decodeInputs(enc: readonly number[], maxTicks = MAX_ROUND_INPUTS): TickInput[] {
   const out: TickInput[] = []
-  for (let i = 0; i + 3 < enc.length; i += 4) {
+  for (let i = 0; i + 3 < enc.length && out.length < maxTicks; i += 4) {
     const t = { tiltX: clamp(enc[i]!, -100, 100) / 100, tiltY: clamp(enc[i + 1]!, -100, 100) / 100, spirit: enc[i + 2] === 1 }
-    const count = Math.min(Math.max(0, Math.floor(enc[i + 3]!)), 100_000)
+    const count = Math.min(Math.max(0, Math.floor(enc[i + 3]!)), maxTicks - out.length)
     for (let k = 0; k < count; k++) out.push(t)
   }
   return out

@@ -66,14 +66,15 @@ describe('ranked ghosts', () => {
     expect(me).toMatchObject({ ratingSwipe: body.rating, played: 1 })
   })
 
-  it('tampered inputs are rejected without a rating change', async () => {
+  it('tampered inputs are rejected and the provisional loss stands', async () => {
     const g = await guest()
     const s = (await start(g.token)).json() as Start
+    const provisional = ((await app.inject({ method: 'GET', url: '/v1/ranked', headers: h(g.token) })).json() as { ratingSwipe: number }).ratingSwipe
     const played = play(s, steer)
     const forged = played.rounds.map(r => ({ ...r, inputs: [100, 100, 0, 5] }))
     const sub = await app.inject({ method: 'POST', url: `/v1/matches/${s.matchId}/submit`, headers: h(g.token), payload: { rounds: forged } })
     expect(sub.statusCode).toBe(409)
-    expect(((await app.inject({ method: 'GET', url: '/v1/ranked', headers: h(g.token) })).json() as { ratingSwipe: number }).ratingSwipe).toBe(1000)
+    expect(((await app.inject({ method: 'GET', url: '/v1/ranked', headers: h(g.token) })).json() as { ratingSwipe: number }).ratingSwipe).toBe(provisional)
   })
 
   it('another player cannot submit my match; invalid decks are refused', async () => {
@@ -92,5 +93,29 @@ describe('ranked ghosts', () => {
     let found = false
     for (let i = 0; i < 12 && !found; i++) found = ((await start(a.token)).json() as Start).opponent.name !== 'Spirit Echo'
     expect(found).toBe(true)
+  })
+
+  it('absurd input submissions are rejected fast', async () => {
+    const g = await guest()
+    const s = (await start(g.token)).json() as Start
+    const t0 = Date.now()
+    const huge = Array.from({ length: 24_000 }, (_, i) => (i % 4 === 3 ? 100_000 : 0))
+    const res = await app.inject({ method: 'POST', url: `/v1/matches/${s.matchId}/submit`, headers: h(g.token), payload: { rounds: [{ swipe: SWIPE, pull100: 7, inputs: huge }] } })
+    expect([400, 409]).toContain(res.statusCode)
+    expect(Date.now() - t0).toBeLessThan(3000)
+  })
+
+  it('an abandoned ranked match counts as a loss; a verified win refunds it', async () => {
+    const g = await guest()
+    await start(g.token)
+    const afterIssue = ((await app.inject({ method: 'GET', url: '/v1/ranked', headers: h(g.token) })).json() as { ratingSwipe: number }).ratingSwipe
+    expect(afterIssue).toBeLessThan(1000)
+    const s = (await start(g.token)).json() as Start
+    const played = play(s, steer)
+    const sub = (await app.inject({ method: 'POST', url: `/v1/matches/${s.matchId}/submit`, headers: h(g.token), payload: { rounds: played.rounds } })).json() as { rating: number; winner: number }
+    const me = (await app.inject({ method: 'GET', url: '/v1/ranked', headers: h(g.token) })).json() as { ratingSwipe: number; played: number }
+    expect(me.played).toBe(2)
+    expect(me.ratingSwipe).toBe(sub.rating)
+    if (sub.winner === 0) expect(sub.rating).toBeGreaterThan(afterIssue)
   })
 })

@@ -81,4 +81,43 @@ describe('tournaments', () => {
     const list = (await app.inject({ method: 'GET', url: '/v1/tournaments', headers: h(players[1]!.token) })).json() as { tournaments: { id: string }[] }
     expect(list.tournaments.map(x => x.id)).toContain(t.id)
   })
+
+  it('each player gets one attempt per pairing; abandoning it loses the pairing', async () => {
+    const { players, t } = await lobby(4)
+    await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/start`, headers: h(players[0]!.token) })
+    const d = await detail(players[0]!.token, t.id)
+    const p = d.pairings.find(x => x.round === 1)!
+    const tok = players.find(x => x.playerId === p.a)!.token
+    expect((await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/pairings/${p.id}/play`, headers: h(tok), payload: { pool: 'swipe' } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/pairings/${p.id}/play`, headers: h(tok), payload: { pool: 'swipe' } })).statusCode).toBe(409)
+    const after = await detail(players[0]!.token, t.id)
+    expect(after.pairings.find(x => x.id === p.id)!.winner).toBe(p.b)
+  })
+
+  it('a corrupt saved loadout does not break the sweep or the cup page', async () => {
+    const { players, t } = await lobby(4)
+    await app.inject({ method: 'PUT', url: '/v1/save', headers: h(players[1]!.token), payload: { baseVersion: 0, save: { coins: 1, xp: 0, tower: 0, loadout: { bladeId: 'nope', discId: 'x', tipId: 'y', beastId: 'voltfang' } } } })
+    await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/start`, headers: h(players[0]!.token) })
+    await app.sweepTournaments(Date.now() + 25 * 3600 * 1000)
+    const res = await app.inject({ method: 'GET', url: `/v1/tournaments/${t.id}`, headers: h(players[0]!.token) })
+    expect(res.statusCode).toBe(200)
+    expect((res.json() as Detail).pairings.filter(p => p.round === 1).every(p => p.winner)).toBe(true)
+  })
+
+  it('two final submits landing together advance exactly one round', async () => {
+    const { players, t } = await lobby(4)
+    const tok = new Map(players.map(p => [p.playerId, p.token]))
+    await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/start`, headers: h(players[0]!.token) })
+    const d = await detail(players[0]!.token, t.id)
+    const jobs = await Promise.all(d.pairings.filter(x => x.round === 1).map(async p => {
+      const token = tok.get(p.a)!
+      const s = (await app.inject({ method: 'POST', url: `/v1/tournaments/${t.id}/pairings/${p.id}/play`, headers: h(token), payload: { pool: 'swipe' } })).json() as Issued
+      return { token, s, played: playGhost(s) }
+    }))
+    await Promise.all(jobs.map(j => app.inject({ method: 'POST', url: `/v1/matches/${j.s.matchId}/submit`, headers: h(j.token), payload: { rounds: j.played.rounds } })))
+    const after = await detail(players[0]!.token, t.id)
+    expect(after.round).toBe(2)
+    expect(after.pairings.filter(p => p.round === 2)).toHaveLength(2)
+    expect(after.pairings.filter(p => p.round === 3)).toHaveLength(0)
+  })
 })

@@ -82,7 +82,7 @@ export class OnlineController extends BattleController {
     rt.send({
       k: 'rip', round: this.ripRound, pull100: this.deps.calibration.pull100,
       ...(m?.length ? { motion: m } : {}),
-      ...(swipe?.length ? { swipe: { points: swipe.map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: innerHeight } } : {}),
+      ...(swipe?.length ? { swipe: { points: swipe.filter(p => p.t >= t0 - 400 && p.t <= t0 + 700).slice(-200).map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: Math.round(innerHeight) } } : {}),
     })
   }
 

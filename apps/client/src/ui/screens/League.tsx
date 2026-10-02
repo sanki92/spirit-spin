@@ -207,11 +207,12 @@ export function CupScreen({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const load = async () => {
-    const [c, m] = await Promise.all([api<Cup>('GET', `/v1/tournaments/${id}`), api<{ playerId?: string }>('GET', '/v1/me')])
+    const c = await api<Cup>('GET', `/v1/tournaments/${id}`)
     if (!c.ok) return setError(c.status === 0 ? 'Tournaments need a connection.' : 'This tournament is not available.')
     setCup(c.data)
-    setMe(m.data.playerId ?? null)
+    setError(null)
   }
+  useEffect(() => { void api<{ playerId?: string }>('GET', '/v1/me').then(m => setMe(m.data.playerId ?? null)) }, [])
   useEffect(() => {
     void load()
     const t = setInterval(() => { if (document.visibilityState === 'visible') void load() }, 5000)
@@ -237,7 +238,10 @@ export function CupScreen({ id }: { id: string }) {
     const pool: 'motion' | 'swipe' = rt.sensors && s.settings.inputMode !== 'swipe' ? 'motion' : 'swipe'
     const r = await api<IssuedGhost & { error?: string }>('POST', `/v1/tournaments/${cup.id}/pairings/${mine.id}/play`, { pool })
     setBusy(false)
-    if (!r.ok) return setError(r.data.error === 'already decided' ? 'This match was already decided.' : 'Could not start the match. Try again.')
+    if (!r.ok) {
+      void load()
+      return setError(r.data.error === 'already decided' ? 'This match was already decided.' : r.data.error === 'already played' ? 'You already used your attempt for this match.' : r.data.error ?? 'Could not start the match. Try again.')
+    }
     nav.push({ k: 'ghost', issued: r.data, kind: 'tournament', cupId: cup.id })
   }
 
