@@ -9,6 +9,7 @@ import type { Config } from './config'
 import { openDb, players, aiCalls } from './db'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
+import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
@@ -28,7 +29,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -59,6 +60,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
+  await registerRealtime(app, tokens, deps.realtime)
 
   const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
     const h = req.headers.authorization
