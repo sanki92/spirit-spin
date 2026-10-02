@@ -46,7 +46,7 @@ export function Home() {
       </section>
 
       <Slash tone="gold" className="play" onClick={() => (s.onboarded.firstBattle ? nav.push({ k: 'tower' }) : nav.push({ k: 'battle', opponent: BOSSES.kaze.build, floor: null, boss: null, opponentName: 'Kaze' }))}>
-        {!s.onboarded.firstBattle ? 'First battle · Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Tower cleared · Rematch' : `Tower floor ${next}${floor.boss ? ` · Boss ${BOSSES[floor.boss].name}` : ''}`}
+        {!s.onboarded.firstBattle ? 'First battle Â· Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Tower cleared Â· Rematch' : `Tower floor ${next}${floor.boss ? ` Â· Boss ${BOSSES[floor.boss].name}` : ''}`}
       </Slash>
 
       <section className="quests">
@@ -98,8 +98,8 @@ export function Tower() {
             <li key={f.floor} id={`floor-${f.floor}`} className={`floor ${state} ${f.boss ? 'boss' : ''}`}>
               {f.boss ? <Img id={`characters/bosses/${f.boss}/confident`} className="floor-face" fallback={<Img id="characters/rival-full" className="floor-face" />} /> : <span className="floor-num">{f.floor}</span>}
               <div className="floor-info">
-                <strong>{f.boss ? `${BOSSES[f.boss].name} Â· ${BOSSES[f.boss].title}` : `Floor ${f.floor}`}</strong>
-                <span>+{f.reward.coins} coins{f.reward.part ? ` Â· ${f.reward.part.id} ${f.reward.part.kind}` : ''}{f.reward.unlocksBeastSlot ? ' Â· new beast' : ''}</span>
+                <strong>{f.boss ? `${BOSSES[f.boss].name} ÂÂ· ${BOSSES[f.boss].title}` : `Floor ${f.floor}`}</strong>
+                <span>+{f.reward.coins} coins{f.reward.part ? ` ÂÂ· ${f.reward.part.id} ${f.reward.part.kind}` : ''}{f.reward.unlocksBeastSlot ? ' ÂÂ· new beast' : ''}</span>
               </div>
               {state !== 'locked' && <button className="go" onClick={() => start(f.floor)}>{state === 'cleared' ? 'Replay' : 'Battle'}</button>}
             </li>
