@@ -6,16 +6,21 @@ import type { MotionSample } from './rip'
 
 export function tracePlausible(samples: readonly MotionSample[]): { ok: boolean; reasons: string[] } {
   const reasons: string[] = []
+  const fields = (x: MotionSample) => [x.t, x.ax, x.ay, x.az, x.gx, x.gy, x.gz, x.roll]
+  if (samples.some(x => fields(x).some(v => !Number.isFinite(v)))) return { ok: false, reasons: ['non-finite'] }
+  for (let i = 1; i < samples.length; i++) if ((samples[i] as MotionSample).t <= (samples[i - 1] as MotionSample).t) { reasons.push('non-monotonic'); break }
   const first = samples[0], last = samples[samples.length - 1]
   const spanS = first && last ? (last.t - first.t) / 1000 : 0
   if (samples.length < 2 || samples.length / Math.max(spanS, 0.001) < 20) reasons.push('low-sample-rate')
+  if (spanS < 0.9) reasons.push('short-span')
 
   const intervals: number[] = []
   for (let i = 1; i < samples.length; i++) intervals.push((samples[i] as MotionSample).t - (samples[i - 1] as MotionSample).t)
   if (stdev(intervals) < 0.2) reasons.push('no-interval-jitter')
 
   const rest = samples.filter(s => Math.sqrt(s.ax ** 2 + s.ay ** 2 + s.az ** 2) < 3).map(s => s.ax)
-  if (rest.length > 5 && stdev(rest) ** 2 <= 1e-4) reasons.push('no-sensor-noise')
+  if (rest.length < 6) reasons.push('no-rest-baseline')
+  else if (stdev(rest) ** 2 <= 1e-4) reasons.push('no-sensor-noise')
 
   if (samples.some(s => Math.sqrt(s.ax ** 2 + s.ay ** 2 + s.az ** 2) > 160)) reasons.push('impossible-accel')
 

@@ -37,7 +37,7 @@ export const RIP = {
   maxRpm: 15000,
 } as const
 
-const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v)
+const clamp01 = (v: number) => (Number.isFinite(v) ? (v < 0 ? 0 : v > 1 ? 1 : v) : 0)
 const mag = (s: MotionSample) => Math.sqrt(s.ax * s.ax + s.ay * s.ay + s.az * s.az)
 
 export function rpmQuality(rpm: number): RipQuality {
@@ -55,22 +55,28 @@ export function timingScore(offsetMs: number): number {
 
 export function composeRip(timing: number, straightness: number, pullRatio: number, roll: number, startT: number): RipResult {
   const w = RIP.weights
-  const score = w.timing * timing + w.straightness * straightness + w.pull * pullCurve(pullRatio)
+  const score = w.timing * clamp01(timing) + w.straightness * clamp01(straightness) + w.pull * pullCurve(pullRatio)
   const rpm = Math.round((RIP.maxRpm * clamp01(score)) / 10) * 10
-  const bank = Math.abs(roll) >= RIP.bankRollDeg
+  const ratio = Number.isFinite(pullRatio) ? pullRatio : 0
+  const bank = Number.isFinite(roll) && Math.abs(roll) >= RIP.bankRollDeg
   return {
-    ok: true, rpm, quality: rpmQuality(rpm), overspin: pullRatio > RIP.overspinRatio,
+    ok: true, rpm, quality: rpmQuality(rpm), overspin: ratio > RIP.overspinRatio,
     style: bank ? 'bank' : 'flat', bankDir: bank ? (roll > 0 ? 1 : -1) : 0,
-    timing, straightness, pullRatio, startT,
+    timing: clamp01(timing), straightness: clamp01(straightness), pullRatio: ratio, startT,
   }
 }
 
 export function scoreRip(samples: readonly MotionSample[], launchAt: number, cal: Calibration): RipResult | RipFail {
-  const startIdx = samples.findIndex(s => s.t >= launchAt - 1000 && mag(s) > RIP.startThreshold)
-  if (startIdx < 0) return { ok: false, reason: 'no-pull' }
+  const finite = (s: MotionSample) => Number.isFinite(s.t) && Number.isFinite(s.ax) && Number.isFinite(s.ay) && Number.isFinite(s.az) && Number.isFinite(s.roll)
+  if (!Number.isFinite(cal.pull100) || cal.pull100 <= 0 || samples.some(s => !finite(s))) return { ok: false, reason: 'no-pull' }
+  const lo = launchAt + RIP.earliestMs, hi = launchAt + RIP.latestMs
+  const startIdx = samples.findIndex(s => s.t >= lo && s.t <= hi && mag(s) > RIP.startThreshold)
+  if (startIdx < 0) {
+    if (samples.some(s => s.t > hi && mag(s) > RIP.startThreshold)) return { ok: false, reason: 'too-late' }
+    if (samples.some(s => s.t >= launchAt - 1000 && s.t < lo && mag(s) > RIP.startThreshold)) return { ok: false, reason: 'too-early' }
+    return { ok: false, reason: 'no-pull' }
+  }
   const start = samples[startIdx] as MotionSample
-  if (start.t < launchAt + RIP.earliestMs) return { ok: false, reason: 'too-early' }
-  if (start.t > launchAt + RIP.latestMs) return { ok: false, reason: 'too-late' }
 
   // Integrate |a| over the window and accumulate sign-aligned vectors for axis consistency.
   // A yank accelerates then brakes, so samples are flipped into the peak's half-space before summing.
@@ -84,7 +90,7 @@ export function scoreRip(samples: readonly MotionSample[], launchAt: number, cal
     const s = samples[i] as MotionSample
     if (s.t >= start.t + RIP.windowMs) break
     const prev = samples[i - 1]
-    const dt = prev ? (s.t - prev.t) / 1000 : 1 / 60
+    const dt = prev ? Math.min((s.t - prev.t) / 1000, 1 / 30) : 1 / 60
     const m = mag(s)
     pull += m * dt
     if (m < 3) continue // ignore rest noise for axis consistency

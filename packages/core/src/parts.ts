@@ -79,9 +79,8 @@ export function topType(b: Blade, kind: TipKind): TopType {
 }
 
 function need<T>(table: Record<string, T>, id: string, what: string): T {
-  const v = table[id]
-  if (!v) throw new Error(`unknown ${what} id: ${id}`)
-  return v
+  if (!Object.hasOwn(table, id)) throw new Error(`unknown ${what} id: ${id}`)
+  return table[id] as T
 }
 
 export function assembleTop(build: TopBuild): TopSpec {

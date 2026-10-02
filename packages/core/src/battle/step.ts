@@ -45,7 +45,7 @@ function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput): 
   ax += (dx * cruise - t.vx) * grip
   ay += (dy * cruise - t.vy) * grip
 
-  if (t.overspinTicks > 0) { t.overspinTicks--; t.wobble = t.overspinTicks / T.overspinTicks; t.spin -= T.overspinDrain * DT }
+  if (t.overspinTicks > 0) { t.overspinTicks--; t.wobble = Math.max(0, t.overspinTicks / Math.round(T.overspinTicks)); t.spin -= T.overspinDrain * DT }
   else if (t.spin < T.wobbleSpin) t.wobble = Math.max(t.wobble, (T.wobbleSpin - t.spin) / T.wobbleSpin)
   if (t.wobble > 0) {
     ax += (rngNext(s.rng) - 0.5) * 2 * T.wobbleForce * t.wobble
