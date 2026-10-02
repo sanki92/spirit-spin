@@ -14,7 +14,7 @@ LEDGER = "F:/tmp/tp-proj-game/docs/art/cost-ledger.csv"
 PRICES = {"gpt-image-2": (5, 8, 30), "gpt-image-2.5-sunburst": (5, 8, 30), "gpt-image-2.5-flare": (5, 8, 30),
           "gpt-image-1.5": (5, 8, 32), "gpt-image-1": (5, 10, 40), "gpt-image-1-mini": (2, 2.5, 8)}
 _lock = threading.Lock()
-BUDGET = float(os.environ.get("IMAGE_BUDGET_USD", "10"))
+BUDGET = float(os.environ.get("IMAGE_BUDGET_USD", "20"))
 BUDGET_SINCE = os.environ.get("IMAGE_BUDGET_SINCE", "2026-10-02T23:53:00")
 
 

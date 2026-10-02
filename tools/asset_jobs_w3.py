@@ -89,9 +89,9 @@ TYPES = {"attack": ("two crossed blades", "red"), "defense": ("a heater shield",
          "stamina": ("an infinity loop", "green"), "balance": ("a split yin-yang style circle", "white-silver")}
 for k, (sym, col) in TYPES.items():
     J(a, f"ui/type-{k}.png",
-      f"Round game type icon: a polished gunmetal metal badge with {sym} engraved in the center, a thin {col} glowing accent ring "
-      f"around the edge. Identical badge shape, metal and lighting for every type; only the symbol and accent color change. "
-      f"No elemental effects, no creatures, no text. Centered. {CUT}", refs=[C + "11f-ui-kit.png"])
+      f"ONE single round game type icon, the only object in the image, large and centered: a polished gunmetal metal badge with "
+      f"{sym} engraved in its center and a thin {col} glowing accent ring around its edge. Not a sheet, not a set, no other badges. "
+      f"No elemental effects, no creatures, no text. {CUT}")
 
 # ---------- onboarding illustrations (same character art style as the rival) ----------
 RIVAL = C + "08-rival-expressions.png"
