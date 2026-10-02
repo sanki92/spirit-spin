@@ -1,0 +1,81 @@
+/** One fixed 60 Hz tick. Mutates state in place (zero allocation besides pushed events). */
+import type { TopSpec } from '../parts'
+import { rngNext } from '../rng'
+import { resolveClash, resolveWall } from './collide'
+import { updateSpirit } from './spirit'
+import { DT, ROUND_TICKS, T, TIP } from './tuning'
+import type { BattleEvent, BattleState, RoundOutcome, Side, TickInput, TopState } from './types'
+
+const clampTilt = (v: number) => (Number.isFinite(v) ? (v > 1 ? 1 : v < -1 ? -1 : v) : 0)
+
+export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInput], out: BattleEvent[]): void {
+  if (s.outcome) return
+  s.tick++
+  for (let i = 0; i < 2; i++) {
+    const side = i as Side
+    const t = s.tops[side], spec = s.specs[side], foe = s.tops[(1 - side) as Side]
+    const raw = inputs[side]
+    const input: TickInput = { tiltX: clampTilt(raw.tiltX), tiltY: clampTilt(raw.tiltY), spirit: raw.spirit === true }
+    updateSpirit(t, spec, foe, input, side, s.tick, out)
+    moveTop(s, t, spec, input)
+  }
+  resolveClash(s, out)
+  for (let i = 0; i < 2; i++) resolveWall(s.tops[i as Side], s.specs[i as Side], i as Side, s.tick, out)
+  for (const t of s.tops) if (t.spin <= T.stopSpin) { t.spin = Math.max(t.spin, 0); t.stopped = true }
+
+  const o = judge(s)
+  if (o) { s.outcome = o; out.push({ k: 'finish', tick: s.tick, outcome: o }) }
+}
+
+function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput): void {
+  const tip = TIP[spec.tip]
+  const centerMul = tip.center * (t.spiritTicks > 0 && spec.type === 'stamina' ? T.tideCenter : 1)
+  let ax = -T.slope * centerMul * t.x, ay = -T.slope * centerMul * t.y
+
+  // Tip drive: steer the heading slightly toward the orbit tangent, then chase the tip's target speed.
+  const speed = Math.sqrt(t.vx * t.vx + t.vy * t.vy)
+  let hx = speed > 1e-4 ? t.vx / speed : -t.y, hy = speed > 1e-4 ? t.vy / speed : t.x
+  const r = Math.sqrt(t.x * t.x + t.y * t.y)
+  if (r > 1e-4) {
+    hx += (t.y / r) * tip.orbit * 60 * DT; hy += (-t.x / r) * tip.orbit * 60 * DT // right-spin orbit is clockwise
+    const hl = Math.sqrt(hx * hx + hy * hy); if (hl > 0) { hx /= hl; hy /= hl }
+  }
+  const target = tip.drive * spec.driveMod * Math.max(t.spin, 0) * T.vmax * (0.5 + 0.05 * spec.stats.speed)
+  ax += (target - speed) * tip.gain * hx
+  ay += (target - speed) * tip.gain * hy
+
+  if (t.overspinTicks > 0) { t.overspinTicks--; t.wobble = t.overspinTicks / T.overspinTicks }
+  else if (t.spin < T.wobbleSpin) t.wobble = Math.max(t.wobble, (T.wobbleSpin - t.spin) / T.wobbleSpin)
+  if (t.wobble > 0) {
+    ax += (rngNext(s.rng) - 0.5) * 2 * T.wobbleForce * t.wobble
+    ay += (rngNext(s.rng) - 0.5) * 2 * T.wobbleForce * t.wobble
+  }
+
+  ax += T.steer * input.tiltX; ay += T.steer * input.tiltY
+  const tilt = Math.sqrt(input.tiltX * input.tiltX + input.tiltY * input.tiltY)
+  const staminaFactor = 1.3 - 0.06 * spec.stats.stamina
+  t.spin -= ((tip.decay * spec.decayMod + T.drag * t.spin) * staminaFactor + T.steerCost * Math.min(tilt, 1)) * DT
+
+  t.vx += ax * DT; t.vy += ay * DT
+  t.x += t.vx * DT; t.y += t.vy * DT
+}
+
+const lostBy = (t: TopState): 'shatter' | 'ringout' | 'spin' | null =>
+  t.shattered ? 'shatter' : t.out ? 'ringout' : t.stopped ? 'spin' : null
+
+function judge(s: BattleState): RoundOutcome | null {
+  const la = lostBy(s.tops[0]), lb = lostBy(s.tops[1])
+  if (la && lb) return { winner: null, finish: 'draw', points: 0 }
+  if (la || lb) {
+    const winner: Side = la ? 1 : 0
+    const finish = (la ?? lb) as 'shatter' | 'ringout' | 'spin'
+    if (finish !== 'spin' && s.tops[winner].spiritTicks > 0) return { winner, finish: 'spirit', points: 3 }
+    return { winner, finish, points: finish === 'spin' ? 1 : 2 }
+  }
+  if (s.tick >= ROUND_TICKS) {
+    const [a, b] = s.tops
+    if (a.spin === b.spin) return { winner: null, finish: 'draw', points: 0 }
+    return { winner: a.spin > b.spin ? 0 : 1, finish: 'spin', points: 1 }
+  }
+  return null
+}
