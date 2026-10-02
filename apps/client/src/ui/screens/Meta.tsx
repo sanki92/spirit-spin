@@ -154,10 +154,10 @@ export function Settings() {
   const s = useSave()
   const nav = useNav()
   const [confirmReset, setConfirmReset] = useState(false)
-  const toggle = (k: 'silentSpirit' | 'sound' | 'haptics' | 'reducedMotion', label: string, hint: string) => (
+  const toggle = (k: 'silentSpirit' | 'sound' | 'haptics' | 'reducedMotion' | 'commentator', label: string, hint: string) => (
     <label className="setting">
       <div><strong>{label}</strong><span>{hint}</span></div>
-      <input type="checkbox" checked={s.settings[k]} onChange={e => s.patchSettings({ [k]: e.target.checked })} />
+      <input type="checkbox" checked={s.settings[k] ?? true} onChange={e => s.patchSettings({ [k]: e.target.checked })} />
     </label>
   )
   return (
@@ -172,6 +172,7 @@ export function Settings() {
       </label>
       {toggle('silentSpirit', 'Silent Spirit Call', 'Hold the button instead of shouting.')}
       {toggle('sound', 'Sound', 'Music and effects.')}
+      {toggle('commentator', 'Commentator', 'The announcer calls the big moments.')}
       {toggle('haptics', 'Vibration', 'Android only.')}
       {toggle('reducedMotion', 'Reduce motion', 'Fewer screen shakes and flashes.')}
       <div className="setting recovery">

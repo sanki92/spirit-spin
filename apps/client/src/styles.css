@@ -100,3 +100,8 @@ button { font-family: inherit; }
 @keyframes slideInEnemy { 0% { transform: translateX(-110%) skewX(12deg); } 18% { transform: translateX(0) skewX(6deg); } 82% { transform: translateX(3%) skewX(6deg); opacity: 1; } 100% { transform: translateX(110%) skewX(12deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pop, .cutin, .grip, .spirit-btn.ready { animation: none !important; } }
 .hud-notice { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); padding: 8px 16px; border-radius: 10px; background: rgba(7, 11, 31, 0.85); color: var(--chrome); font-weight: 700; pointer-events: none; white-space: nowrap; }
+.announcer { position: absolute; left: 10px; bottom: calc(118px + var(--safe-bottom)); display: flex; align-items: flex-end; gap: 6px; max-width: min(78vw, 420px); pointer-events: none; animation: announceIn 0.28s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.announcer-face { width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); flex: none; }
+.announcer p { margin: 0 0 6px; padding: 8px 12px; background: rgba(255, 207, 74, 0.96); color: #1a1205; font-weight: 800; font-size: 16px; line-height: 1.25; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); }
+@keyframes announceIn { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.reduce-motion .announcer { animation: none; }

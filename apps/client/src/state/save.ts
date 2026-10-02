@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
-export interface Settings { inputMode: 'auto' | 'swipe'; silentSpirit: boolean; sound: boolean; haptics: boolean; reducedMotion: boolean }
+export interface Settings { inputMode: 'auto' | 'swipe'; silentSpirit: boolean; sound: boolean; haptics: boolean; reducedMotion: boolean; commentator?: boolean }
 export interface Owned { blades: string[]; discs: string[]; tips: string[] }
 
 export interface SaveData {
@@ -59,7 +59,7 @@ const fresh = (): SaveData => ({
   loadout: null,
   tower: 0,
   quests: { date: '', list: [], claimed: [] },
-  settings: { inputMode: 'auto', silentSpirit: false, sound: true, haptics: true, reducedMotion: false },
+  settings: { inputMode: 'auto', silentSpirit: false, sound: true, haptics: true, reducedMotion: false, commentator: true },
   onboarded: { safety: false, calibrated: false, firstBattle: false },
   stats: { battles: 0, wins: 0, bestRpm: 0 },
   greet: null,

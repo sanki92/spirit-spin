@@ -10,6 +10,8 @@ import type { SensorFeed } from '../input/sensors'
 import { useHud } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
+import { Announcer } from './commentator'
+import { useSave } from '../state/save'
 
 export interface MatchSetup {
   player: TopBuild
@@ -61,6 +63,7 @@ export class BattleController {
   protected tiltTicks = 0
   protected hesitationLeft: boolean
   protected disposed = false
+  protected announcer: Announcer
 
   constructor(
     protected game: Game,
@@ -69,6 +72,7 @@ export class BattleController {
   ) {
     this.botRng = createRng(setup.seed ^ 0x9e3779b9)
     this.hesitationLeft = setup.playerHesitates
+    this.announcer = new Announcer(deps.sound, () => useSave.getState().settings.commentator !== false)
     game.bind(() => this.tick(), dt => this.frame(dt))
   }
 
@@ -79,11 +83,13 @@ export class BattleController {
   start(): void {
     log('match.start', { player: this.setup.player, opponent: this.setup.opponent, bot: this.setup.bot, hesitates: this.setup.playerHesitates, input: this.inputMode })
     useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null })
+    this.later(300, () => this.announcer.say('intro', true))
     this.later(1400, () => this.beginRound())
   }
 
   dispose(): void {
     this.disposed = true
+    this.announcer.dispose()
     this.deps.sound.stopHums()
     for (const t of this.timers) clearTimeout(t)
     this.game.setBattle(null)
@@ -128,6 +134,7 @@ export class BattleController {
     this.later(t0 - performance.now(), () => {
       useHud.getState().set({ countdown: 'LAUNCH' })
       buzz(40)
+      this.announcer.say('rip', true)
     })
     this.later(t0 + CAPTURE_AFTER_MS - performance.now(), () => this.resolveLaunch())
   }
@@ -162,6 +169,8 @@ export class BattleController {
       countdown: null,
       callout: res.ok ? { quality: res.overspin ? 'OVERSPIN' : res.quality, rpm: res.rpm } : { quality: 'FAIL', rpm: rip.rpm, note: FAIL_TEXT[res.reason] },
     })
+    const cue = !res.ok ? 'weak' : res.overspin ? 'overspin' : res.quality === 'PERFECT' ? 'perfect' : res.quality === 'WEAK' ? 'weak' : null
+    if (cue) this.later(500, () => this.announcer.say(cue, true))
     this.deps.sound.play('rip', { volume: 0.9 })
     this.deps.sound.play('callout', { rate: res.ok && res.quality === 'PERFECT' ? 1.15 : 1 })
     this.launch(rip, opp, win, usedSwipe ? this.swipe : null)
@@ -211,6 +220,7 @@ export class BattleController {
         s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3), rate: 0.9 + Math.random() * 0.25 })
         g.stage.shake(Math.min(0.08, e.energy * 0.025))
         if (heavy) {
+          this.announcer.say('clash')
           g.hitstop(40 + Math.min(60, e.energy * 20))
           g.stage.punch(Math.min(0.07, e.energy * 0.02))
         }
@@ -226,6 +236,7 @@ export class BattleController {
         const t = g.battle!.tops[e.side]
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: false } })
         g.spirits?.[e.side].show(true)
+        this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
         g.slowmo(0.3, 1000)
         s.play('spirit')
@@ -266,7 +277,9 @@ export class BattleController {
     buzz([60, 40, 120])
     g.spirits?.forEach(sp => sp.show(false))
     this.match = applyRound(this.match, o)
+    this.announcer.say(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spin' : o.finish === 'spirit' ? 'spiritFinish' : 'draw', true)
     const [p, q] = this.match.scores
+    if (this.match.winner === null && Math.max(p, q) >= 3) this.later(2000, () => this.announcer.say('matchPoint', true))
     this.maxDeficit = Math.max(this.maxDeficit, q - p)
     useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores })
     this.later(2300, () => {
@@ -278,6 +291,7 @@ export class BattleController {
   protected concludeMatch(): void {
     const s = this.deps.sound
     const won = this.match.winner === 0
+    this.announcer.say(won && this.maxDeficit >= 3 ? 'comeback' : won ? 'victory' : 'defeat', true)
     useHud.getState().set({ phase: 'matchEnd', banner: won ? 'victory' : 'defeat' })
     s.play(won ? 'victory' : 'defeat')
     this.later(1800, () =>

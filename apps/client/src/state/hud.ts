@@ -21,6 +21,7 @@ export interface HudState {
   inputMode: 'motion' | 'swipe'
   safetyPause: boolean
   notice: string | null
+  announcer: { id: string; text: string; face: 'hyped' | 'laughing' | 'pointing' | 'serious' | 'shocked' | 'thumbs-up' } | null
   set: (p: Partial<HudState>) => void
 }
 
@@ -39,5 +40,6 @@ export const useHud = create<HudState>(set => ({
   inputMode: 'swipe',
   safetyPause: false,
   notice: null,
+  announcer: null,
   set: p => set(p),
 }))

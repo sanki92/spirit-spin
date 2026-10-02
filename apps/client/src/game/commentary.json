@@ -1,0 +1,58 @@
+{
+  "intro": [
+    { "id": "intro-1", "text": "Spinners, take your positions!", "face": "hyped" },
+    { "id": "intro-2", "text": "The stadium is roaring! Let's battle!", "face": "pointing" }
+  ],
+  "rip": [
+    { "id": "rip-1", "text": "Let it rip!", "face": "pointing" }
+  ],
+  "perfect": [
+    { "id": "perfect-1", "text": "Perfect launch! Look at that speed!", "face": "shocked" },
+    { "id": "perfect-2", "text": "What a rip! Textbook!", "face": "thumbs-up" }
+  ],
+  "overspin": [
+    { "id": "overspin-1", "text": "Overspin! Too much power, it's wobbling!", "face": "shocked" }
+  ],
+  "weak": [
+    { "id": "weak-1", "text": "A soft launch... can it hold on?", "face": "serious" }
+  ],
+  "clash": [
+    { "id": "clash-1", "text": "Huge clash!", "face": "hyped" },
+    { "id": "clash-2", "text": "Sparks everywhere!", "face": "pointing" },
+    { "id": "clash-3", "text": "What an impact!", "face": "shocked" }
+  ],
+  "spirit": [
+    { "id": "spirit-1", "text": "The spirit awakens!", "face": "shocked" },
+    { "id": "spirit-2", "text": "Here comes the beast!", "face": "hyped" }
+  ],
+  "ringout": [
+    { "id": "ringout-1", "text": "Ring out! Clean out of the stadium!", "face": "pointing" },
+    { "id": "ringout-2", "text": "It's out! Over the edge!", "face": "shocked" }
+  ],
+  "shatter": [
+    { "id": "shatter-1", "text": "Shattered! What a finish!", "face": "shocked" },
+    { "id": "shatter-2", "text": "It broke apart! Incredible!", "face": "hyped" }
+  ],
+  "spin": [
+    { "id": "spin-1", "text": "Spin finish! Stamina takes it!", "face": "thumbs-up" },
+    { "id": "spin-2", "text": "Still spinning! What endurance!", "face": "serious" }
+  ],
+  "spiritFinish": [
+    { "id": "spiritfinish-1", "text": "Spirit finish! Unbelievable power!", "face": "hyped" }
+  ],
+  "draw": [
+    { "id": "draw-1", "text": "Both down at once! We go again!", "face": "laughing" }
+  ],
+  "matchPoint": [
+    { "id": "matchpoint-1", "text": "Match point! One more and it's over!", "face": "serious" }
+  ],
+  "comeback": [
+    { "id": "comeback-1", "text": "What a comeback! Nobody saw that coming!", "face": "shocked" }
+  ],
+  "victory": [
+    { "id": "victory-1", "text": "And that's the match! What a champion!", "face": "thumbs-up" }
+  ],
+  "defeat": [
+    { "id": "defeat-1", "text": "Tough break! Shake it off and launch again!", "face": "laughing" }
+  ]
+}

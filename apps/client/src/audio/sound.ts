@@ -75,6 +75,29 @@ export class Sound {
     h.gain.gain.setTargetAtTime(this.muted ? 0 : Math.min(0.22, Math.max(0, spin) * 0.25), t, 0.08)
   }
 
+  private voices = new Map<string, Promise<AudioBuffer | null>>()
+  private speaking: AudioBufferSourceNode | null = null
+
+  voice(id: string, volume = 1.8): void {
+    if (this.muted) return
+    let p = this.voices.get(id)
+    if (!p) {
+      p = fetch(`/assets/audio/vo/${id}.mp3`).then(r => (r.ok ? r.arrayBuffer() : null)).then(b => (b ? this.ctx.decodeAudioData(b) : null)).catch(() => null)
+      this.voices.set(id, p)
+    }
+    void p.then(buf => {
+      if (!buf || this.muted) return
+      try { this.speaking?.stop() } catch { this.speaking = null }
+      const src = this.ctx.createBufferSource()
+      src.buffer = buf
+      const g = this.ctx.createGain()
+      g.gain.value = volume
+      src.connect(g).connect(this.master)
+      src.start()
+      this.speaking = src
+    })
+  }
+
   stopHums(): void {
     for (const h of this.hums) if (h) h.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1)
   }
