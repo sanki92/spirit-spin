@@ -10,6 +10,7 @@ import { openDb, players, aiCalls, friendships, type Db } from './db'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
+import { recordGhostHistory, registerLeague } from './league'
 import { desc, gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
@@ -64,7 +65,9 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     ...deps.realtime,
     onResult: room => {
       const [a, b] = room.seats
-      if (a && b && a.playerId !== b.playerId) void befriend(db, a.playerId, b.playerId).catch(e => app.log.warn({ err: String(e) }, 'befriend failed'))
+      if (!a || !b || a.playerId === b.playerId) return
+      const work = [befriend(db, a.playerId, b.playerId), ...[a, b].map(s => recordGhostHistory(db, s.playerId, s.ripLog, s.tiltN ? s.tiltSum / s.tiltN : null))]
+      void Promise.all(work).catch(e => app.log.warn({ err: String(e) }, 'live result bookkeeping failed'))
     },
   })
 
@@ -106,6 +109,8 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (!row) return reply.code(401).send({ error: 'unknown player' })
     return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: row.save }
   })
+
+  registerLeague(app, db, requireAuth)
 
   app.get('/v1/friends', { preHandler: requireAuth }, async req => {
     const rows = await db

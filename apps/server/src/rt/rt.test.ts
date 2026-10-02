@@ -80,6 +80,8 @@ describe('realtime', () => {
     const fa = (await app.inject({ method: 'GET', url: '/v1/friends', headers: { authorization: `Bearer ${a.token}` } })).json() as { friends: { name: string }[] }
     expect(fa.friends.map(f => f.name)).toContain('Spinner')
     expect(fa.friends).toHaveLength(1)
+    const ra = (await app.inject({ method: 'GET', url: '/v1/ranked', headers: { authorization: `Bearer ${a.token}` } })).json() as { ghostRips: number }
+    expect(ra.ghostRips).toBeGreaterThan(0)
     a.ws.close(); b.ws.close()
   }, 120000)
 

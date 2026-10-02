@@ -20,6 +20,9 @@ export interface Seat {
   maxSeq: number
   maxTick: number
   track: InputTrack
+  ripLog: RipView[]
+  tiltSum: number
+  tiltN: number
 }
 
 const FAIL = (): RipResult => composeRip(0.15, 0.3, 0.45, 0, 0)
@@ -57,7 +60,7 @@ export class Room {
     if (free < 0 || this.phase !== 'wait') return null
     const side = free as Side
     assembleTop(build)
-    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack() }
+    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack(), ripLog: [], tiltSum: 0, tiltN: 0 }
     send({ k: 'room', code: this.code, side })
     const other = this.seats[(1 - side) as Side]
     if (other) {
@@ -136,6 +139,8 @@ export class Room {
     const [a, b] = this.seats
     if (!a || !b) return
     for (const [i, s] of [a, b].entries()) if (!s.rip) { s.rip = FAIL(); this.views[i] = toView(s.rip, false, 'no-pull') }
+    a.ripLog.push(this.views[0]!)
+    b.ripLog.push(this.views[1]!)
     this.seed = Math.floor(Math.random() * 2 ** 31)
     this.battle = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
     this.phase = 'battle'
@@ -179,6 +184,8 @@ export class Room {
       s!.inputs.delete(t)
       const inp = got ?? { ...s!.last, seq: s!.maxSeq }
       s!.last = inp
+      s!.tiltSum += Math.min(1, Math.hypot(inp.x, inp.y))
+      s!.tiltN++
       return s!.track.at(inp)
     }) as [ReturnType<InputTrack['at']>, ReturnType<InputTrack['at']>]
     this.events.length = 0

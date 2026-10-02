@@ -2,7 +2,7 @@ import { existsSync, renameSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
-import { integer, jsonb, pgTable, text, timestamp, uuid, type PgDatabase, type PgQueryResultHKT } from 'drizzle-orm/pg-core'
+import { integer, jsonb, pgTable, real, text, timestamp, uuid, type PgDatabase, type PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import pg from 'pg'
 
@@ -20,6 +20,32 @@ export const players = pgTable('players', {
 export const friendships = pgTable('friendships', {
   playerId: uuid('player_id').notNull(),
   friendId: uuid('friend_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const playerStats = pgTable('player_stats', {
+  playerId: uuid('player_id').primaryKey(),
+  rating: integer('rating').notNull().default(1000),
+  ratingSwipe: integer('rating_swipe').notNull().default(1000),
+  rips: jsonb('rips').$type<unknown[]>().notNull().default([]),
+  aggression: real('aggression').notNull().default(0.5),
+  deck: jsonb('deck').$type<unknown[] | null>(),
+  rankedPlayed: integer('ranked_played').notNull().default(0),
+  rankedWon: integer('ranked_won').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const ghostMatches = pgTable('ghost_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  playerId: uuid('player_id').notNull(),
+  opponentId: uuid('opponent_id'),
+  kind: text('kind').notNull(),
+  pool: text('pool').notNull().default('motion'),
+  refId: uuid('ref_id'),
+  seed: integer('seed').notNull(),
+  spec: jsonb('spec').$type<Record<string, unknown>>().notNull(),
+  status: text('status').notNull().default('issued'),
+  result: jsonb('result').$type<Record<string, unknown> | null>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -64,6 +90,32 @@ const MIGRATIONS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (player_id, friend_id)
   )`,
+  `CREATE TABLE IF NOT EXISTS player_stats (
+    player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+    rating integer NOT NULL DEFAULT 1000,
+    rating_swipe integer NOT NULL DEFAULT 1000,
+    rips jsonb NOT NULL DEFAULT '[]'::jsonb,
+    aggression real NOT NULL DEFAULT 0.5,
+    deck jsonb,
+    ranked_played integer NOT NULL DEFAULT 0,
+    ranked_won integer NOT NULL DEFAULT 0,
+    updated_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS player_stats_rating ON player_stats (rating);
+  CREATE TABLE IF NOT EXISTS ghost_matches (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    opponent_id uuid REFERENCES players(id) ON DELETE SET NULL,
+    kind text NOT NULL,
+    pool text NOT NULL DEFAULT 'motion',
+    ref_id uuid,
+    seed integer NOT NULL,
+    spec jsonb NOT NULL,
+    status text NOT NULL DEFAULT 'issued',
+    result jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS ghost_matches_player ON ghost_matches (player_id, created_at)`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>
