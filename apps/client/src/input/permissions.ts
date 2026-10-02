@@ -1,6 +1,6 @@
 type PermissionFn = { requestPermission?: () => Promise<'granted' | 'denied'> }
 
-export interface Permissions { motion: boolean; mic: MediaStream | null; audio: AudioContext }
+export interface Permissions { motion: boolean; mic: Promise<MediaStream | null>; audio: AudioContext }
 
 export async function requestAll(audio: AudioContext, wantMic: boolean): Promise<Permissions> {
   const motionReq = (DeviceMotionEvent as unknown as PermissionFn).requestPermission
@@ -10,11 +10,11 @@ export async function requestAll(audio: AudioContext, wantMic: boolean): Promise
     orientReq ? orientReq().catch(() => 'denied' as const) : Promise.resolve('granted' as const),
     audio.resume().catch(() => undefined),
   ])
-  let mic: MediaStream | null = null
+  let mic: Promise<MediaStream | null> = Promise.resolve(null)
   if (wantMic && navigator.mediaDevices?.getUserMedia) {
     const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
     if (session) session.type = 'play-and-record'
-    mic = await navigator.mediaDevices
+    mic = navigator.mediaDevices
       .getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
       .catch(() => null)
   }

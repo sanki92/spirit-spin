@@ -41,6 +41,12 @@ export class SensorFeed {
     return { x: this.smooth.x, y: this.smooth.y }
   }
 
+  measuredHz(): number {
+    const m = this.motion
+    if (m.length < 10) return 0
+    return Math.round(((m.length - 1) * 1000) / ((m[m.length - 1] as MotionSample).t - (m[0] as MotionSample).t))
+  }
+
   window(from: number, to: number): MotionSample[] {
     return this.motion.filter(s => s.t >= from && s.t <= to)
   }

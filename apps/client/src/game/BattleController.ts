@@ -1,13 +1,14 @@
 import {
   applyRound, botInput, botRip, composeRip, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState,
-  type TickInput, type TopBuild, type TouchSample,
+  type FinishKind, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
 import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
 import type { SensorFeed } from '../input/sensors'
 import { useHud } from '../state/hud'
+import { log } from '../telemetry'
 import type { Game } from './Game'
 
 export interface MatchSetup {
@@ -19,7 +20,17 @@ export interface MatchSetup {
   art: [string, string]
 }
 
-export interface MatchResult { winner: 0 | 1; match: MatchState; bestRpm: number; spiritCalls: number; comeback: boolean }
+export interface MatchResult {
+  winner: 0 | 1
+  match: MatchState
+  bestRpm: number
+  spiritCalls: number
+  comeback: boolean
+  perfectRips: number
+  overspins: number
+  finishes: FinishKind[]
+  aggression: number
+}
 
 const GRIP_MS = 1100
 const BEAT_MS = 650
@@ -33,6 +44,7 @@ export class BattleController {
   private launchAt = 0
   private swipe: TouchSample[] | null = null
   private spiritRequest = false
+  private lastSpiritVia: 'shout' | 'button' | null = null
   private manualTilt = { x: 0, y: 0 }
   private events: BattleEvent[] = []
   private hudTimer = 0
@@ -40,6 +52,12 @@ export class BattleController {
   private bestRpm = 0
   private spiritCalls = 0
   private maxDeficit = 0
+  private perfectRips = 0
+  private roundClashes = 0
+  private perfTimer = 0
+  private overspins = 0
+  private tiltSum = 0
+  private tiltTicks = 0
   private hesitationLeft: boolean
   private disposed = false
 
@@ -58,6 +76,7 @@ export class BattleController {
   }
 
   start(): void {
+    log('match.start', { player: this.setup.player, opponent: this.setup.opponent, bot: this.setup.bot, hesitates: this.setup.playerHesitates, input: this.inputMode })
     useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null })
     this.later(1400, () => this.beginRound())
   }
@@ -75,6 +94,7 @@ export class BattleController {
 
   requestSpirit(): void {
     this.spiritRequest = true
+    this.lastSpiritVia = 'button'
   }
 
   setManualTilt(x: number, y: number): void {
@@ -115,7 +135,21 @@ export class BattleController {
     else if (this.deps.sensors?.live) res = scoreRip(this.deps.sensors.window(t0 - 1100, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration)
     else res = { ok: false, reason: 'no-pull' }
     const rip = res.ok ? res : FAIL_RIP(t0)
+    const win = this.swipe ? null : this.deps.sensors?.window(t0 - 1100, t0 + CAPTURE_AFTER_MS) ?? []
+    const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
+    log('rip', {
+      round: this.match.round, mode: this.swipe ? 'swipe' : this.deps.sensors?.live ? 'motion' : 'none', ok: res.ok,
+      reason: res.ok ? null : res.reason, rpm: rip.rpm, quality: res.ok ? res.quality : 'FAIL', overspin: res.ok ? res.overspin : false,
+      timing: +rip.timing.toFixed(3), straightness: +rip.straightness.toFixed(3), pullRatio: +rip.pullRatio.toFixed(3),
+      offsetMs: res.ok ? Math.round(res.startT - t0) : null, style: rip.style, bankDir: rip.bankDir, calibration: this.deps.calibration.pull100,
+      samples: win?.length ?? null, peakMs2: mags.length ? +Math.max(...mags).toFixed(1) : null,
+      firstOver12Ms: win ? (win.find(s => Math.hypot(s.ax, s.ay, s.az) > 12)?.t ?? null) && Math.round((win.find(s => Math.hypot(s.ax, s.ay, s.az) > 12)!.t) - t0) : null,
+      swipePts: this.swipe?.length ?? null, swipeDy: this.swipe ? Math.round((this.swipe[this.swipe.length - 1]?.y ?? 0) - (this.swipe[0]?.y ?? 0)) : null,
+      opponentRpm: 0,
+    })
     this.bestRpm = Math.max(this.bestRpm, rip.rpm)
+    if (res.ok && res.quality === 'PERFECT' && !res.overspin) this.perfectRips++
+    if (res.ok && res.overspin) this.overspins++
     useHud.getState().set({
       phase: 'launch',
       countdown: null,
@@ -136,6 +170,8 @@ export class BattleController {
   private playerInput(): TickInput {
     const sensors = this.deps.sensors
     const tilt = sensors?.live ? sensors.tilt() : this.manualTilt
+    this.tiltSum += Math.min(1, Math.hypot(tilt.x, tilt.y))
+    this.tiltTicks++
     const spirit = this.spiritRequest
     this.spiritRequest = false
     return { tiltX: tilt.x, tiltY: tilt.y, spirit }
@@ -154,6 +190,7 @@ export class BattleController {
     const g = this.game, s = this.deps.sound, hud = useHud.getState()
     switch (e.k) {
       case 'clash': {
+        this.roundClashes++
         const heavy = e.energy > 1.5
         g.fx.clash(e.x, e.y, e.energy, heavy ? g.elementOf(Math.random() < 0.5 ? 0 : 1) : null)
         s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3), rate: 0.9 + Math.random() * 0.25 })
@@ -166,6 +203,7 @@ export class BattleController {
         s.play('wall', { volume: 0.35 })
         break
       case 'spirit': {
+        log('spirit', { side: e.side, tick: e.tick, via: e.side === 0 ? (this.lastSpiritVia ?? 'button') : 'bot' })
         this.spiritCalls += e.side === 0 ? 1 : 0
         const t = g.battle!.tops[e.side]
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: false } })
@@ -178,6 +216,7 @@ export class BattleController {
         break
       }
       case 'hesitate':
+        log('hesitate', { side: e.side })
         this.hesitationLeft = false
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: true } })
         s.play('hesitate')
@@ -195,6 +234,9 @@ export class BattleController {
   private finishRound(e: Extract<BattleEvent, { k: 'finish' }>): void {
     const g = this.game, s = this.deps.sound
     const o = e.outcome
+    const bt = g.battle!
+    log('round', { round: this.match.round, outcome: o, seconds: +(bt.tick / 60).toFixed(1), clashes: this.roundClashes, tops: bt.tops.map(t => ({ spin: +t.spin.toFixed(2), shatter: +t.shatter.toFixed(2), out: t.out, x: +t.x.toFixed(2), y: +t.y.toFixed(2) })), avgTilt: this.tiltTicks ? +(this.tiltSum / this.tiltTicks).toFixed(2) : 0 })
+    this.roundClashes = 0
     const b = g.battle!
     if (o.finish === 'shatter' || (o.finish === 'spirit' && o.winner !== null && b.tops[(1 - o.winner) as 0 | 1].shattered)) {
       const loser = b.tops[(1 - (o.winner ?? 0)) as 0 | 1]
@@ -215,7 +257,17 @@ export class BattleController {
       useHud.getState().set({ phase: 'matchEnd', banner: won ? 'victory' : 'defeat' })
       s.play(won ? 'victory' : 'defeat')
       this.later(1800, () =>
-        this.deps.onEnd({ winner: this.match.winner!, match: this.match, bestRpm: this.bestRpm, spiritCalls: this.spiritCalls, comeback: won && this.maxDeficit >= 3 }),
+        this.deps.onEnd({
+          winner: this.match.winner!,
+          match: this.match,
+          bestRpm: this.bestRpm,
+          spiritCalls: this.spiritCalls,
+          comeback: won && this.maxDeficit >= 3,
+          perfectRips: this.perfectRips,
+          overspins: this.overspins,
+          finishes: this.match.history.filter(h => h.winner === 0).map(h => h.finish),
+          aggression: this.tiltTicks ? this.tiltSum / this.tiltTicks : 0,
+        }),
       )
     })
   }
@@ -224,10 +276,22 @@ export class BattleController {
     const shout = this.deps.shout
     if (shout?.ready) {
       const b = this.game.battle
-      if (shout.update(dt * 1000) && b && b.tops[0].gauge >= 1) this.spiritRequest = true
+      if (shout.update(dt * 1000) && b && b.tops[0].gauge >= 1) {
+        this.spiritRequest = true
+        this.lastSpiritVia = 'shout'
+        log('shout.trigger', { level: +shout.level.toFixed(2) })
+      }
       if (Math.abs(useHud.getState().shoutLevel - shout.level) > 0.04) useHud.getState().set({ shoutLevel: shout.level })
     }
     this.hudTimer += dt
+    this.perfTimer += dt
+    if (this.perfTimer > 5) {
+      this.perfTimer = 0
+      const st = this.game.stage
+      log('perf', { p95: +st.perf.p95.toFixed(1), slowFrames: st.perf.slow, frames: st.perf.frames, dpr: st.dpr, quality: st.quality, calls: st.renderer.info.render.calls, tris: st.renderer.info.render.triangles, programs: st.renderer.info.programs?.length ?? null, sensorsLive: this.deps.sensors?.live ?? false, shoutLevel: this.deps.shout ? +this.deps.shout.level.toFixed(2) : null })
+      st.perf.slow = 0
+      st.perf.frames = 0
+    }
     const b = this.game.battle
     if (b) {
       this.deps.sound.hum(0, b.outcome || b.tops[0].out ? 0 : b.tops[0].spin)

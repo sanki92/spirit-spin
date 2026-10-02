@@ -6,7 +6,7 @@ import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
 import { BattleHud } from '../hud/BattleHud'
 
-export function BattleScreen({ setup, theme, onEnd }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void }) {
+export function BattleScreen({ setup, theme, onEnd, forceSwipe = false }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const ctrl = useRef<BattleController | null>(null)
   const rt = useRuntime()
@@ -24,7 +24,7 @@ export function BattleScreen({ setup, theme, onEnd }: { setup: MatchSetup; theme
         return
       }
       game.start()
-      const c = new BattleController(game, setup, { sound: rt.sound, sensors: rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd })
+      const c = new BattleController(game, setup, { sound: rt.sound, sensors: forceSwipe ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd })
       ctrl.current = c
       setLoading(false)
       c.start()
@@ -35,7 +35,7 @@ export function BattleScreen({ setup, theme, onEnd }: { setup: MatchSetup; theme
       game?.stop()
       game?.stage.renderer.dispose()
     }
-  }, [setup, theme, onEnd, rt])
+  }, [setup, theme, onEnd, rt, forceSwipe])
 
   const swipeCleanup = useRef<(() => void) | null>(null)
   const onSwipeZone = useCallback((el: HTMLDivElement | null) => {

@@ -4,6 +4,7 @@ import { Sound } from './audio/sound'
 import { ShoutDetector } from './input/mic'
 import { requestAll, waitForMotion } from './input/permissions'
 import { SensorFeed } from './input/sensors'
+import { log } from './telemetry'
 
 const CAL_KEY = 'spirit.calibration'
 
@@ -13,21 +14,30 @@ export class Runtime {
   shout: ShoutDetector | null = null
   ready = false
 
-  async arm(wantMic: boolean): Promise<{ motion: boolean; mic: boolean }> {
+  async arm(wantMic: boolean): Promise<{ motion: boolean }> {
     const p = await requestAll(this.sound.ctx, wantMic)
+    log('arm.permissions', { motionGranted: p.motion, audio: this.sound.ctx.state, sampleRate: this.sound.ctx.sampleRate, baseLatency: this.sound.ctx.baseLatency })
     await this.sound.loadAll()
     if (p.motion) {
       const feed = new SensorFeed()
       feed.start()
-      if (await waitForMotion(800)) this.sensors = feed
-      else feed.stop()
+      if (await waitForMotion(800)) {
+        this.sensors = feed
+        setTimeout(() => log('sensors.rate', { hz: feed.measuredHz(), samples: feed.motion.length }), 1500)
+      } else {
+        feed.stop()
+        log('sensors.none', { reason: 'no devicemotion event within 800ms' })
+      }
     }
-    if (p.mic) {
-      this.shout = new ShoutDetector()
-      this.shout.attach(this.sound.ctx, p.mic)
-    }
+    void p.mic.then(stream => {
+      if (!stream) return log('mic.denied')
+      const d = new ShoutDetector()
+      d.attach(this.sound.ctx, stream)
+      this.shout = d
+      log('mic.ready', { tracks: stream.getAudioTracks().map(t => t.getSettings()) })
+    })
     this.ready = true
-    return { motion: this.sensors !== null, mic: this.shout !== null }
+    return { motion: this.sensors !== null }
   }
 
   calibration(): Calibration {

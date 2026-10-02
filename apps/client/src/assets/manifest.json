@@ -169,6 +169,11 @@
   "w": 450,
   "h": 429
  },
+ "beasts/agnyx/awakened-inferno/card-art": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/card-art.webp",
+  "w": 853,
+  "h": 1280
+ },
  "beasts/agnyx/awakened-inferno/cutin": {
   "url": "/assets/beasts/agnyx/awakened-inferno/cutin.webp",
   "w": 1280,
@@ -178,6 +183,36 @@
   "url": "/assets/beasts/agnyx/awakened-inferno/emblem.webp",
   "w": 849,
   "h": 902
+ },
+ "beasts/agnyx/awakened-inferno/expressions/furious": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/furious.webp",
+  "w": 361,
+  "h": 449
+ },
+ "beasts/agnyx/awakened-inferno/expressions/joyful": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/joyful.webp",
+  "w": 352,
+  "h": 420
+ },
+ "beasts/agnyx/awakened-inferno/expressions/neutral": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/neutral.webp",
+  "w": 344,
+  "h": 446
+ },
+ "beasts/agnyx/awakened-inferno/expressions/proud": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/proud.webp",
+  "w": 375,
+  "h": 451
+ },
+ "beasts/agnyx/awakened-inferno/expressions/sad": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sad.webp",
+  "w": 336,
+  "h": 424
+ },
+ "beasts/agnyx/awakened-inferno/expressions/sulky": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sulky.webp",
+  "w": 357,
+  "h": 423
  },
  "beasts/agnyx/awakened-solar/card-art": {
   "url": "/assets/beasts/agnyx/awakened-solar/card-art.webp",
@@ -421,33 +456,33 @@
  },
  "beasts/voltfang/awakened-phantom/expressions/furious": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/furious.webp",
-  "w": 346,
-  "h": 446
+  "w": 348,
+  "h": 445
  },
  "beasts/voltfang/awakened-phantom/expressions/joyful": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/joyful.webp",
-  "w": 321,
-  "h": 428
+  "w": 353,
+  "h": 455
  },
  "beasts/voltfang/awakened-phantom/expressions/neutral": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/neutral.webp",
-  "w": 352,
-  "h": 448
+  "w": 368,
+  "h": 467
  },
  "beasts/voltfang/awakened-phantom/expressions/proud": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/proud.webp",
-  "w": 265,
-  "h": 456
+  "w": 375,
+  "h": 459
  },
  "beasts/voltfang/awakened-phantom/expressions/sad": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sad.webp",
-  "w": 298,
-  "h": 426
+  "w": 369,
+  "h": 467
  },
  "beasts/voltfang/awakened-phantom/expressions/sulky": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sulky.webp",
-  "w": 512,
-  "h": 509
+  "w": 386,
+  "h": 407
  },
  "beasts/voltfang/awakened-storm/card-art": {
   "url": "/assets/beasts/voltfang/awakened-storm/card-art.webp",
@@ -608,6 +643,11 @@
   "url": "/assets/characters/bosses/brick/shout.webp",
   "w": 445,
   "h": 473
+ },
+ "characters/bosses/mira-full": {
+  "url": "/assets/characters/bosses/mira-full.webp",
+  "w": 714,
+  "h": 1024
  },
  "characters/bosses/mira/angry": {
   "url": "/assets/characters/bosses/mira/angry.webp",
@@ -1056,18 +1096,23 @@
  },
  "ui/type-attack": {
   "url": "/assets/ui/type-attack.webp",
-  "w": 768,
-  "h": 620
+  "w": 743,
+  "h": 768
  },
  "ui/type-balance": {
   "url": "/assets/ui/type-balance.webp",
-  "w": 768,
-  "h": 580
+  "w": 637,
+  "h": 768
+ },
+ "ui/type-defense": {
+  "url": "/assets/ui/type-defense.webp",
+  "w": 688,
+  "h": 768
  },
  "ui/type-stamina": {
   "url": "/assets/ui/type-stamina.webp",
-  "w": 768,
-  "h": 653
+  "w": 687,
+  "h": 678
  },
  "vfx/crack-decal": {
   "url": "/assets/vfx/crack-decal.webp",

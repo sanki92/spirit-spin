@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { assetUrl, hasAsset } from '../../assets/assets'
 import { useRuntime } from '../../runtime'
 
-export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean; mic: boolean }) => void }) {
+export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => void }) {
   const rt = useRuntime()
   const [busy, setBusy] = useState(false)
   const arm = async () => {
