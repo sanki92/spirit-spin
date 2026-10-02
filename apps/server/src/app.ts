@@ -12,6 +12,7 @@ import type { MomentInput } from './spirit/prompt'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
 import { registerTournaments } from './tournaments'
+import { registerStore, type Payments } from './store'
 import { desc, gte, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
@@ -31,7 +32,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void; guestPerMinute?: number }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -112,6 +113,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   })
 
   const cups = registerTournaments(app, db, requireAuth)
+  registerStore(app, db, requireAuth, deps.payments ?? cfg.payments ?? { provider: 'none' })
   registerLeague(app, db, requireAuth, cups.onVerified)
 
   app.get('/v1/friends', { preHandler: requireAuth }, async req => {

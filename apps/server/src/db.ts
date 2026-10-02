@@ -88,6 +88,24 @@ export const tournamentPairings = pgTable('tournament_pairings', {
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 })
 
+export const orders = pgTable('orders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  playerId: uuid('player_id').notNull(),
+  sku: text('sku').notNull(),
+  providerOrderId: text('provider_order_id').notNull().unique(),
+  paymentId: text('payment_id'),
+  amount: integer('amount').notNull(),
+  status: text('status').notNull().default('created'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const entitlements = pgTable('entitlements', {
+  playerId: uuid('player_id').notNull(),
+  item: text('item').notNull(),
+  source: text('source'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const aiCalls = pgTable('ai_calls', {
   id: uuid('id').primaryKey().defaultRandom(),
   playerId: uuid('player_id').notNull(),
@@ -195,6 +213,23 @@ const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS tournaments_running ON tournaments (status, round_deadline)`,
   `ALTER TABLE tournament_entries ADD COLUMN IF NOT EXISTS pool text;
   CREATE INDEX IF NOT EXISTS ghost_matches_ref ON ghost_matches (ref_id)`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    sku text NOT NULL,
+    provider_order_id text NOT NULL UNIQUE,
+    payment_id text,
+    amount integer NOT NULL,
+    status text NOT NULL DEFAULT 'created',
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS entitlements (
+    player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    item text NOT NULL,
+    source text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (player_id, item)
+  )`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

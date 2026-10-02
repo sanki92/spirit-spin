@@ -9,6 +9,9 @@ const Env = z.object({
   JWT_SECRET: z.string().min(32).optional(),
   CORS_ORIGINS: z.string().default('*'),
   OPENAI_API_KEY: z.string().optional(),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 })
 
@@ -19,6 +22,7 @@ export interface Config {
   logLevel: string
   openaiKey: string | null
   port?: number
+  payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -31,6 +35,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     corsOrigins: e.CORS_ORIGINS.split(',').map(s => s.trim()),
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
+    payments: e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET
+      ? { provider: 'razorpay', keyId: e.RAZORPAY_KEY_ID, keySecret: e.RAZORPAY_KEY_SECRET, webhookSecret: e.RAZORPAY_WEBHOOK_SECRET }
+      : env.DEV_TOOLS === '1'
+        ? { provider: 'dev', keySecret: `${e.JWT_SECRET ?? devSecret()}:dev-pay`, webhookSecret: `${e.JWT_SECRET ?? devSecret()}:dev-hook` }
+        : { provider: 'none' },
   }
 }
 
