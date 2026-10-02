@@ -3,12 +3,15 @@ import { useEffect, useMemo } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
 import { useNav } from '../../state/nav'
-import { useSave } from '../../state/save'
+import { todayKey, useSave } from '../../state/save'
+import { spiritMoment } from '../../state/spiritAi'
 import { Bar, Coins, Img, Screen, Slash, TopBar } from '../kit'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
 }
+
+const greeting = new Set<string>()
 
 export function Home() {
   const nav = useNav()
@@ -18,7 +21,20 @@ export function Home() {
   const beast = s.beasts[beastId]
   const info = BEASTS[beastId]
   const lvl = levelForXp(s.xp)
-  const line = useMemo(() => lineFor(beastId, beast && hesitates(beast) ? 'hesitate' : 'greet'), [beastId, beast])
+  const sulky = !!beast && hesitates(beast)
+  const fallbackLine = useMemo(() => lineFor(beastId, sulky ? 'hesitate' : 'greet'), [beastId, sulky])
+  const today = todayKey()
+  const ai = !sulky && s.greet && s.greet.day === today && s.greet.beast === beastId ? s.greet : null
+  const line = ai?.line ?? fallbackLine
+  useEffect(() => {
+    const b = useSave.getState().beasts[beastId]
+    const key = `${today}:${beastId}`
+    if (!b || hesitates(b) || ai || greeting.has(key)) return
+    greeting.add(key)
+    void spiritMoment('greet', b, null, null).then(r => {
+      if (r) useSave.setState({ greet: { day: today, beast: beastId, line: r.line, mood: r.mood } })
+    })
+  }, [beastId, today, ai])
   const next = Math.min(TOWER_FLOORS, s.tower + 1)
   const floor = towerFloor(next)
   const art = beastArt(beastId, beast?.awakened)
@@ -39,7 +55,7 @@ export function Home() {
       <section className="hero" style={{ ['--c' as string]: info.color }} onClick={() => nav.push({ k: 'journal' })}>
         <Img id={`${art}/card-art`} className="hero-art" fallback={<Img id={`beasts/${beastId}/card-art`} className="hero-art" />} />
         <div className="speech">
-          <Img id={`beasts/${beastId}/expressions/${beast && hesitates(beast) ? 'sulky' : 'neutral'}`} className="speech-face" />
+          <Img id={`beasts/${beastId}/expressions/${sulky ? 'sulky' : ai?.mood ?? 'neutral'}`} className="speech-face" />
           <p>{line}</p>
         </div>
         <div className="hero-name slant">{info.name}</div>

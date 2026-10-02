@@ -1,8 +1,9 @@
-import { awakenedForm, awakeningHints, awakeningReady, BLADES, DISCS, shopRotation, TIPS, type BeastId } from '@spirit/core'
+import { awakenedForm, awakeningHints, awakeningReady, BLADES, DISCS, shopRotation, TIPS, type BeastId, type Mood } from '@spirit/core'
 import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
+import { spiritMoment } from '../../state/spiritAi'
 import { recover, recoveryCode } from '../../state/sync'
 import { Axis, Bar, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
@@ -56,17 +57,38 @@ export function Awaken() {
   const b = s.beasts[id]
   const form = useMemo(() => (b ? awakenedForm(b) : 'storm'), [b])
   const [done, setDone] = useState(false)
+  const [line, setLine] = useState<{ text: string; mood: Mood } | null>(null)
   const ready = !!b && awakeningReady(b)
+  const awaken = () => {
+    if (!b) return
+    const next = { ...b, awakened: form }
+    s.setBeast(next)
+    setDone(true)
+    void spiritMoment('awaken', next, null, null).then(ai => {
+      const text = ai?.line ?? 'I can feel everything we went through. Thank you, partner.'
+      setLine({ text, mood: ai?.mood ?? 'joyful' })
+      const cur = useSave.getState().beasts[id]
+      if (cur) useSave.getState().setBeast({ ...cur, memories: [{ at: todayKey(), text: `We awakened together into the ${form} form.`, importance: 5, tags: ['awakening'] }, ...cur.memories].slice(0, 50) })
+    })
+  }
   useEffect(() => {
     if (!done && !ready) nav.replace({ k: 'journal' })
   }, [done, ready, nav])
   if (!b || (!done && !ready)) return null
   return (
     <Screen className="awaken center">
-      <Img id={`beasts/${id}/awakened-${form}/cutin`} className={`awaken-art ${done ? 'lit' : ''}`} />
+      <div className="awaken-stage" style={{ ['--c' as string]: BEASTS[id].color }}>
+        <Img id={`beasts/${id}/awakened-${form}/summon`} className={`awaken-art ${done ? 'lit' : ''}`} fallback={<Img id={`beasts/${id}/awakened-${form}/cutin`} className={`awaken-art ${done ? 'lit' : ''}`} />} />
+      </div>
       <h2 className="slant">{done ? `${form} ${BEASTS[id].name}` : `${BEASTS[id].name} is changing…`}</h2>
       <p className="body">{done ? 'Your bond shaped this form. Its Spirit Skill burns brighter.' : 'Everything you went through together is taking shape.'}</p>
-      {done ? <Slash tone="gold" onClick={() => nav.reset({ k: 'home' })}>Continue</Slash> : <Slash tone="gold" onClick={() => { s.setBeast({ ...b, awakened: form }); setDone(true) }}>Awaken</Slash>}
+      {done && (
+        <div className="speech awaken-speech">
+          <Img id={`beasts/${id}/awakened-${form}/expressions/${line?.mood ?? 'joyful'}`} className="speech-face" />
+          <p aria-live="polite">{line ? line.text : <span className="typing">…</span>}</p>
+        </div>
+      )}
+      {done ? <Slash tone="gold" onClick={() => nav.reset({ k: 'home' })}>Continue</Slash> : <Slash tone="gold" onClick={awaken}>Awaken</Slash>}
     </Screen>
   )
 }

@@ -68,7 +68,7 @@ export const OUTPUT_SCHEMA = {
   },
 } as const
 
-export type MomentKind = 'post' | 'reply' | 'greet'
+export type MomentKind = 'post' | 'reply' | 'greet' | 'awaken'
 
 export interface MomentInput {
   kind: MomentKind
@@ -101,7 +101,8 @@ export function userMessage(m: MomentInput): string {
         `Rounds we won by: ${s.finishes.length ? s.finishes.join(', ') : 'none'}. PERFECT rips: ${s.perfectRips}. Overspins: ${s.overspins}. Spirit Calls: ${s.spiritCalls}. Player steering aggression: ${s.aggression.toFixed(2)} (0 calm, 1 relentless).`,
     )
   }
-  if (m.kind === 'greet') facts.push('Task: greet your partner before today\'s battles, in one short line.')
+  if (m.kind === 'greet') facts.push('Task: your partner just opened the game today. Greet them in one short, warm line that makes them want to battle with you today. If there is a memory, you may recall it. Keep the line consistent; never contradict yourself.')
+  if (m.kind === 'awaken') facts.push(`Task: you have just awakened into your new ${b.awakened ?? 'awakened'} form because of your bond. Speak your first line in this new form to your partner: amazed, grateful, a little changed. If there is a memory, recall it. nudge trait "none"; memory: the awakening itself, importance 5.`)
   if (m.kind === 'post') facts.push('Task: react to how the battle went.')
   if (m.kind === 'reply' && m.reply) facts.push(`Your partner just said: "${REPLY_TEXT[m.reply]}". Task: answer them.`)
   return facts.join('\n')

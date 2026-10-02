@@ -1,6 +1,6 @@
 import {
   applyBattle, applyQuestProgress, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
-  type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Quest, type Reply, type TopBuild,
+  type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type Reply, type TopBuild,
 } from '@spirit/core'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -26,6 +26,7 @@ export interface SaveData {
   settings: Settings
   onboarded: { safety: boolean; calibrated: boolean; firstBattle: boolean }
   stats: { battles: number; wins: number; bestRpm: number }
+  greet: { day: string; beast: BeastId; line: string; mood: Mood } | null
 }
 
 export interface SaveActions {
@@ -61,6 +62,7 @@ const fresh = (): SaveData => ({
   settings: { inputMode: 'auto', silentSpirit: false, sound: true, haptics: true, reducedMotion: false },
   onboarded: { safety: false, calibrated: false, firstBattle: false },
   stats: { battles: 0, wins: 0, bestRpm: 0 },
+  greet: null,
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])

@@ -33,7 +33,7 @@ export interface Deps { director?: (m: MomentInput, model: string) => Promise<Di
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
-  kind: z.enum(['post', 'reply', 'greet']),
+  kind: z.enum(['post', 'reply', 'greet', 'awaken']),
   beast: z.object({
     id: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx']),
     trust: z.number().int().min(0).max(100), respect: z.number().int().min(0).max(100),

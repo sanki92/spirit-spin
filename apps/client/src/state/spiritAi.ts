@@ -4,7 +4,7 @@ import { authHeader, reauth } from './sync'
 
 export interface AiLine { line: string; mood: Mood; nudge: { trait: 'none' | 'courage' | 'pride' | 'curiosity' | 'calm'; delta: -1 | 0 | 1 }; memory: { text: string; importance: number } | null }
 
-export async function spiritMoment(kind: 'post' | 'reply' | 'greet', beast: BeastState, battle: BattleSummary | null, reply: Reply | null, retry = true): Promise<AiLine | null> {
+export async function spiritMoment(kind: 'post' | 'reply' | 'greet' | 'awaken', beast: BeastState, battle: BattleSummary | null, reply: Reply | null, retry = true): Promise<AiLine | null> {
   const t0 = performance.now()
   try {
     const res = await fetch('/v1/spirit/moment', {
