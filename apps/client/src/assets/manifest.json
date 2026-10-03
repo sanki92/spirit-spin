@@ -1479,6 +1479,11 @@
   "w": 1024,
   "h": 1024
  },
+ "stadium/rim-wall": {
+  "url": "/assets/stadium/rim-wall.webp?v=0f540f58",
+  "w": 1280,
+  "h": 953
+ },
  "ui/app-icon": {
   "url": "/assets/ui/app-icon.webp?v=85abcc79",
   "w": 1024,

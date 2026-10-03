@@ -14,6 +14,7 @@ import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
+const THEME_ACCENT: Record<StadiumTheme, number> = { classic: 0x3be6ff, volcano: 0xff6a1a, 'frozen-moon': 0xa8e8ff }
 
 interface Snap { x: number; y: number }
 interface TopF { x: number; y: number; vx: number; vy: number; spin: number; wobble: number; spirit: boolean; out: boolean }
@@ -63,7 +64,7 @@ export class Game {
   }
 
   static async create(canvas: HTMLCanvasElement, theme: StadiumTheme): Promise<Game> {
-    const [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor] = await Promise.all([
+    const [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, rim] = await Promise.all([
       tex('vfx/impact-flash', 'vfx/impact-flash'),
       tex('vfx/shockwave', 'vfx/impact-flash'),
       tex('vfx/crack-decal', 'vfx/impact-flash'),
@@ -75,14 +76,15 @@ export class Game {
       tex('vfx/hit-shadow', 'vfx/impact-flash'),
       tex(`stadium/bowl-${theme}`, 'stadium/arena-floor'),
       tex('stadium/arena-floor', 'stadium/arena-floor'),
+      hasAsset('stadium/rim-wall') ? texture('stadium/rim-wall').catch(() => null) : Promise.resolve(null),
     ])
     const quality = detectQuality()
     const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire, wind, shadow } }, quality === 'low' ? 60 : 140))
-    g.stage.world.add(buildStadium(bowl, floor))
+    g.stage.world.add(buildStadium(bowl, floor, rim, THEME_ACCENT[theme]))
     g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow })
     g.stage.world.add(g.techFx.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
-    for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor]) g.stage.renderer.initTexture(t)
+    for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : [])]) g.stage.renderer.initTexture(t)
     return g
   }
 
