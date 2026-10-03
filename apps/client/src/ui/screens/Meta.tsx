@@ -124,7 +124,8 @@ export function Collection() {
 
 export function Shop() {
   const s = useSave()
-  const items = useMemo(() => shopRotation(todayKey()), [])
+  const tower = useSave(s => s.tower)
+  const items = useMemo(() => shopRotation(todayKey(), 6, tower), [tower])
   const [msg, setMsg] = useState<string | null>(null)
   const [tab, setTab] = useState<'parts' | 'cosmetics'>('parts')
   const nav = useNav()
@@ -143,7 +144,7 @@ export function Shop() {
         <button role="tab" aria-selected={false} onClick={() => nav.push({ k: 'pass' })}>Spirit Pass</button>
       </div>
       {tab === 'cosmetics' ? <CosmeticShop /> : (<>
-      <p className="fine">New parts every day. Rarity changes the look and feel, never the power budget.</p>
+      <p className="fine">New parts every day. Clear Spirit Tower floors to add their story parts to the shop.</p>
       <div className="shop-grid">
         {items.map(it => (
           <div key={it.id} className={`shop-item ${it.rarity}`}>

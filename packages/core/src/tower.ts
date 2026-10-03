@@ -27,7 +27,7 @@ const ROTATION: { blade: string; disc: string; tip: string; beast: BeastId }[] =
   { blade: 'gale', disc: 'standard', tip: 'semi', beast: 'zephyra' },
   { blade: 'eclipse', disc: 'gyro', tip: 'spike', beast: 'umbrax' },
 ]
-const PART_DROPS: Record<number, { kind: 'blade' | 'disc' | 'tip'; id: string }> = {
+export const PART_DROPS: Record<number, { kind: 'blade' | 'disc' | 'tip'; id: string }> = {
   3: { kind: 'blade', id: 'guard' }, 5: { kind: 'tip', id: 'rush' }, 7: { kind: 'disc', id: 'feather' }, 10: { kind: 'disc', id: 'compact' },
   13: { kind: 'blade', id: 'spiral' }, 15: { kind: 'blade', id: 'saw' }, 17: { kind: 'tip', id: 'wide' }, 20: { kind: 'tip', id: 'orb' },
 23: { kind: 'blade', id: 'gale' }, 25: { kind: 'blade', id: 'dome' }, 27: { kind: 'tip', id: 'spike' },
@@ -60,4 +60,9 @@ export function towerFloor(n: number): TowerFloor {
   const k = (n - 1) / (TOWER_FLOORS - 1)
   const brain: BotBrain = { skill: 0.15 + 0.78 * k ** 0.85, aggression: 0.35 + ((n * 37) % 50) / 100, reaction: Math.round(90 - 78 * k) }
   return { floor: n, opponent: { bladeId: r.blade, discId: r.disc, tipId: r.tip, beastId: r.beast, ...(n > 25 ? { kit: { trait: true } } : {}) }, brain, boss: null, reward }
+}
+
+export const dropFloor = (kind: 'blade' | 'disc' | 'tip', id: string): number | null => {
+  for (const [f, d] of Object.entries(PART_DROPS)) if (d.kind === kind && d.id === id) return Number(f)
+  return null
 }

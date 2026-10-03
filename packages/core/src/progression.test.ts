@@ -63,6 +63,7 @@ describe('shop', () => {
   it('rotates deterministically with rarity pricing and never duplicates', () => {
     const a = shopRotation('2026-10-03')
     expect(a).toEqual(shopRotation('2026-10-03'))
+    for (const it of shopRotation('2026-10-03', 30, 5)) expect(['fury', 'gale', 'tempest', 'titan'].includes(it.partId)).toBe(false)
     expect(new Set(a.map(i => i.id)).size).toBe(a.length)
     for (const i of a) expect(i.price).toBe(PART_PRICE[i.rarity])
   })

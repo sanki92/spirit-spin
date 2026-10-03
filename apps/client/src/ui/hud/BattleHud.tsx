@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { hasAsset, assetUrl } from '../../assets/assets'
-import type { BeastId } from '@spirit/core'
+import { TECHNIQUES, type BeastId } from '@spirit/core'
 import { BEASTS } from '../../game/beasts'
 import { useHud, type Banner } from '../../state/hud'
 import { useSave } from '../../state/save'
@@ -121,6 +121,7 @@ function CutIn({ beast, side, hesitate }: { beast: keyof typeof BEASTS; side: 0 
     <div className={`cutin ${side === 1 ? 'enemy' : ''} ${hesitate ? 'hesitate' : ''}`} style={{ ['--c' as string]: info.color }}>
       {hasAsset(art) && <img src={assetUrl(art)} alt="" draggable={false} />}
       <div className="cutin-name">{hesitate ? '…' : info.name}</div>
+      {!hesitate && <div className="cutin-tech">{TECHNIQUES[beast].technique.name}</div>}
       {hesitate && <div className="cutin-line">"…I don't know you yet."</div>}
     </div>
   )

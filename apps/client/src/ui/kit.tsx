@@ -34,6 +34,16 @@ export function Coins() {
   )
 }
 
+export function Shards() {
+  const shards = useSave(s => s.shards ?? 0)
+  return (
+    <div className="coins shards" title="Spirit Shards upgrade parts and unlock traits">
+      <Img id="ui/icon-spirit-shard" className="coin-icon" />
+      <span>{shards.toLocaleString()}</span>
+    </div>
+  )
+}
+
 export function Slash({ children, onClick, tone = 'cyan', disabled, className = '' }: { children: ReactNode; onClick?: () => void; tone?: 'cyan' | 'gold' | 'ghost'; disabled?: boolean; className?: string }) {
   return (
     <button className={`slash ${tone} ${className}`} onClick={onClick} disabled={disabled}>

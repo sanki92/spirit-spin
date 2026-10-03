@@ -1,5 +1,6 @@
 import { BLADES, DISCS, TIPS, type Rarity } from './parts'
 import { createRng, rngNext } from './rng'
+import { dropFloor } from './tower'
 
 export const PART_PRICE: Record<Rarity, number> = { common: 100, rare: 250, epic: 600, legendary: 1500 }
 
@@ -11,11 +12,11 @@ const ALL: Omit<ShopItem, 'price'>[] = [
   ...Object.values(TIPS).map(t => ({ id: `tip:${t.id}`, kind: 'tip' as const, partId: t.id, rarity: t.rarity })),
 ]
 
-export function shopRotation(dateKey: string, size = 6): ShopItem[] {
+export function shopRotation(dateKey: string, size = 6, tower = Infinity): ShopItem[] {
   let seed = 0x5f3759df
   for (let i = 0; i < dateKey.length; i++) seed = Math.imul(seed ^ dateKey.charCodeAt(i), 2654435761) >>> 0
   const rng = createRng(seed)
-  const pool = [...ALL]
+  const pool = ALL.filter(it => (dropFloor(it.kind, it.partId) ?? 0) <= tower)
   const out: ShopItem[] = []
   while (out.length < size && pool.length) {
     const it = pool.splice(Math.floor(rngNext(rng) * pool.length), 1)[0] as Omit<ShopItem, 'price'>

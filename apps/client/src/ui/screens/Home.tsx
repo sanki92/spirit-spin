@@ -5,7 +5,7 @@ import { lineFor } from '../../game/lines'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
-import { Bar, Coins, Img, Screen, Slash, TopBar } from '../kit'
+import { Bar, Coins, Img, Screen, Shards, Slash, TopBar } from '../kit'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
@@ -52,7 +52,7 @@ export function Home() {
             <Bar value={s.xp - xpForLevel(lvl)} max={xpForLevel(lvl + 1) - xpForLevel(lvl)} tone="gold" />
           </div>
         </button>
-        <Coins />
+        <div className="wallet"><Shards /><Coins /></div>
       </header>
 
       <section className="hero" style={{ ['--c' as string]: info.color }} onClick={() => nav.push({ k: 'journal' })}>

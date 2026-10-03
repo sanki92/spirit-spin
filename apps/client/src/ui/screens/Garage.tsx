@@ -7,7 +7,7 @@ import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
 import { progress, storyBuild, useSave } from '../../state/save'
 import { log } from '../../telemetry'
-import { Coins, Img, Screen, Slash, TopBar } from '../kit'
+import { Coins, Img, Screen, Shards, Slash, TopBar } from '../kit'
 import { SpiritBurst } from '../SpiritBurst'
 import type { ViewFocus } from '../TopViewer'
 import { beastArt } from './Home'
@@ -24,16 +24,6 @@ export function TopPreview({ build, size = 220 }: { build: TopBuild; size?: numb
       <Img id={`parts/disc-${build.discId}`} className="layer disc" eager />
       <Img id={`parts/blade-${build.bladeId}`} className="layer blade" eager />
       <Img id={`${beastArt(build.beastId, beast?.awakened)}/emblem`} className="layer chip" fallback={<Img id={`beasts/${build.beastId}/emblem`} className="layer chip" />} />
-    </div>
-  )
-}
-
-export function Shards() {
-  const shards = useSave(s => s.shards ?? 0)
-  return (
-    <div className="coins shards" title="Spirit Shards upgrade parts and unlock traits">
-      <Img id="ui/icon-spirit-shard" className="coin-icon" />
-      <span>{shards.toLocaleString()}</span>
     </div>
   )
 }
