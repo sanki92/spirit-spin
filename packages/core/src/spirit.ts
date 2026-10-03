@@ -41,6 +41,8 @@ const BASE: Record<BeastId, Pick<BeastState, 'courage' | 'pride' | 'curiosity' |
   aegiron: { courage: 0, pride: 1, curiosity: -2, calm: 4 },
   nagara: { courage: -1, pride: 0, curiosity: 3, calm: 3 },
   agnyx: { courage: 2, pride: 4, curiosity: 0, calm: -1 },
+  zephyra: { courage: 2, pride: 1, curiosity: 4, calm: -2 },
+  umbrax: { courage: 1, pride: 3, curiosity: 1, calm: 2 },
 }
 
 export const FORMS: Record<BeastId, { a: string; b: string; traitA: Trait; traitB: Trait }> = {
@@ -48,6 +50,8 @@ export const FORMS: Record<BeastId, { a: string; b: string; traitA: Trait; trait
   aegiron: { a: 'titan', b: 'sage', traitA: 'pride', traitB: 'calm' },
   nagara: { a: 'tide', b: 'eclipse', traitA: 'courage', traitB: 'curiosity' },
   agnyx: { a: 'solar', b: 'inferno', traitA: 'pride', traitB: 'courage' },
+  zephyra: { a: 'gale', b: 'eye', traitA: 'curiosity', traitB: 'calm' },
+  umbrax: { a: 'nightfang', b: 'sovereign', traitA: 'courage', traitB: 'pride' },
 }
 
 const DAILY_CAP = 3

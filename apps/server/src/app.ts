@@ -42,7 +42,7 @@ const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
   kind: z.enum(['post', 'reply', 'greet', 'awaken']),
   beast: z.object({
-    id: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx']),
+    id: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']),
     trust: z.number().int().min(0).max(100), respect: z.number().int().min(0).max(100),
     courage: Trait, pride: Trait, curiosity: Trait, calm: Trait,
     battles: z.number().int().min(0).max(1_000_000), awakened: z.string().max(20).nullable(),

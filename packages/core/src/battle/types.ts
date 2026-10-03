@@ -15,6 +15,16 @@ export interface TopState {
   hesitate: boolean // beast will refuse its first call this round
   overspinTicks: number
   lastHitTick: number
+  stunTicks: number
+  shieldTicks: number
+  pullTicks: number
+  phaseTicks: number
+  burnTicks: number
+  steps: number
+  strikes: number
+  strikeMul: number
+  stealArmed: boolean
+  ambushUsed: boolean
   out: boolean; stopped: boolean; shattered: boolean
 }
 

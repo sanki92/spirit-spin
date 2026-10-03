@@ -45,7 +45,7 @@ export class Game {
   }
 
   static async create(canvas: HTMLCanvasElement, theme: StadiumTheme): Promise<Game> {
-    const [spark, shock, crack, lightning, crystal, water, fire, bowl, floor] = await Promise.all([
+    const [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor] = await Promise.all([
       tex('vfx/impact-flash', 'vfx/impact-flash'),
       tex('vfx/shockwave', 'vfx/impact-flash'),
       tex('vfx/crack-decal', 'vfx/impact-flash'),
@@ -53,14 +53,16 @@ export class Game {
       tex('vfx/hit-crystal', 'vfx/impact-flash'),
       tex('vfx/hit-water', 'vfx/impact-flash'),
       tex('vfx/hit-fire', 'vfx/impact-flash'),
+      tex('vfx/hit-wind', 'vfx/impact-flash'),
+      tex('vfx/hit-shadow', 'vfx/impact-flash'),
       tex(`stadium/bowl-${theme}`, 'stadium/arena-floor'),
       tex('stadium/arena-floor', 'stadium/arena-floor'),
     ])
     const quality = detectQuality()
-    const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire } }, quality === 'low' ? 60 : 140))
+    const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire, wind, shadow } }, quality === 'low' ? 60 : 140))
     g.stage.world.add(buildStadium(bowl, floor))
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
-    for (const t of [spark, shock, crack, lightning, crystal, water, fire, bowl, floor]) g.stage.renderer.initTexture(t)
+    for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor]) g.stage.renderer.initTexture(t)
     return g
   }
 

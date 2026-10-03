@@ -97,6 +97,7 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
       <div className="rewards">
         <span>+{recorded.current.coins} coins</span>
         <span>+{recorded.current.xp} XP</span>
+        {recorded.current.shards > 0 && <span className="shard-chip"><Img id="ui/icon-spirit-shard" className="chip-icon" />+{recorded.current.shards} Spirit Shards</span>}
         <span>Best rip {result.bestRpm.toLocaleString()} RPM</span>
         {recorded.current.part && <span className="gold">New part: {recorded.current.part}</span>}
         {result.verdict?.rating !== undefined && <span className="gold">Rating {result.verdict.rating} ({(result.verdict.delta ?? 0) >= 0 ? '+' : ''}{result.verdict.delta})</span>}

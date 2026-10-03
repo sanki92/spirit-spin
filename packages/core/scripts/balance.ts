@@ -10,7 +10,7 @@ console.log(`\nBalance (${n} matches/matchup, bots=${level}) in ${((performance.
 console.log(`mean round ${r.meanRoundSeconds.toFixed(1)}s  timeouts ${pct(r.timeoutRate)}`)
 console.log('finishes', Object.entries(r.finishMix).map(([k, v]) => `${k} ${pct(v)}`).join('  '))
 console.log(`GREAT vs WEAK ${pct(r.greatVsWeak)}   OVERSPIN vs GREAT ${pct(r.overspinVsGreat)}`)
-const ids = ['voltfang', 'aegiron', 'nagara', 'agnyx']
+const ids = ['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']
 console.log('\nrow beats col  ' + ids.map(i => i.slice(0, 8).padStart(9)).join(''))
 for (const a of ids) console.log(a.padEnd(15) + ids.map(b => pct(r.matchups[`${a}>${b}`] ?? 0).padStart(9)).join(''))
 const fails = balanceFailures(r)

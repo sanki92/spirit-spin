@@ -4,7 +4,7 @@ import type { MatchResult, MatchSetup } from './game/BattleController'
 import { setHaptics } from './input/haptics'
 import { useRuntime } from './runtime'
 import { currentRoute, useNav, type Route } from './state/nav'
-import { useSave } from './state/save'
+import { storyBuild, useSave } from './state/save'
 import { settleMatch } from './state/settle'
 import type { ControllerFactory } from './ui/screens/BattleScreen'
 import type { StadiumTheme } from './game/Game'
@@ -91,7 +91,7 @@ export function App() {
 function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
   const nav = useNav()
   const s = useSave.getState()
-  const player = s.loadout as TopBuild
+  const player = storyBuild(s, s.loadout as TopBuild)
   const beast = s.beasts[player.beastId]
   const opponentBeast = route.opponent.beastId as BeastId
   const firstBattle = !s.onboarded.firstBattle

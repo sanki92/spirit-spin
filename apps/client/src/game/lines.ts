@@ -35,6 +35,22 @@ export const LINES: Record<BeastId, Bank> = {
     hesitate: ['…I don\'t burn for strangers. Not yet.'],
     reply: { celebrate: 'Yes! Let the whole arena see us shine!', humble: 'Hmph. Humble suits you. Maybe me too.', push: 'Higher, hotter! I like that.', comfort: '…I wasn\'t sad. But thank you.', analyze: 'You noticed their weakness? Clever partner.', fireup: 'INFERNO! Let it burn!' },
   },
+  zephyra: {
+    greet: ['Whoosh! The sky is wide open today, co-pilot.', 'My wings are itching. Let\'s race something!', 'Feel that updraft? Today we fly.'],
+    win: ['Whoosh! Pulled them right into our storm!', 'Too slow for the wind!', 'Did you see that? Again, again!'],
+    loss: ['They caught the wind before us. Not next storm.', 'Hmph. The air was heavy today.', 'I flew too wide. My fault, co-pilot.'],
+    comeback: ['Three points down and the storm still came for them. Whoosh!'],
+    hesitate: ['…the wind doesn\'t know your voice yet.'],
+    reply: { celebrate: 'Whoosh! Loop the stadium with me!', humble: 'Okay, okay. Feet on the ground. Mostly.', push: 'Faster? I love faster!', comfort: '…Thanks, co-pilot. The sky will clear.', analyze: 'Their wind came from the left. I saw it too.', fireup: 'Let\'s tear the clouds apart!' },
+  },
+  umbrax: {
+    greet: ['Quiet day. Good hunting weather. Mm.', 'I am ready when you are, hunter.', 'Breathe. Then we strike.'],
+    win: ['They never saw me. Mm.', 'Clean. As planned.', 'The shadow always wins the long game.'],
+    loss: ['They read my step. Next time they won\'t.', 'Lost the light today. Not the hunt.', 'Mm. I waited too long.'],
+    comeback: ['Three points down. Then we vanished. Then we won. Mm.'],
+    hesitate: ['…I don\'t step for strangers.'],
+    reply: { celebrate: 'Mm. A small celebration. Quietly.', humble: 'Good. Pride makes noise.', push: 'Harder. Yes. Hunters sharpen.', comfort: '…Thank you, hunter.', analyze: 'Their pattern broke on the left. I saw it.', fireup: 'Let the shadows run.' },
+  },
 }
 
 export const REPLIES_WIN: Reply[] = ['celebrate', 'humble', 'push']

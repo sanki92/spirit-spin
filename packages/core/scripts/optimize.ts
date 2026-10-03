@@ -12,7 +12,11 @@ const tip = (kind: keyof typeof TIP, f: 'drive' | 'curve' | 'gain' | 'brake' | '
   ({ name: `${kind}.${f}`, lo, hi, get: () => TIP[kind][f], set: v => { TIP[kind][f] = v } })
 const edge = (a: keyof typeof TYPE_EDGE, b: keyof typeof TYPE_EDGE, lo: number, hi: number): P =>
   ({ name: `edge.${a}.${b}`, lo, hi, get: () => TYPE_EDGE[a][b], set: v => { TYPE_EDGE[a][b] = v } })
+const tech = T.tech as unknown as Record<string, number>
+const xp = (k: keyof typeof T.tech, lo: number, hi: number): P => ({ name: `tech.${k}`, lo, hi, get: () => tech[k]!, set: v => { tech[k] = v } })
 const PARAMS: P[] = [
+  xp('stun', 30, 90), xp('fangMul', 1.6, 3.4), xp('shield', 60, 220), xp('tideDrain', 0, 0.08), xp('tideSlow', 0.6, 1), xp('pullForce', 0.5, 4.5),
+  xp('pullClash', 1, 2.2), xp('pull', 60, 160), xp('phase', 40, 110), xp('stepMul', 1.4, 3.2), xp('stepDash', 1.5, 3.2), tp('strikeV', 1.8, 3.4), tp('tideCenter', 1, 2), xp('pullMass', 1, 2.6), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('tideRegen', 0.03, 0.15), tp('turnSteal', 0.12, 0.35), xp('phoenixDash', 0.3, 1.2),
   edge('attack', 'stamina', 1, 1.6), edge('attack', 'defense', 0.5, 1), edge('defense', 'attack', 1, 1.6), edge('defense', 'stamina', 0.6, 1),
   edge('stamina', 'attack', 0.6, 1), edge('balance', 'defense', 0.9, 1.4), edge('balance', 'attack', 0.8, 1.3), edge('attack', 'balance', 0.8, 1.3),
   tp('shatterCap', 0.15, 0.6), tp('steerTurn', 1, 4), tp('overspinBonus', 0, 0.1), tp('bastionMass', 1.5, 4), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('tideGuard', 0.25, 1), tp('tideRegen', 0.03, 0.15), tp('turnSteal', 0.12, 0.3), tp('overspinDrain', 0.04, 0.25), tp('wobbleForce', 0.5, 4), tp('overspinTicks', 60, 300),
@@ -33,6 +37,7 @@ function score(r: BalanceReport): number {
   return s
 }
 if (process.argv[4]) for (const [k, v] of Object.entries(JSON.parse(readFileSync(process.argv[4], 'utf8')).params as Record<string, number>)) PARAMS.find(p => p.name === k)?.set(v)
+if (process.argv[5] === 'tech-only') PARAMS.splice(19)
 const N = Number(process.argv[2] ?? 14), ITERS = Number(process.argv[3] ?? 250)
 const evalNow = () => score(runBalance(N, BOT_LEVELS.hard, 77))
 const rng = createRng(2024)
@@ -50,8 +55,11 @@ for (let it = 0; it < ITERS && best > 0; it++) {
   const temp = 1.2 * (1 - it / ITERS)
   if (sc <= cur || rngNext(rng) < Math.exp((cur - sc) / Math.max(temp, 1e-3))) { cur = sc; curVals = PARAMS.map(p => p.get()) }
   else PARAMS.forEach((p, i) => p.set(curVals[i]!))
-  if (sc < best) { best = sc; bestVals = PARAMS.map(p => p.get()); console.log(it, best.toFixed(3)) }
+  if (sc < best) { best = sc; bestVals = PARAMS.map(p => p.get()); console.log(it, best.toFixed(3)); save() }
 }
-const out = Object.fromEntries(PARAMS.map((p, i) => [p.name, +bestVals[i]!.toFixed(4)]))
-writeFileSync('scripts/tuning.best.json', JSON.stringify({ score: best, params: out }, null, 1))
-console.log('best', best.toFixed(3), out)
+function save() {
+  const out = Object.fromEntries(PARAMS.map((p, i) => [p.name, +bestVals[i]!.toFixed(4)]))
+  writeFileSync('scripts/tuning.best.json', JSON.stringify({ score: best, params: out }, null, 1))
+  return out
+}
+console.log('best', best.toFixed(3), save())

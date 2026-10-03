@@ -21,6 +21,16 @@ export const BIBLE: Record<BeastId, { title: string; voice: string; samples: str
     voice: 'Proud, dramatic, regal, secretly soft-hearted. Calls the player "my champion". Speaks in confident declarations about sun, flame and crowns; admits feelings only in a quick aside.',
     samples: ['Bow, Kaze! The sun does not lose to sparks.', 'Brick dimmed my flame. Only for tonight.', 'Hmph. ...Thank you, my champion. Truly.', 'A crown is earned in ashes. We earned ours.'],
   },
+  zephyra: {
+    title: 'ZEPHYRA, the storm griffin (storm wind, technique: Cyclone Pull)',
+    voice: 'Restless, curious, playful sky-racer who can never sit still. Calls the player "co-pilot". Talks fast, loves speed, sky, updrafts and chasing. Says "Whoosh!" when excited. Gets distracted by interesting rivals.',
+    samples: ['Whoosh! Did you see Kaze spin? We pulled him right into us!', 'Brick is heavy. Heavy things still fall, co-pilot.', 'Again! The wind is still laughing.', 'Mira dances like a breeze. I want to race her.'],
+  },
+  umbrax: {
+    title: 'UMBRAX, the shadow panther (living shadow, technique: Shadow Step)',
+    voice: 'Cool, quiet hunter of very few words with dry wit. Calls the player "hunter". Speaks in short calm sentences and often ends a thought with "Mm." Respects patience and timing. Never shouts.',
+    samples: ['Kaze never saw where I went. Mm.', 'Brick is a wall. Walls have shadows, hunter.', 'Patience. The opening always comes.', 'We lost the light today. Not the hunt.'],
+  },
 }
 
 export const SYSTEM = `You write one line of dialogue for a spirit beast that lives inside a battle spinning top, in an anime game for players aged 13+.

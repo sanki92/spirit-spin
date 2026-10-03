@@ -1,5 +1,5 @@
 import {
-  applyBattle, applyQuestProgress, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
+  applyBattle, applyQuestProgress, MAX_PART_LEVEL, partKey, progressBuild, SHARDS, TRAIT_COST, upgradeCost, type PartKind, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
   type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type Reply, type TopBuild,
 } from '@spirit/core'
 import { create } from 'zustand'
@@ -31,6 +31,10 @@ export interface SaveData {
   unlocks: string[]
   entitlements: string[]
   pass: { season: string; baseXp: number; free: number[]; premium: number[] }
+  shards: number
+  partLevels: Record<string, number>
+  traits: BeastId[]
+  dailyWin: string
 }
 
 export interface SaveActions {
@@ -53,6 +57,9 @@ export interface SaveActions {
   setEntitlements(items: string[]): void
   claimPass(track: 'free' | 'premium', tier: number): boolean
   ensurePass(): void
+  addShards(n: number): void
+  upgradePart(kind: PartKind, id: string): boolean
+  buyTrait(id: BeastId): boolean
   reset(): void
 }
 
@@ -77,6 +84,10 @@ const fresh = (): SaveData => ({
   unlocks: [],
   entitlements: [],
   pass: { season: PASS.season, baseXp: -1, free: [], premium: [] },
+  shards: 0,
+  partLevels: {},
+  traits: [],
+  dailyWin: '',
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])
@@ -152,7 +163,7 @@ export const useSave = create<SaveData & SaveActions>()(
         const s = get()
         const q = s.quests.list.find(x => x.id === id)
         if (!q || q.progress < q.target || s.quests.claimed.includes(id)) return 0
-        set({ coins: s.coins + q.reward, quests: { ...s.quests, claimed: [...s.quests.claimed, id] } })
+        set({ coins: s.coins + q.reward, shards: (s.shards ?? 0) + SHARDS.quest, quests: { ...s.quests, claimed: [...s.quests.claimed, id] } })
         return q.reward
       },
       patchSettings: p => set(s => ({ settings: { ...s.settings, ...p } })),
@@ -180,19 +191,38 @@ export const useSave = create<SaveData & SaveActions>()(
         if ('part' in reward) get().addPart(`${reward.part.kind}s` as keyof Owned, reward.part.id)
         return true
       },
+      addShards: n => set(s => ({ shards: (s.shards ?? 0) + n })),
+      upgradePart: (kind, id) => {
+        const s = get()
+        const key = partKey(kind, id)
+        const lv = s.partLevels?.[key] ?? 1
+        const cost = upgradeCost(lv)
+        if (cost === null || lv >= MAX_PART_LEVEL || (s.shards ?? 0) < cost || !s.owned[`${kind}s`].includes(id)) return false
+        set({ shards: s.shards - cost, partLevels: { ...s.partLevels, [key]: lv + 1 } })
+        return true
+      },
+      buyTrait: id => {
+        const s = get()
+        if (!s.beasts[id] || (s.traits ?? []).includes(id) || (s.shards ?? 0) < TRAIT_COST) return false
+        set({ shards: s.shards - TRAIT_COST, traits: [...(s.traits ?? []), id] })
+        return true
+      },
       reset: () => set(fresh()),
     }),
     {
       name: 'spirit.save',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: s => Object.fromEntries(Object.entries(s).filter(([, v]) => typeof v !== 'function')) as unknown as SaveData,
-      migrate: (persisted, version) => (version < 1 ? { ...fresh(), ...(persisted as object) } : (persisted as SaveData)),
+      migrate: (persisted, version) => (version < 2 ? { ...fresh(), ...(persisted as object) } : (persisted as SaveData)),
     },
   ),
 )
 
 export const level = () => levelForXp(useSave.getState().xp)
+
+export const progress = (s: Pick<SaveData, 'partLevels' | 'traits'>) => ({ partLevels: s.partLevels ?? {}, traits: s.traits ?? [] })
+export const storyBuild = (s: SaveData, build: TopBuild) => progressBuild(build, progress(s), s.beasts[build.beastId])
 
 export function ownsCosmetic(s: Pick<SaveData, 'unlocks' | 'entitlements' | 'starter' | 'tower'>, id: string): boolean {
   if (FREE_COSMETICS.includes(id)) return true

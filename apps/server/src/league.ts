@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { ghostMatches, players, playerStats, type Db } from './db'
 
 const num = z.number().finite()
-export const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx']) })
+export const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']) })
 const Sample = z.object({ t: num, ax: num, ay: num, az: num, gx: num, gy: num, gz: num, roll: num })
 const RoundBody = z.object({
   motion: z.array(Sample).max(260).optional(),

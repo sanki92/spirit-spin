@@ -35,13 +35,22 @@ export const T = {
   strikeMul: 2.8, strikeShatterMul: 3.5,
   bastionMass: 2.2996, bastionTaken: 0.35, bastionReflect: 1.4,
   tideRegen: 0.1183, tideCenter: 1.5, tideGuard: 0.5,
-  turnSteal: 0.257, turnMul: 1,
+  turnSteal: 0.3097, turnMul: 1,
   attackMomentum: 0.15,
   launchGraceTicks: 60,
   knockWindowTicks: 90,
   overspinDrain: 0.1553,
   overspinTicks: 81.297,
   spinBase: 0.4, spinFromRpm: 0.6, overspinBonus: 0.1,
+  tech: {
+    stun: 45, stunUlt: 84, stunCruise: 0.35, stunGrip: 2.2, fangMul: 2.4,
+    shield: 214.9599, reflectUlt: 1.45,
+    tideDrain: 0, tideSlow: 0.92, tidePush: 0.9,
+    stealUlt: 2, phoenixDash: 0.539, burnTicks: 120, burnDrain: 0.12,
+    pull: 120, pullUlt: 180, pullForce: 4.1061, pullClash: 1.5, pullMass: 1.4367, fling: 1.6,
+    phase: 72, stepDash: 2.4785, stepMul: 2.0436,
+    staticCharge: 1.2, bedrock: 1.15, ebb: 0.92, embersAtk: 1.25, embersSpin: 0.3, tailwind: 1.08, ambush: 1.25,
+  },
 }
 
 /** gain = how hard the tip accelerates toward its cruising speed; brake = sliding friction when knocked faster
@@ -50,16 +59,16 @@ export const T = {
 export interface TipPhysics { drive: number; curve: number; gain: number; brake: number; decay: number; center: number }
 export const TIP: Record<TipKind, TipPhysics> = {
   flat: { drive: 0.95, curve: 2.5, gain: 3.0, brake: 0.35, decay: 0.05, center: 0.8 },
-  semi: { drive: 0.6, curve: 2.0, gain: 2.9507, brake: 0.3, decay: 0.0437, center: 1.0 },
-  ball: { drive: 0.3, curve: 1.0, gain: 1, brake: 0.6746, decay: 0.0327, center: 1.2381 },
+  semi: { drive: 0.6, curve: 2.0, gain: 2.9507, brake: 0.3, decay: 0.0425, center: 1.0 },
+  ball: { drive: 0.3, curve: 1.0, gain: 1.4975, brake: 0.6933, decay: 0.031, center: 1.2381 },
   needle: { drive: 0.12, curve: 0.5, gain: 1.0, brake: 0.2, decay: 0.019, center: 1.9733 },
 }
 
 export const TYPE_EDGE: Record<TopType, Record<TopType, number>> = {
-  attack: { attack: 1, defense: 0.9071, stamina: 1.3859, balance: 1.1374 },
-  defense: { attack: 1.4454, defense: 1, stamina: 1, balance: 1 },
-  stamina: { attack: 0.7694, defense: 1, stamina: 1, balance: 0.9 },
-  balance: { attack: 0.8398, defense: 1.2855, stamina: 0.85, balance: 1 },
+  attack: { attack: 1, defense: 0.9071, stamina: 1.3859, balance: 1.3 },
+  defense: { attack: 1.4454, defense: 1, stamina: 0.999, balance: 1 },
+  stamina: { attack: 0.7694, defense: 1.11, stamina: 1, balance: 0.9 },
+  balance: { attack: 0.8398, defense: 1.1, stamina: 0.85, balance: 1 },
 }
 
 // Ring-out pockets at 90°, 210°, 330° (precomputed literals: the sim never calls trig).

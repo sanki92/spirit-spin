@@ -6,7 +6,7 @@ import { cleanName, randomCode, type Tokens } from '../auth'
 import { Room } from './room'
 
 const num = z.number().finite()
-const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx']) })
+const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']) })
 const Code = z.string().regex(/^[A-Za-z0-9]{4}$/).transform(s => s.toUpperCase())
 const Sample = z.object({ t: num, ax: num, ay: num, az: num, gx: num, gy: num, gz: num, roll: num })
 const Msg = z.discriminatedUnion('k', [

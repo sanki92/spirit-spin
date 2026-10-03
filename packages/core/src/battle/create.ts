@@ -34,6 +34,7 @@ function launchTop(spec: TopSpec, l: LaunchParams, side: Side): TopState {
     hesitate: l.hesitate,
     overspinTicks: l.rip.overspin ? Math.round(T.overspinTicks) : 0,
     lastHitTick: -1000,
+    stunTicks: 0, shieldTicks: 0, pullTicks: 0, phaseTicks: 0, burnTicks: 0, steps: 0, strikes: 0, strikeMul: 1, stealArmed: false, ambushUsed: false,
     out: false, stopped: false, shattered: false,
   }
 }

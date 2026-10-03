@@ -3,7 +3,7 @@ import { BLADES, DISCS, TIPS, STARTER_BUILDS, assembleTop, type BeastId } from '
 
 describe('parts', () => {
   it('each starter is its intended type', () => {
-    const want: Record<BeastId, string> = { voltfang: 'attack', aegiron: 'defense', nagara: 'stamina', agnyx: 'balance' }
+    const want: Record<BeastId, string> = { voltfang: 'attack', aegiron: 'defense', nagara: 'stamina', agnyx: 'balance', zephyra: 'stamina', umbrax: 'balance' }
     for (const [beast, type] of Object.entries(want)) {
       expect(assembleTop(STARTER_BUILDS[beast as BeastId]).type).toBe(type)
     }

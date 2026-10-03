@@ -3,7 +3,7 @@ import type { BeastId } from './parts'
 export type CosmeticKind = 'launcher' | 'stadium' | 'frame' | 'avatar' | 'title'
 export interface Cosmetic { id: string; kind: CosmeticKind; name: string; art: string | null }
 
-const BEAST_NAMES: Record<BeastId, string> = { voltfang: 'Voltfang', aegiron: 'Aegiron', nagara: 'Nagara', agnyx: 'Agnyx' }
+const BEAST_NAMES: Record<BeastId, string> = { voltfang: 'Voltfang', aegiron: 'Aegiron', nagara: 'Nagara', agnyx: 'Agnyx', zephyra: 'Zephyra', umbrax: 'Umbrax' }
 
 export const COSMETICS: Record<string, Cosmetic> = Object.fromEntries(
   [
