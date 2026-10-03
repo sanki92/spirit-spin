@@ -34,8 +34,8 @@ HIT = "Match the style, glow and composition of the reference VFX sprite exactly
 J(a, "vfx/hit-wind.png", f"Game hit VFX sprite: a burst of swirling bright teal-mint wind gusts and white air slashes spiraling out from the center. {HIT}", refs=[F + "vfx/hit-lightning.png"])
 J(a, "vfx/hit-shadow.png", f"Game hit VFX sprite: a burst of glowing violet and magenta wisps, sparks and claw slashes radiating from the center, the shadow implied only by dark gaps between the glowing wisps, never black-colored smoke. {HIT}", refs=[F + "vfx/hit-lightning.png"])
 
-PLATE = ("Wide horizontal game HUD name plate for a player name and a spin bar. Exact shape: a long slanted parallelogram panel about 3.2 times wider than tall, "
-         "centered in the image and filling 90% of the width, with a bevelled metal frame, glowing edges, a dark semi-transparent navy glass interior left plain and empty for text, "
+PLATE = ("Wide horizontal game HUD name plate for a player name and a spin bar. Exact shape: a chunky slanted panel exactly THREE times wider than it is tall, occupying the middle 80% of the image width and 40% of the image height, "
+         "centered, with a thick bevelled metal frame, angled corner cut-outs and small tech notches, with a bevelled metal frame, glowing edges, a dark semi-transparent navy glass interior left plain and empty for text, "
          "and one small elemental flourish at the LEFT outer end only. Flat front view, no perspective, no text, no icons inside. ")
 J(a, "ui/hud-plate-voltfang.png", PLATE + f"Accents and glow: electric-blue lightning. {CUT} {STYLE}", "1536x1024", bg="transparent", quality="high")
 for k, el in {"aegiron": "emerald-green crystal", "nagara": "violet moonlight water", "agnyx": "crimson-gold fire", "zephyra": "teal-mint storm wind", "umbrax": "magenta shadow smoke"}.items():

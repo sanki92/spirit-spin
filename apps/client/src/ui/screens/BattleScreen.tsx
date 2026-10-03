@@ -55,6 +55,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       {loading && <div className="loading">LOADING STADIUM…</div>}
       {!loading && (
         <BattleHud
+          beasts={[setup.player.beastId, setup.opponent.beastId]}
           names={names ?? [BEASTS[setup.player.beastId].name, BEASTS[setup.opponent.beastId].name]}
           spectator={spectator}
           onSpirit={onSpirit}

@@ -105,8 +105,36 @@ button { font-family: inherit; }
 .announcer p { margin: 0 0 6px; padding: 8px 12px; background: rgba(255, 207, 74, 0.96); color: #1a1205; font-weight: 800; font-size: 16px; line-height: 1.25; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); }
 @keyframes announceIn { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .reduce-motion .announcer { animation: none; }
-.launcher-art { position: absolute; left: 50%; bottom: calc(150px + var(--safe-bottom)); width: min(34vw, 170px); transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.6)); animation: launcherIn 0.5s ease-out both; }
-.launcher-art.fired { animation: launcherFire 0.45s cubic-bezier(0.5, 0, 0.9, 0.3) forwards; }
-@keyframes launcherIn { from { transform: translate(-50%, 40px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-@keyframes launcherFire { 0% { transform: translate(-50%, 0); opacity: 1; } 25% { transform: translate(-50%, -14px); } 100% { transform: translate(-50%, 160px); opacity: 0; } }
-.reduce-motion .launcher-art { animation: none; }
+.launch-overlay.phase-countdown { background: radial-gradient(circle, rgba(5, 8, 26, 0) 30%, rgba(5, 8, 26, 0.55)); }
+.launch-card { position: relative; width: min(88vw, 380px); display: grid; justify-items: center; gap: 10px; padding: 18px 18px 20px; border-radius: 18px; background: rgba(8, 13, 36, 0.9); border: 1px solid rgba(59, 230, 255, 0.35); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); animation: cardIn 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
+.launch-card strong { font-family: 'Bebas Neue'; font-size: 38px; letter-spacing: 2px; line-height: 1; color: var(--gold); text-shadow: 0 0 18px rgba(255, 207, 74, 0.45); }
+.launch-card ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: step; width: 100%; }
+.launch-card li { font-family: 'Rajdhani', system-ui, sans-serif; text-transform: none; letter-spacing: 0; counter-increment: step; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; line-height: 1.25; color: var(--text); text-align: left; }
+.launch-card li::before { content: counter(step); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--edge); color: #061024; font-weight: 800; font-size: 16px; }
+.launch-card li b { color: var(--gold); }
+.launch-card p { margin: 0; color: var(--muted); font-size: 16px; }
+.launch-card-art { height: min(24vh, 190px); object-fit: contain; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.6)); animation: cardArt 1.6s ease-in-out infinite alternate; }
+.launch-card:not(.first) ol li:first-child { display: none; }
+@keyframes cardIn { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cardArt { from { transform: translateY(-4px); } to { transform: translateY(6px); } }
+.countdown.tick { animation: tick 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; filter: drop-shadow(0 0 30px rgba(59, 230, 255, 0.5)); }
+@keyframes tick { 0% { transform: scale(1.8); opacity: 0; } 30% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.launch-overlay.phase-countdown .launch-hint { font-size: 16px; padding: 6px 14px; border-radius: 999px; background: rgba(7, 11, 31, 0.7); }
+.launch-flash { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; animation: flashBg 0.7s ease-out forwards; background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(59, 230, 255, 0.18) 40%, transparent 70%); }
+.launch-word { width: min(86vw, 520px); max-height: 34vh; object-fit: contain; animation: launchWord 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) forwards; }
+.launch-word.art-text { font-family: 'Bebas Neue'; font-size: 92px; color: #fff; text-shadow: 0 0 30px var(--edge); }
+@keyframes flashBg { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes launchWord { 0% { transform: scale(0.4); opacity: 0; } 25% { transform: scale(1.12); opacity: 1; } 70% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.25); opacity: 0; } }
+.reduce-motion .launch-card, .reduce-motion .launch-card-art, .reduce-motion .countdown.tick { animation: none; }
+.reduce-motion .launch-word { animation-name: flashBg; }
+.side-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.side.right .side-row { flex-direction: row-reverse; }
+.side.plated { position: relative; background: none; border: 0; border-radius: 0; padding: 6px 12px 7px 26px; isolation: isolate; }
+.side.plated.right { padding: 6px 26px 7px 12px; }
+.side.plated .pips { margin: 0; }
+.side.plated .spinbar { margin-top: 3px; }
+.side.plated .plate { position: absolute; z-index: -1; left: -10%; top: -164%; width: 120%; height: 450%; pointer-events: none; }
+.side.plated.right .plate { transform: scaleX(-1); }
+.side.plated.active { box-shadow: none; filter: drop-shadow(0 0 10px var(--gold)); }
+.side.plated .name { text-shadow: 0 0 10px var(--c), 0 1px 0 rgba(0, 0, 0, 0.7); }
+@media (prefers-reduced-motion: reduce) { .launch-card, .launch-card-art, .countdown.tick { animation: none; } .launch-word { animation-name: flashBg; } }

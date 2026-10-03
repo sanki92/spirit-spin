@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { hasAsset, assetUrl } from '../../assets/assets'
+import type { BeastId } from '@spirit/core'
 import { BEASTS } from '../../game/beasts'
 import { useHud, type Banner } from '../../state/hud'
 import { useSave } from '../../state/save'
@@ -20,9 +21,10 @@ function Art({ id, text, className }: { id: string; text: string; className: str
   return hasAsset(id) ? <img className={className} src={assetUrl(id)} alt={text} draggable={false} /> : <div className={`${className} art-text`}>{text}</div>
 }
 
-export function BattleHud({ names, onSpirit, onSwipeZone, onStick, spectator = false }: {
+export function BattleHud({ names, beasts, onSpirit, onSwipeZone, onStick, spectator = false }: {
   spectator?: boolean
   names: [string, string]
+  beasts: [BeastId, BeastId]
   onSpirit: () => void
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
@@ -32,18 +34,22 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick, spectator = f
   return (
     <div className="hud">
       <div className="hud-top">
-        <Side name={names[0]} score={h.scores[0]} side={0} active={h.spiritActive[0]} align="left" />
+        <Side name={names[0]} beast={beasts[0]} score={h.scores[0]} side={0} active={h.spiritActive[0]} align="left" />
         <div className="round">R{h.round}</div>
-        <Side name={names[1]} score={h.scores[1]} side={1} active={h.spiritActive[1]} align="right" />
+        <Side name={names[1]} beast={beasts[1]} score={h.scores[1]} side={1} active={h.spiritActive[1]} align="right" />
       </div>
       {(h.phase === 'grip' || h.phase === 'countdown') && (
-        <div className="launch-overlay" ref={spectator ? undefined : onSwipeZone}>
-          {h.phase === 'grip' && <div className="grip">{spectator ? 'PHONES READY' : h.inputMode === 'motion' ? 'GRIP YOUR PHONE' : 'GET READY TO SWIPE DOWN'}</div>}
-          {h.countdown && <Art key={h.countdown} id={COUNT_ART[h.countdown] ?? ''} text={h.countdown} className="countdown pop" />}
-          <div className="launch-hint">{spectator ? 'Rip your phones on LAUNCH' : h.inputMode === 'motion' ? 'Both hands · pull DOWN toward you on LAUNCH' : 'Swipe DOWN fast on LAUNCH'}</div>
+        <div className={`launch-overlay phase-${h.phase}`} ref={spectator ? undefined : onSwipeZone}>
+          {h.phase === 'grip' && <LaunchCard spectator={spectator} motion={h.inputMode === 'motion'} beast={beasts[0]} first={h.round === 1} />}
+          {h.phase === 'countdown' && h.countdown && h.countdown !== 'LAUNCH' && <Art key={h.countdown} id={COUNT_ART[h.countdown] ?? ''} text={h.countdown} className="countdown tick" />}
+          {h.phase === 'countdown' && h.countdown !== 'LAUNCH' && <div className="launch-hint">{spectator ? 'Players rip on LAUNCH' : h.inputMode === 'motion' ? 'Pull DOWN on LAUNCH' : 'Swipe DOWN on LAUNCH'}</div>}
         </div>
       )}
-      {h.countdown === 'LAUNCH' && h.phase !== 'grip' && h.phase !== 'countdown' && null}
+      {h.countdown === 'LAUNCH' && (
+        <div className="launch-flash" aria-live="assertive">
+          <Art id={COUNT_ART.LAUNCH!} text="LAUNCH!" className="launch-word" />
+        </div>
+      )}
       {h.callout && (
         <div className="callout pop">
           {h.callout.quality === 'FAIL' ? <div className="art-text callout-fail">{h.callout.note}</div> : <Art id={CALLOUT_ART[h.callout.quality] ?? ''} text={h.callout.quality} className="callout-img" />}
@@ -51,7 +57,6 @@ export function BattleHud({ names, onSpirit, onSwipeZone, onStick, spectator = f
         </div>
       )}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
-      {!spectator && (h.phase === 'grip' || h.phase === 'countdown' || (h.phase === 'launch' && h.countdown === 'LAUNCH')) && <Launcher fired={h.countdown === 'LAUNCH'} />}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (
         <div key={h.announcer.id} className="announcer" aria-live="polite">
@@ -86,11 +91,15 @@ function Live({ className, get }: { className: string; get: (s: ReturnType<typeo
   return <div ref={ref} className={className} />
 }
 
-function Side({ name, score, side, active, align }: { name: string; score: number; side: 0 | 1; active: boolean; align: 'left' | 'right' }) {
+function Side({ name, beast, score, side, active, align }: { name: string; beast: BeastId; score: number; side: 0 | 1; active: boolean; align: 'left' | 'right' }) {
+  const plate = `ui/hud-plate-${beast}`
   return (
-    <div className={`side ${align} ${active ? 'active' : ''}`}>
-      <div className="name">{name}</div>
-      <div className="pips">{[0, 1, 2, 3].map(i => <i key={i} className={i < score ? 'on' : ''} />)}</div>
+    <div className={`side ${align} ${active ? 'active' : ''} ${hasAsset(plate) ? 'plated' : ''}`} style={{ ['--c' as string]: BEASTS[beast].color }}>
+      {hasAsset(plate) && <img className="plate" src={assetUrl(plate)} alt="" draggable={false} />}
+      <div className="side-row">
+        <div className="name">{name}</div>
+        <div className="pips" aria-label={`${score} points`}>{[0, 1, 2, 3].map(i => <i key={i} className={i < score ? 'on' : ''} />)}</div>
+      </div>
       <div className="spinbar"><Live className="" get={st => ({ width: `${Math.max(0, Math.min(1, st.spin[side])) * 100}%` })} /></div>
     </div>
   )
@@ -142,10 +151,26 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
   )
 }
 
-function Launcher({ fired }: { fired: boolean }) {
+function LaunchCard({ spectator, motion, beast, first }: { spectator: boolean; motion: boolean; beast: BeastId; first: boolean }) {
   const s = useSave.getState()
-  const id = s.cosmetics?.launcher ?? (s.starter ? `launcher-${s.starter}` : null)
-  const art = id ? `launchers/${id.replace('launcher-', '')}` : null
-  if (!art || !hasAsset(art)) return null
-  return <img className={`launcher-art ${fired ? 'fired' : ''}`} src={assetUrl(art)} alt="" draggable={false} />
+  const id = s.cosmetics?.launcher ?? `launcher-${s.starter ?? beast}`
+  const art = `launchers/${id.replace('launcher-', '')}`
+  if (spectator) return <div className="launch-card"><strong>Phones ready</strong><p>Players rip on LAUNCH</p></div>
+  return (
+    <div className={`launch-card ${first ? 'first' : ''}`}>
+      {hasAsset(art) && <img className="launch-card-art" src={assetUrl(art)} alt="" draggable={false} />}
+      <strong>{motion ? 'Grip your phone' : 'Thumb on the screen'}</strong>
+      {motion ? (
+        <ol>
+          <li><span>Hold it with both hands, screen facing you</span></li>
+          <li><span>On <b>LAUNCH</b>, pull it down toward you, fast and straight</span></li>
+        </ol>
+      ) : (
+        <ol>
+          <li><span>Rest your thumb near the top</span></li>
+          <li><span>On <b>LAUNCH</b>, swipe down fast and straight</span></li>
+        </ol>
+      )}
+    </div>
+  )
 }

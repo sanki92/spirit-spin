@@ -113,7 +113,7 @@ export class BattleController {
   }
 
   protected beginRound(): void {
-    this.countdown(performance.now() + GRIP_MS + BEAT_MS * 3)
+    this.countdown(performance.now() + (this.match.round === 1 ? GRIP_MS * 2.2 : GRIP_MS) + BEAT_MS * 3)
   }
 
   protected countdown(t0: number): void {
