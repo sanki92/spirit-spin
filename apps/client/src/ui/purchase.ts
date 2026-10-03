@@ -12,6 +12,7 @@ const post = async <T>(path: string, body: unknown): Promise<{ ok: boolean; stat
 }
 
 export async function refreshEntitlements(): Promise<{ items: string[]; provider: string } | null> {
+  await retryPendingPayment()
   try {
     const res = await fetch('/v1/entitlements', { headers: authHeader() })
     if (!res.ok) return null
@@ -33,7 +34,20 @@ const loadCheckout = () =>
     document.head.appendChild(s)
   }))
 
-export type BuyResult = 'bought' | 'cancelled' | 'unavailable' | 'failed'
+export type BuyResult = 'bought' | 'cancelled' | 'unavailable' | 'failed' | 'pending'
+const PENDING = 'spirit.pendingPayment'
+
+export async function retryPendingPayment(): Promise<void> {
+  let pending: { orderId: string; paymentId: string; signature: string } | null = null
+  try { pending = JSON.parse(localStorage.getItem(PENDING) ?? 'null') } catch { pending = null }
+  if (!pending) return
+  const v = await post<{ items: string[] }>('/v1/store/verify', pending).catch(() => null)
+  if (!v) return
+  if (v.ok) useSave.getState().setEntitlements(v.data.items)
+  if (v.ok || v.status === 404 || v.status === 400) {
+    try { localStorage.removeItem(PENDING) } catch { void 0 }
+  }
+}
 
 export async function buy(sku: string): Promise<BuyResult> {
   try {
@@ -53,13 +67,15 @@ export async function buy(sku: string): Promise<BuyResult> {
           handler: (r: { razorpay_payment_id: string; razorpay_signature: string }) => resolve({ paymentId: r.razorpay_payment_id, signature: r.razorpay_signature }),
           modal: { ondismiss: () => resolve(null) },
         })
-        rz.on('payment.failed', () => resolve(null))
         rz.open()
       })
     }
     if (!paid) return 'cancelled'
-    const v = await post<{ items: string[] }>('/v1/store/verify', { orderId: o.data.orderId, ...paid })
-    if (!v.ok) return 'failed'
+    const pending = { orderId: o.data.orderId, ...paid }
+    try { localStorage.setItem(PENDING, JSON.stringify(pending)) } catch { void 0 }
+    const v = await post<{ items: string[] }>('/v1/store/verify', pending).catch(() => ({ ok: false, status: 0, data: { items: [] } }))
+    if (!v.ok) return v.status === 0 ? 'pending' : 'failed'
+    try { localStorage.removeItem(PENDING) } catch { void 0 }
     useSave.getState().setEntitlements(v.data.items)
     log('store.bought', { sku })
     return 'bought'

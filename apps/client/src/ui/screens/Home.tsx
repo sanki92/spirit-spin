@@ -16,7 +16,7 @@ const greeting = new Set<string>()
 export function Home() {
   const nav = useNav()
   const s = useSave()
-  useEffect(() => s.refreshQuests(), [s.refreshQuests])
+  useEffect(() => { s.refreshQuests(); s.ensurePass() }, [s.refreshQuests])
   const beastId = s.loadout?.beastId ?? s.starter ?? 'voltfang'
   const beast = s.beasts[beastId]
   const info = BEASTS[beastId]

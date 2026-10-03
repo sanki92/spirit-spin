@@ -38,6 +38,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!e.RECOVERY_PEPPER) throw new Error('RECOVERY_PEPPER is required in production')
     if (!e.CORS_ORIGINS) throw new Error('CORS_ORIGINS is required in production')
     if (env.DEV_TOOLS === '1') throw new Error('DEV_TOOLS must not be enabled in production')
+    if (e.RAZORPAY_KEY_ID && !e.RAZORPAY_WEBHOOK_SECRET) throw new Error('RAZORPAY_WEBHOOK_SECRET is required when Razorpay keys are set')
   }
   return {
     port: e.PORT,

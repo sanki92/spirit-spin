@@ -39,9 +39,10 @@ export class Tokens {
 
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 export const randomCode = (n: number) => Array.from({ length: n }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('')
-const RUDE = /(fuck|shit|bitch|cunt|dick|cock|pussy|nigg|fag|slut|whore|rape|nazi|hitler|porn|sex|kill ?yourself|kys|chut|bhosd|madarch|behench|gaand|lund|randi)/i
+const RUDE_ANY = /(fuck|shit|bitch|cunt|pussy|nigg|faggot|whore|hitler|porn|bhosd|madarch|behench|chutiya)/i
+const RUDE_WORD = /\b(dick|cock|fag|slut|rape|nazi|sex|kys|lund|gaand|randi|kill ?yourself)\b/i
 export const cleanText = (s: unknown, max: number, fallback: string) => {
   const t = typeof s === 'string' ? s.replace(/[^\p{L}\p{N} '!?&._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, max) : ''
-  return t && !RUDE.test(t.replace(/[\s._-]/g, '')) ? t : fallback
+  return t && !RUDE_ANY.test(t.replace(/[\s._-]/g, '')) && !RUDE_WORD.test(t) ? t : fallback
 }
 export const cleanName = (s: unknown) => cleanText(typeof s === 'string' ? s.replace(/['!?&.]/g, '') : s, 16, 'Spinner')

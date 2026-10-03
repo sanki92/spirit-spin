@@ -77,6 +77,13 @@ export class Sound {
 
   private voices = new Map<string, Promise<AudioBuffer | null>>()
   private speaking: AudioBufferSourceNode | null = null
+  private voiceGen = 0
+
+  stopVoice(): void {
+    this.voiceGen++
+    try { this.speaking?.stop() } catch { this.speaking = null }
+    this.speaking = null
+  }
 
   voice(id: string, volume = 1.8): void {
     if (this.muted) return
@@ -85,8 +92,9 @@ export class Sound {
       p = fetch(`/assets/audio/vo/${id}.mp3`).then(r => (r.ok ? r.arrayBuffer() : null)).then(b => (b ? this.ctx.decodeAudioData(b) : null)).catch(() => null)
       this.voices.set(id, p)
     }
+    const gen = this.voiceGen
     void p.then(buf => {
-      if (!buf || this.muted) return
+      if (!buf || this.muted || gen !== this.voiceGen) return
       try { this.speaking?.stop() } catch { this.speaking = null }
       const src = this.ctx.createBufferSource()
       src.buffer = buf

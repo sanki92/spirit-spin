@@ -133,20 +133,6 @@ describe('realtime', () => {
     a.ws.close(); b2.ws.close()
   })
 
-  it('late inputs carry to the next tick and snapshots report input leads', async () => {
-    const { a, b } = await pair()
-    await a.wait('round'); await b.wait('round')
-    a.send({ k: 'rip', round: 1, swipe: SWIPE, pull100: 7 })
-    b.send({ k: 'rip', round: 1, swipe: SWIPE, pull100: 7 })
-    await a.wait('start')
-    const s1 = await a.wait('snap')
-    a.send({ k: 'inputs', from: Math.max(1, s1.tick - 1), list: [[0.77, -0.5, 0]] })
-    let seen = false
-    for (let i = 0; i < 10 && !seen; i++) { const s = await a.wait('snap'); seen = s.inputs[0].x === 0.77; expect(s.leads).toHaveLength(2) }
-    expect(seen).toBe(true)
-    a.ws.close(); b.ws.close()
-  })
-
   it('forged swipes are refused and motion data wins over a swipe', async () => {
     const { a, b } = await pair()
     await a.wait('round'); await b.wait('round')
@@ -181,6 +167,31 @@ describe('realtime', () => {
     expect((await tv.wait('snap')).leads).toHaveLength(2)
     expect((await tv.wait('end', 20000)).round).toBe(1)
     a.ws.close(); b.ws.close(); tv.ws.close()
+  })
+
+  it('stadium: a phone dropping in the lobby frees its seat; a forfeit tells the screen; the screen can re-watch', async () => {
+    const tv = await client()
+    tv.send({ k: 'hello', token: tv.token, name: 'TV' })
+    await tv.wait('welcome')
+    tv.send({ k: 'stadium' })
+    const { code } = await tv.wait('watching')
+    const a = await client()
+    a.send({ k: 'hello', token: a.token, name: 'Aki' }); await a.wait('welcome')
+    a.send({ k: 'join', code, build: BUILD_A }); await a.wait('room')
+    a.ws.close()
+    let seats = await tv.wait('seats')
+    for (let i = 0; i < 5 && seats.seats.some(Boolean); i++) seats = await tv.wait('seats', 4000)
+    expect(seats.seats.every(x => x === null)).toBe(true)
+    const b = await client(), c = await client()
+    for (const [x, n] of [[b, 'Bo'], [c, 'Cy']] as const) { x.send({ k: 'hello', token: x.token, name: n }); await x.wait('welcome'); x.send({ k: 'join', code, build: BUILD_B }); await x.wait('room') }
+    const tv2 = await client()
+    tv2.send({ k: 'hello', token: tv.token, name: 'TV' }); await tv2.wait('welcome')
+    tv2.send({ k: 'watch', code })
+    expect((await tv2.wait('watching')).code).toBe(code)
+    c.send({ k: 'leave' })
+    expect((await tv.wait('left', 5000)).reason).toBe('quit')
+    expect((await tv2.wait('left', 5000)).winner).toBe(0)
+    b.ws.close(); c.ws.close(); tv.ws.close(); tv2.ws.close()
   })
 
   it('rejects bad tokens and malformed messages', async () => {

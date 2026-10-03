@@ -19,6 +19,7 @@ describe('security', () => {
     expect(() => loadConfig({ ...env, DEV_TOOLS: '1' })).toThrow()
     expect(() => loadConfig({ ...env, CORS_ORIGINS: undefined })).toThrow()
     expect(loadConfig(env).payments?.provider).toBe('none')
+    expect(() => loadConfig({ ...env, RAZORPAY_KEY_ID: 'rzp_live_x', RAZORPAY_KEY_SECRET: 's' })).toThrow()
   })
 
   it('reading your profile refreshes your token', async () => {

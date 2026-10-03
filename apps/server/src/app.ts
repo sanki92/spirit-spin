@@ -120,7 +120,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     })
   }
 
-  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 20, timeWindow: '1 minute' } } }, async () => {
+  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 60, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()
     const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }

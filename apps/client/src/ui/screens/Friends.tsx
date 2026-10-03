@@ -196,7 +196,7 @@ function FriendList({ onChallenge }: { onChallenge: () => void }) {
       <section className="friend-list" aria-label="Friends">
         <h2>Friends</h2>
         {friends === null ? <p className="fine">Loading…</p> : friends.length + outgoing.length === 0 ? (
-          <p className="fine">No friends yet. Battle someone live or add their code, and they show up here.</p>
+          <p className="fine">No friends yet. Swap friend codes with someone; once you have both added each other, they show up here.</p>
         ) : [...friends.map(f => ({ ...f, pending: false })), ...outgoing.map(f => ({ ...f, pending: true }))].map(f => (
           <div key={f.playerId} className="friend">
             <span className="friend-initial" aria-hidden>{f.name.slice(0, 1).toUpperCase()}</span>

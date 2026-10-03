@@ -230,7 +230,8 @@ const MIGRATIONS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (player_id, item)
   )`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS ghost_matches_one_attempt ON ghost_matches (ref_id, player_id) WHERE ref_id IS NOT NULL`,
+  `DELETE FROM ghost_matches a USING ghost_matches b WHERE a.ref_id IS NOT NULL AND a.ref_id = b.ref_id AND a.player_id = b.player_id AND (a.created_at, a.id) > (b.created_at, b.id);
+  CREATE UNIQUE INDEX IF NOT EXISTS ghost_matches_one_attempt ON ghost_matches (ref_id, player_id) WHERE ref_id IS NOT NULL`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

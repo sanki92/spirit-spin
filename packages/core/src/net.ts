@@ -18,6 +18,7 @@ export type ClientMsg =
   | { k: 'ping'; t: number }
   | { k: 'leave' }
   | { k: 'stadium' }
+  | { k: 'watch'; code: string }
 
 export type ServerMsg =
   | { k: 'welcome'; playerId: string }
@@ -28,7 +29,7 @@ export type ServerMsg =
   | { k: 'snap'; tick: number; state: BattleState; inputs: [NetInput, NetInput]; leads: [number, number] }
   | { k: 'end'; round: number; outcome: RoundOutcome; scores: [number, number]; winner: Side | null }
   | { k: 'pong'; t: number; server: number }
-  | { k: 'left'; reason: 'forfeit' | 'quit' }
+  | { k: 'left'; reason: 'forfeit' | 'quit'; winner?: Side }
   | { k: 'error'; code: 'auth' | 'bad-message' | 'no-room' | 'full' | 'rate' }
   | { k: 'watching'; code: string }
   | { k: 'seats'; seats: ({ name: string; build: TopBuild; online: boolean } | null)[] }

@@ -48,20 +48,27 @@ function adopt(remote: Record<string, unknown>, version: number): void {
   storeAuth({ ...(auth as Auth), version })
 }
 
-export async function reauth(): Promise<void> {
-  const code = auth?.recoveryCode ?? loadAuth()?.recoveryCode ?? null
-  const version = auth?.version ?? 0
-  auth = null
+export async function reauth(): Promise<boolean> {
+  const prev = auth ?? loadAuth()
+  const code = prev?.recoveryCode ?? null
   if (code) {
     const r = await api<{ token: string; playerId: string }>('POST', '/v1/auth/recover', { code })
     if (r.status === 200) {
-      storeAuth({ token: r.data.token, playerId: r.data.playerId, recoveryCode: code, version })
+      storeAuth({ token: r.data.token, playerId: r.data.playerId, recoveryCode: code, version: prev?.version ?? 0 })
       log('sync.recovered', {})
-      return
+      return true
+    }
+    if (r.status !== 404) {
+      log('sync.recover-deferred', { status: r.status })
+      return false
     }
   }
   const g = await api<{ token: string; playerId: string; recoveryCode: string }>('POST', '/v1/auth/guest')
-  if (g.status === 200) storeAuth({ ...g.data, version: 0 })
+  if (g.status === 200) {
+    storeAuth({ ...g.data, version: 0 })
+    return true
+  }
+  return false
 }
 
 export function authHeader(): Record<string, string> {
@@ -87,8 +94,7 @@ export async function startSync(): Promise<void> {
     }
     let me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
     if (me.status === 401) {
-      await reauth()
-      if (!auth) return
+      if (!(await reauth())) return
       me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
     }
     if (me.status === 200 && me.data.token) storeAuth({ ...(auth as Auth), token: me.data.token })
@@ -123,9 +129,9 @@ async function push(): Promise<void> {
         return push()
       }
     } else if (r.status === 401) {
-      await reauth()
       inflight = false
-      return push()
+      if (await reauth()) return push()
+      return
     } else log('sync.push-failed', { status: r.status })
   } catch (e) {
     log('sync.offline', { error: String(e) })

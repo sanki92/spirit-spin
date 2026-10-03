@@ -132,7 +132,13 @@ export class Room {
     s.online = false
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
-    if (!other) return this.finish()
+    if (!other) {
+      if (this.spectators.size && this.phase === 'wait') {
+        this.seats[side] = null
+        return this.seatsChanged()
+      }
+      return this.finish()
+    }
     other.send({ k: 'peer', name: s.name, build: s.build, online: false })
     s.hold = setTimeout(() => this.forfeit(side, 'forfeit'), this.opts.seatHoldMs)
   }
@@ -142,6 +148,7 @@ export class Room {
     const winner = (1 - side) as Side
     this.match = { ...this.match, winner }
     this.seats[winner]?.send({ k: 'left', reason })
+    for (const w of this.spectators) w({ k: 'left', reason, winner })
     this.finish()
   }
 

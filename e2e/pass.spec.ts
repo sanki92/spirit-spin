@@ -12,7 +12,7 @@ test('spirit pass: unlock premium with the dev checkout, claim rewards, equip th
     const w = window as W
     w.__save.getState().chooseStarter('nagara')
     for (const k of ['safety', 'calibrated', 'firstBattle']) w.__save.getState().markOnboarded(k)
-    w.__save.setState({ xp: 1300, coins: 100 })
+    w.__save.setState({ xp: 1300, coins: 100, pass: { season: 's1', baseXp: 0, free: [], premium: [] } })
     w.__nav.getState().reset({ k: 'home' })
   })
   await page.waitForTimeout(2600)

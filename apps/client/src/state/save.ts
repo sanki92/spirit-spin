@@ -52,6 +52,7 @@ export interface SaveActions {
   setCosmetic(kind: 'frame' | 'title' | 'launcher' | 'stadium', id: string): void
   setEntitlements(items: string[]): void
   claimPass(track: 'free' | 'premium', tier: number): boolean
+  ensurePass(): void
   reset(): void
 }
 
@@ -75,7 +76,7 @@ const fresh = (): SaveData => ({
   cosmetics: { frame: 'frame-common', title: 'title-rookie', launcher: null, stadium: 'stadium-classic' },
   unlocks: [],
   entitlements: [],
-  pass: { season: PASS.season, baseXp: 0, free: [], premium: [] },
+  pass: { season: PASS.season, baseXp: -1, free: [], premium: [] },
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])
@@ -160,9 +161,14 @@ export const useSave = create<SaveData & SaveActions>()(
       setAvatar: n => set(s => (ownsCosmetic(s, `avatar-${n + 1}`) ? { avatar: n } : {})),
       setCosmetic: (kind, id) => set(s => (ownsCosmetic(s, id) && COSMETICS[id]?.kind === kind ? { cosmetics: { ...(s.cosmetics ?? fresh().cosmetics), [kind]: id } } : {})),
       setEntitlements: items => set({ entitlements: items }),
-      claimPass: (track, tier) => {
+      ensurePass: () => {
         const s = get()
-        const pass = s.pass?.season === PASS.season ? s.pass : { season: PASS.season, baseXp: 0, free: [], premium: [] }
+        if (s.pass?.season !== PASS.season || s.pass.baseXp < 0) set({ pass: { season: PASS.season, baseXp: s.xp, free: [], premium: [] } })
+      },
+      claimPass: (track, tier) => {
+        get().ensurePass()
+        const s = get()
+        const pass = s.pass
         const t = PASS_TIERS[tier - 1]
         if (!t || tier > passTier(s.xp - pass.baseXp) || pass[track].includes(tier)) return false
         if (track === 'premium' && !(s.entitlements ?? []).includes('pass-s1')) return false

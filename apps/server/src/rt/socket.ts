@@ -19,6 +19,7 @@ const Msg = z.discriminatedUnion('k', [
   z.object({ k: z.literal('ping'), t: num }),
   z.object({ k: z.literal('leave') }),
   z.object({ k: z.literal('stadium') }),
+  z.object({ k: z.literal('watch'), code: Code }),
 ])
 
 
@@ -36,10 +37,9 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   }
   const make = () => {
     const code = rooms.size < NET.maxRooms ? newCode() : null
-    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => rooms.delete(r.code), speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
+    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
   }
   app.addHook('onClose', async () => { for (const r of rooms.values()) r.close() })
-  const perIp = new Map<string, number>()
   const owned = new Map<string, Room>()
 
   app.get('/rt', { websocket: true }, (socket, req) => {
@@ -49,9 +49,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let side: Side | null = null
     let watching: Room | null = null
     let misses = 0
-    const ip = req.ip
-    perIp.set(ip, (perIp.get(ip) ?? 0) + 1)
-    if ((perIp.get(ip) ?? 0) > 12) { socket.close(4002, 'too many connections'); perIp.set(ip, perIp.get(ip)! - 1); return }
+
     let windowStart = Date.now(), count = 0
     const send = (m: ServerMsg) => { if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(m)) }
     const replaced = () => socket.close(4001, 'replaced')
@@ -107,6 +105,14 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           watching = r
           return
         }
+        if (m.k === 'watch') {
+          const r = rooms.get(m.code)
+          if (!r) return fail('no-room', false)
+          if (watching && watching !== r) watching.unwatch(send)
+          if (!r.watch(send)) return fail('full', false)
+          watching = r
+          return
+        }
         if (m.k === 'create' || m.k === 'join') assembleTop(m.build)
         if ((m.k === 'create' || m.k === 'join') && room && side !== null && room.code !== (m.k === 'join' ? m.code : '')) {
           room.forfeit(side, 'quit')
@@ -136,6 +142,9 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           if (m.k === 'rip') room.onRip(side, m)
           else if (m.k === 'inputs') room.onInputs(side, m.from, m.list)
           else if (m.k === 'leave') { room.forfeit(side, 'quit'); room = null; side = null }
+        } else if (m.k === 'leave' && watching) {
+          watching.unwatch(send)
+          watching = null
         }
       } catch (e) {
         req.log.warn({ err: String(e) }, 'rt message rejected')
@@ -144,10 +153,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     })
     socket.on('close', () => {
       clearInterval(heartbeat)
-      const n = (perIp.get(ip) ?? 1) - 1
-      if (n > 0) perIp.set(ip, n)
-      else perIp.delete(ip)
-      if (playerId && owned.get(playerId) === room && room?.phase === 'done') owned.delete(playerId)
+
       if (room && side !== null) room.disconnect(side, send)
       watching?.unwatch(send)
     })

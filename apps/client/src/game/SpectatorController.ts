@@ -71,6 +71,11 @@ export class SpectatorController extends BattleController {
       this.match = { ...this.match, scores: m.scores, winner: m.winner }
       useHud.getState().set({ scores: m.scores })
       if (m.winner !== null) this.done = true
+    } else if (m.k === 'left') {
+      this.done = true
+      this.pred = null
+      this.match = { ...this.match, winner: m.winner ?? this.match.winner ?? 0 }
+      this.concludeMatch()
     } else if (m.k === 'seats') {
       const off = m.seats.findIndex(x => x && !x.online)
       useHud.getState().set({ notice: off >= 0 ? `${m.seats[off]!.name} is reconnecting…` : null })

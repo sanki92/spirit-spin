@@ -6,7 +6,13 @@ import { buy, refreshEntitlements, type BuyResult } from '../purchase'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
 
 const price = (paise: number) => `₹${Math.round(paise / 100)}`
-const BUY_TEXT: Record<BuyResult, string> = { bought: 'Unlocked. Enjoy!', cancelled: 'Payment cancelled.', unavailable: 'Purchases are not open yet.', failed: 'Payment did not go through. You were not charged twice; try again.' }
+const BUY_TEXT: Record<BuyResult, string> = {
+  bought: 'Unlocked. Enjoy!',
+  cancelled: 'Payment cancelled. You were not charged.',
+  unavailable: 'Purchases are not open yet.',
+  failed: 'We could not confirm the payment. If you were charged, it unlocks automatically within a few minutes.',
+  pending: 'Payment received. It unlocks as soon as you are back online.',
+}
 
 function rewardArt(r: PassReward): { img: string | null; label: string } {
   if ('coins' in r) return { img: 'ui/icon-coin', label: `${r.coins} coins` }
@@ -22,8 +28,8 @@ export function Pass() {
   const s = useSave()
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  useEffect(() => { void refreshEntitlements() }, [])
-  const pass = s.pass?.season === PASS.season ? s.pass : { season: PASS.season, baseXp: 0, free: [], premium: [] }
+  useEffect(() => { s.ensurePass(); void refreshEntitlements() }, [])
+  const pass = s.pass?.season === PASS.season && s.pass.baseXp >= 0 ? s.pass : { season: PASS.season, baseXp: s.xp, free: [], premium: [] }
   const xp = Math.max(0, s.xp - pass.baseXp)
   const tier = passTier(xp)
   const premium = (s.entitlements ?? []).includes('pass-s1')

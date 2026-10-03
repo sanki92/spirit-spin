@@ -19,8 +19,8 @@ export async function spiritMoment(kind: 'post' | 'reply' | 'greet' | 'awaken', 
       }),
     })
     if (res.status === 401 && retry) {
-      await reauth()
-      return spiritMoment(kind, beast, battle, reply, false)
+      if (await reauth()) return spiritMoment(kind, beast, battle, reply, false)
+      return null
     }
     const data = (await res.json()) as Partial<AiLine> & { line: string | null; reason?: string }
     log('spirit.ai', { kind, ms: Math.round(performance.now() - t0), status: res.status, ok: !!data.line, reason: data.reason ?? null, line: data.line ?? null })

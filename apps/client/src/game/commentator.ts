@@ -36,6 +36,7 @@ export class Announcer {
 
   dispose(): void {
     clearTimeout(this.timer)
+    this.sound.stopVoice()
     useHud.getState().set({ announcer: null })
   }
 }

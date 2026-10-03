@@ -16,6 +16,7 @@ class Realtime {
   offset = 0
   rtt = 150
   code: string | null = null
+  watchCode: string | null = null
   side: Side | null = null
   peer: { name: string; build: TopBuild; online: boolean } | null = null
 
@@ -73,11 +74,13 @@ class Realtime {
           this.retry = 0
           void this.sync().then(() => {
             if (this.code) this.send({ k: 'rejoin', code: this.code })
+            else if (this.watchCode) this.send({ k: 'watch', code: this.watchCode })
             resolve()
           })
         }
         if (m.k === 'pong') return this.onPong(m)
         if (m.k === 'room') { this.code = m.code; this.side = m.side }
+        if (m.k === 'watching') this.watchCode = m.code
         if (m.k === 'peer') this.peer = { name: m.name, build: m.build, online: m.online }
         if (m.k === 'error') log('net.error', { code: m.code })
         this.latest.set(m.k, m)
@@ -87,7 +90,7 @@ class Realtime {
         if (this.ws === ws) this.welcomed = false
         log('net.close', { code: e.code, welcomed, inRoom: !!this.code })
         if (!welcomed) reject(new Error(`closed ${e.code}`))
-        if (this.wantOpen && this.code && e.code !== 4000 && e.code !== 4001) {
+        if (this.wantOpen && (this.code || this.watchCode) && e.code !== 4000 && e.code !== 4001) {
           if (this.retry < 6) {
             const wait = 400 * 2 ** this.retry++
             setTimeout(() => void this.open().catch(() => undefined), wait)
@@ -121,13 +124,14 @@ class Realtime {
 
   reset(): void {
     this.code = null
+    this.watchCode = null
     this.side = null
     this.peer = null
     this.latest.clear()
   }
 
   leave(): void {
-    if (this.code) this.send({ k: 'leave' })
+    if (this.code || this.watchCode) this.send({ k: 'leave' })
     this.reset()
   }
 

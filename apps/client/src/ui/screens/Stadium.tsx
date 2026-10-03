@@ -1,6 +1,6 @@
 import type { ServerMsg, TopBuild } from '@spirit/core'
 import QRCode from 'qrcode'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import type { MatchSetup } from '../../game/BattleController'
 import { SpectatorController } from '../../game/SpectatorController'
@@ -18,6 +18,8 @@ export function Stadium() {
   const [seats, setSeats] = useState<Seat[]>([null, null])
   const [qr, setQr] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
+  const playingRef = useRef(false)
+  playingRef.current = playing
   const [error, setError] = useState<string | null>(null)
   const [round, setRound] = useState(0)
 
@@ -39,6 +41,8 @@ export function Stadium() {
       if (m.k === 'watching') setCode(m.code)
       if (m.k === 'seats') setSeats(m.seats)
       if (m.k === 'round') setPlaying(true)
+      if (m.k === 'left' && !playingRef.current) void open()
+      if (m.k === 'error' && m.code === 'no-room') void open()
     })
     void open()
     return () => { off(); rt.leave() }
