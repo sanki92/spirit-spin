@@ -1265,7 +1265,7 @@
   "h": 512
  },
  "parts/blade-ember": {
-  "url": "/assets/parts/blade-ember.webp?v=eb7dc724",
+  "url": "/assets/parts/blade-ember.webp?v=7f7edf00",
   "w": 512,
   "h": 512
  },
@@ -1295,7 +1295,7 @@
   "h": 512
  },
  "parts/blade-pebble": {
-  "url": "/assets/parts/blade-pebble.webp?v=ca7c9a27",
+  "url": "/assets/parts/blade-pebble.webp?v=58cf03ee",
   "w": 512,
   "h": 512
  },
@@ -1305,7 +1305,7 @@
   "h": 512
  },
  "parts/blade-ripple": {
-  "url": "/assets/parts/blade-ripple.webp?v=16e693d4",
+  "url": "/assets/parts/blade-ripple.webp?v=de9dc219",
   "w": 512,
   "h": 512
  },
@@ -1315,7 +1315,7 @@
   "h": 512
  },
  "parts/blade-spark": {
-  "url": "/assets/parts/blade-spark.webp?v=fabe520e",
+  "url": "/assets/parts/blade-spark.webp?v=c0fb19ed",
   "w": 512,
   "h": 512
  },
@@ -1400,24 +1400,24 @@
   "h": 384
  },
  "parts/tip-rookie-ball": {
-  "url": "/assets/parts/tip-rookie-ball.webp?v=53aee164",
-  "w": 299,
+  "url": "/assets/parts/tip-rookie-ball.webp?v=a0106b50",
+  "w": 369,
   "h": 384
  },
  "parts/tip-rookie-flat": {
-  "url": "/assets/parts/tip-rookie-flat.webp?v=0b4c1fbc",
-  "w": 338,
+  "url": "/assets/parts/tip-rookie-flat.webp?v=3ca156f7",
+  "w": 315,
   "h": 384
  },
  "parts/tip-rookie-needle": {
-  "url": "/assets/parts/tip-rookie-needle.webp?v=bdeac345",
-  "w": 335,
+  "url": "/assets/parts/tip-rookie-needle.webp?v=d9d44e6c",
+  "w": 276,
   "h": 384
  },
  "parts/tip-rookie-semi": {
-  "url": "/assets/parts/tip-rookie-semi.webp?v=e56dfb46",
-  "w": 384,
-  "h": 334
+  "url": "/assets/parts/tip-rookie-semi.webp?v=b05bea21",
+  "w": 275,
+  "h": 384
  },
  "parts/tip-rush": {
   "url": "/assets/parts/tip-rush.webp?v=077d15ae",
