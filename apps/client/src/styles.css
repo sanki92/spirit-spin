@@ -1,4 +1,5 @@
 :root {
+  --app-h: 100vh;
   --bg: #0a0f24;
   --panel: rgba(12, 18, 44, 0.86);
   --edge: #3be6ff;
@@ -14,10 +15,10 @@
   background: var(--bg);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body, #root { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: var(--bg); overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+html, body, #root { margin: 0; height: 100%; height: var(--app-h); overflow: hidden; background: var(--bg); overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 button { font-family: inherit; }
 
-.screen { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-size: cover; background-position: center; }
+.screen { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h); display: flex; flex-direction: column; align-items: center; justify-content: center; background-size: cover; background-position: center; }
 .btn-primary { border: 0; border-radius: 14px; padding: 14px 28px; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: #061024; background: linear-gradient(180deg, #7ff4ff, #1fb8ff); box-shadow: 0 0 0 2px #bff9ff inset, 0 8px 30px rgba(31, 184, 255, 0.45); cursor: pointer; }
 .btn-primary.big { font-size: 34px; padding: 18px 44px; }
 .btn-primary:active { transform: scale(0.97); }
@@ -149,3 +150,7 @@ button { font-family: inherit; }
 @keyframes cineBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes cineLines { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.06) rotate(2deg); } }
 @keyframes cineTag { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: none; } }
+
+@supports (height: 100dvh) { :root { --app-h: 100dvh; } }
+@media (display-mode: standalone), (display-mode: fullscreen) { :root { --app-h: 100vh; } }
+@supports (height: 100lvh) { @media (display-mode: standalone), (display-mode: fullscreen) { :root { --app-h: 100lvh; } } }

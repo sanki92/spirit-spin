@@ -143,7 +143,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .ability-lock { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--chrome); flex-wrap: wrap; }
 .fair-note { margin: 0; font-size: 13px; color: var(--muted); }
 .garage-cta { position: sticky; bottom: calc(-16px - var(--safe-bottom)); margin: auto -16px calc(-16px - var(--safe-bottom)); padding: 12px 16px calc(14px + var(--safe-bottom)); background: linear-gradient(0deg, var(--abyss) 65%, rgba(7, 11, 31, 0)); display: grid; z-index: 4; }
-.garage .toast { top: calc(100dvh - 150px - var(--safe-bottom)); z-index: 6; }
+.garage .toast { top: calc(var(--app-h) - 150px - var(--safe-bottom)); z-index: 6; }
 
 .spirit-burst { position: absolute; inset: -8%; pointer-events: none; display: grid; place-items: center; z-index: 3; }
 .spirit-burst > * { grid-area: 1 / 1; }
@@ -224,7 +224,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .shop-item em { font-style: normal; color: var(--muted); padding: 8px; }
 .shop-item button { display: flex; align-items: center; gap: 6px; border: 0; border-radius: 10px; padding: 8px 16px; background: var(--gold); color: #2a1600; font-weight: 800; font-size: 16px; cursor: pointer; }
 .shop-item button img { width: 20px; }
-.toast { position: fixed; left: 16px; right: 16px; top: calc(100dvh - 76px - var(--safe-bottom)); margin: 0; padding: 12px 16px; border-radius: 12px; background: var(--steel-2); color: var(--chrome); text-align: center; }
+.toast { position: fixed; left: 16px; right: 16px; top: calc(var(--app-h) - 76px - var(--safe-bottom)); margin: 0; padding: 12px 16px; border-radius: 12px; background: var(--steel-2); color: var(--chrome); text-align: center; }
 
 .setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--steel); }
 .setting div { display: flex; flex-direction: column; }
@@ -379,7 +379,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .floor-rewards img { width: 16px; height: 16px; object-fit: contain; }
 .floor-rewards .reward-part, .floor-rewards .reward-beast { color: #ffe39a; font-weight: 600; }
 .floor-rewards .reward-part img, .floor-rewards .reward-beast img { width: 20px; height: 20px; }
-.boss-talk { position: fixed; top: 0; left: 0; right: 0; height: 100dvh; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, rgba(5, 8, 26, 0.35), rgba(5, 8, 26, 0.92) 70%); animation: talkIn 0.3s ease-out both; cursor: pointer; }
+.boss-talk { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h); z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, rgba(5, 8, 26, 0.35), rgba(5, 8, 26, 0.92) 70%); animation: talkIn 0.3s ease-out both; cursor: pointer; }
 .boss-talk-art { position: absolute; left: 50%; bottom: 150px; height: min(70vh, 620px); transform: translateX(-50%); object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)); animation: talkArt 0.45s cubic-bezier(0.2, 1.1, 0.4, 1) both; pointer-events: none; }
 .boss-talk.outro .boss-talk-art { filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)) saturate(0.8); }
 .boss-talk-box { position: relative; margin: 0 12px calc(16px + var(--safe-bottom)); padding: 14px 16px 16px; border-radius: 16px; background: rgba(10, 15, 38, 0.96); border: 1px solid rgba(255, 207, 74, 0.4); display: grid; gap: 10px; cursor: default; }

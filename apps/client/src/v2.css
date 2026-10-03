@@ -342,7 +342,7 @@
 }
 
 .loader { display: grid; justify-items: center; gap: 14px; padding: 24px 16px; text-align: center; }
-.loader.full { position: fixed; top: 0; left: 0; right: 0; height: 100dvh; z-index: 30; align-content: center; background: radial-gradient(60% 45% at 50% 42%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%), var(--abyss); }
+.loader.full { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h); z-index: 30; align-content: center; background: radial-gradient(60% 45% at 50% 42%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%), var(--abyss); }
 .loader-top { position: relative; width: 132px; height: 132px; display: grid; place-items: center; }
 .loader-top > * { grid-area: 1 / 1; }
 .loader-ring { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 55%, color-mix(in srgb, var(--c) 80%, transparent) 75%, #fff 80%, transparent 82%); -webkit-mask: radial-gradient(circle, transparent 62%, #000 63%, #000 68%, transparent 69%); mask: radial-gradient(circle, transparent 62%, #000 63%, #000 68%, transparent 69%); animation: ldSpin 0.9s linear infinite; filter: drop-shadow(0 0 8px var(--c)); }
