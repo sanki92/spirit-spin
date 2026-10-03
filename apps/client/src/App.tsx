@@ -86,7 +86,7 @@ export function App() {
     case 'shop': return <Shop />
     case 'journal': return <Journal />
     case 'settings': return <Settings />
-    case 'awaken': return <Awaken />
+    case 'awaken': return <Awaken then={route.then} />
     case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
     case 'friends': return <Friends join={route.join} />
     case 'live': return <Lazy><LiveRoute route={route} /></Lazy>

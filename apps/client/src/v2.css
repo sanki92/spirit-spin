@@ -6,7 +6,6 @@
   --c: #3be6ff;
 }
 
-.cut { clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
 .panel { position: relative; background: linear-gradient(180deg, var(--ink-hi), var(--ink)); border: 1px solid var(--line); clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
 .section-title { margin: 6px 0 -2px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--chrome); letter-spacing: 0.3px; }
 .section-title::before { content: ''; width: 4px; height: 16px; background: var(--c); transform: skewX(var(--skew)); }

@@ -1,6 +1,6 @@
 import {
-  applyBattle, applyQuestProgress, MAX_PART_LEVEL, partKey, progressBuild, SHARDS, TRAIT_COST, upgradeCost, type PartKind, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, applyReply, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
-  type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type Reply, type TopBuild,
+  applyBattle, applyQuestProgress, MAX_PART_LEVEL, partKey, progressBuild, SHARDS, TRAIT_COST, upgradeCost, type PartKind, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
+  type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type TopBuild,
 } from '@spirit/core'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -46,7 +46,6 @@ export interface SaveActions {
   addPart(kind: keyof Owned, id: string): void
   spend(coins: number): boolean
   recordMatch(m: MatchSummary & { bestRpm: number }, beast: BattleSummary | null, towerFloorCleared: number | null): { coins: number; xp: number; changes: Change[] }
-  reply(r: Reply): Change[]
   setBeast(b: BeastState): void
   refreshQuests(): void
   claimQuest(id: string): number
@@ -146,15 +145,6 @@ export const useSave = create<SaveData & SaveActions>()(
           stats: { battles: s.stats.battles + 1, wins: s.stats.wins + (m.won ? 1 : 0), bestRpm: Math.max(s.stats.bestRpm, m.bestRpm) },
         })
         return { ...r, changes }
-      },
-      reply: r => {
-        const s = get()
-        const id = s.loadout?.beastId
-        const b = id ? s.beasts[id] : undefined
-        if (!id || !b) return []
-        const res = applyReply(b, r, todayKey())
-        set({ beasts: { ...s.beasts, [id]: res.beast } })
-        return res.changes
       },
       setBeast: b => set(s => ({ beasts: { ...s.beasts, [b.id]: b } })),
       refreshQuests: () => {

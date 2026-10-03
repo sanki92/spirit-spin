@@ -1,11 +1,11 @@
 import { awakenedForm, awakeningHints, awakeningReady, BLADES, DISCS, dropFloor, shopRotation, TECHNIQUES, TIPS, type BeastId, type Mood } from '@spirit/core'
 import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
-import { useNav } from '../../state/nav'
+import { useNav, type Route } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
 import { recover, recoveryCode } from '../../state/sync'
-import { Axis, Bar, Img, Screen, Slash, TopBar } from '../kit'
+import { Axis, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
 
@@ -52,7 +52,7 @@ export function Journal() {
   )
 }
 
-export function Awaken() {
+export function Awaken({ then }: { then?: Route | undefined } = {}) {
   const nav = useNav()
   const s = useSave()
   const id = (s.loadout?.beastId ?? 'voltfang') as BeastId
@@ -90,7 +90,7 @@ export function Awaken() {
           <p aria-live="polite">{line ? line.text : <span className="typing">…</span>}</p>
         </div>
       )}
-      {done ? <Slash tone="gold" onClick={() => nav.reset({ k: 'home' })}>Continue</Slash> : <Slash tone="gold" onClick={awaken}>Awaken</Slash>}
+      {done ? <Slash tone="gold" onClick={() => { nav.reset({ k: 'home' }); if (then) nav.push(then) }}>Continue</Slash> : <Slash tone="gold" onClick={awaken}>Awaken</Slash>}
     </Screen>
   )
 }
@@ -105,7 +105,7 @@ export function Collection() {
   const all = tab === 'beasts' ? (Object.keys(BEASTS) as BeastId[]) : Object.keys(tab === 'blades' ? BLADES : tab === 'discs' ? DISCS : TIPS)
   const has = (id: string) => (tab === 'beasts' ? id in s.beasts : s.owned[tab].includes(id))
   const total = Object.keys(BEASTS).length + Object.keys(BLADES).length + Object.keys(DISCS).length + Object.keys(TIPS).length
-  const got = Object.keys(s.beasts).length + s.owned.blades.length + s.owned.discs.length + s.owned.tips.length
+  const got = Object.keys(s.beasts).filter(id => id in BEASTS).length + s.owned.blades.filter(id => id in BLADES).length + s.owned.discs.filter(id => id in DISCS).length + s.owned.tips.filter(id => id in TIPS).length
   const partHint = (k: 'blade' | 'disc' | 'tip', id: string) => {
     const f = dropFloor(k, id)
     return f ? (f <= s.tower ? 'In the Shop rotation' : `Tower floor ${f}`) : 'Daily Shop'
@@ -170,7 +170,9 @@ function useCountdown(): string {
 export function Shop() {
   const s = useSave()
   const tower = useSave(s => s.tower)
-  const items = useMemo(() => shopRotation(todayKey(), 6, tower), [tower])
+  const refresh = useCountdown()
+  const day = todayKey()
+  const items = useMemo(() => shopRotation(day, 6, tower), [day, tower, refresh])
   const [msg, setMsg] = useState<string | null>(null)
   const [tab, setTab] = useState<'parts' | 'cosmetics'>('parts')
   const nav = useNav()
@@ -180,14 +182,13 @@ export function Shop() {
     s.addPart(`${kind}s`, id)
     setMsg(`${partName(kind, id)} is yours. Equip it in the Garage.`)
   }
-  const refresh = useCountdown()
   return (
     <Screen className="shop">
       <TopBar title="Shop" />
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'parts'} className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>Parts</button>
         <button role="tab" aria-selected={tab === 'cosmetics'} className={tab === 'cosmetics' ? 'on' : ''} onClick={() => setTab('cosmetics')}>Cosmetics</button>
-        <button role="tab" aria-selected={false} onClick={() => nav.push({ k: 'pass' })}>Spirit Pass</button>
+        <button onClick={() => nav.push({ k: 'pass' })}>Spirit Pass ›</button>
       </div>
       {tab === 'cosmetics' ? <CosmeticShop /> : (<>
       <div className="s2-head">

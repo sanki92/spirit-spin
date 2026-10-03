@@ -68,7 +68,7 @@ export function Home() {
         <div className="h2-hero-info">
           <span className="h2-kind">{info.title}</span>
           <strong className="h2-name">{info.name}</strong>
-          {beast && <span className="h2-trust" aria-label={`Trust ${beast.trust} of 100`}><i style={{ transform: `scaleX(${beast.trust / 100})` }} /></span>}
+          {beast && <span className="h2-trust" role="meter" aria-label="Trust" aria-valuemin={0} aria-valuemax={100} aria-valuenow={beast.trust}><i style={{ transform: `scaleX(${beast.trust / 100})` }} /></span>}
           <p className="h2-line">{line}</p>
         </div>
       </section>
@@ -87,7 +87,7 @@ export function Home() {
 
       {!first && (
         <nav className="h2-modes" aria-label="Play with others">
-          <button onClick={() => nav.push({ k: 'friends' })}><Img id="ui/icons/live" /><strong>Live</strong><span>With a friend</span></button>
+          <button onClick={() => nav.push({ k: 'friends' })} aria-label="Live, battle a friend"><Img id="ui/icons/live" /><strong>Live</strong><span>With a friend</span></button>
           <button onClick={() => nav.push({ k: 'ranked' })}><Img id="ui/icons/ranked" /><strong>Ranked</strong><span>Climb the ladder</span></button>
           <button onClick={() => nav.push({ k: 'cups' })}><Img id="ui/icons/cups" /><strong>Cups</strong><span>Tournaments</span></button>
         </nav>

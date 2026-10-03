@@ -78,7 +78,7 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
   }
   const next = () => {
     const b = useSave.getState().beasts[beastId]
-    if (b && awakeningReady(b)) nav.replace({ k: 'awaken' })
+    if (b && awakeningReady(b)) nav.replace({ k: 'awaken', ...(then ? { then } : {}) })
     else {
       nav.reset({ k: 'home' })
       if (then) nav.push(then)
@@ -97,7 +97,7 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
       <div className="r2-glow" style={{ ['--c' as string]: info.color }} aria-hidden="true" />
       <header className="r2-head">
         <Img id={won ? 'ui/banner-victory' : 'ui/banner-defeat'} className="r2-banner" alt={won ? 'Victory' : 'Defeat'} fallback={<h1 className="slant">{won ? 'Victory' : 'Defeat'}</h1>} />
-        <div className="r2-score" aria-label={`${me} to ${them}`}>
+        <div className="r2-score" role="img" aria-label={`Score ${me} to ${them}`}>
           <b className="mine">{me}</b><i>–</i><b>{them}</b>
         </div>
         <p className="r2-vs">vs {opponentName}{result.comeback && won ? ' · Comeback!' : ''}</p>
@@ -139,12 +139,21 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
 
       {!won && <p className="r2-tip"><b>Tip</b>{result.overspins > 0 ? 'Overspin cost you power. Pull a little softer and keep it straight.' : result.perfectRips === 0 ? 'A fast, straight pull toward you lands PERFECT rips.' : result.spiritCalls === 0 ? 'Shout or tap Spirit when the gauge glows to fire your technique.' : 'Tilt to steer: dodge big hits, then strike from the side.'}</p>}
 
-      {(st.part || st.unlocked) && (
-        <section className="r2-unlock" style={{ ['--c' as string]: st.unlocked ? BEASTS[st.unlocked].color : 'var(--gold)' }}>
-          {st.unlocked ? <Img id={`beasts/${st.unlocked}/emblem`} /> : <span className="r2-new">New</span>}
+      {st.unlocked && (
+        <section className="r2-unlock" style={{ ['--c' as string]: BEASTS[st.unlocked].color }}>
+          <Img id={`beasts/${st.unlocked}/emblem`} />
           <div>
-            <strong>{st.unlocked ? `${BEASTS[st.unlocked].name} joins your team` : `New part: ${st.part}`}</strong>
-            <span>{st.unlocked ? 'Equip it in the Garage, Spirit tab.' : 'It is in your Garage now.'}</span>
+            <strong>{BEASTS[st.unlocked].name} joins your team</strong>
+            <span>Equip it in the Garage, Spirit tab.</span>
+          </div>
+        </section>
+      )}
+      {st.part && (
+        <section className="r2-unlock" style={{ ['--c' as string]: 'var(--gold)' }}>
+          <span className="r2-new">New</span>
+          <div>
+            <strong>New part: {st.part}</strong>
+            <span>It is in your Garage now.</span>
           </div>
         </section>
       )}

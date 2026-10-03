@@ -22,6 +22,11 @@ describe('spirit rules', () => {
     expect(r.beast.counters.comebacks).toBe(1)
     expect(r.beast.memories.some(m => m.importance >= 4)).toBe(true)
   })
+  it('winning rounds in different ways builds curiosity without any AI', () => {
+    const b = newBeast('zephyra', true)
+    expect(applyBattle(b, sum({ finishes: ['ringout', 'spirit'] }), '2026-10-03').beast.curiosity).toBe(b.curiosity + 1)
+    expect(applyBattle(b, sum({ finishes: ['spin', 'spin'] }), '2026-10-03').beast.curiosity).toBe(b.curiosity)
+  })
   it('never drops trust for losing or absence', () => {
     const b = newBeast('aegiron', true)
     expect(applyBattle(b, sum({ won: false }), '2026-10-03').beast.trust).toBeGreaterThanOrEqual(b.trust)

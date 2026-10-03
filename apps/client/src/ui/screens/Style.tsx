@@ -1,4 +1,4 @@
-import { BLADES, COSMETICS, DISCS, levelForXp, PASS, PASS_TIERS, passTier, SKUS, TIPS, xpForLevel, type PassReward } from '@spirit/core'
+import { BLADES, COSMETICS, DISCS, levelForXp, PASS, PASS_TIERS, passTier, SKUS, TIPS, TOWER_FLOORS, xpForLevel, type PassReward } from '@spirit/core'
 import { BEASTS } from '../../game/beasts'
 import { useEffect, useState } from 'react'
 import { useNav } from '../../state/nav'
@@ -25,12 +25,18 @@ function rewardArt(r: PassReward): { img: string | null; label: string } {
   return { img: c?.art ?? null, label: c?.name ?? r.cosmetic }
 }
 
+function activePass(s: { xp: number; pass?: { season: string; baseXp: number; free: number[]; premium: number[] } }) {
+  return s.pass?.season === PASS.season && s.pass.baseXp >= 0 ? s.pass : { season: PASS.season, baseXp: s.xp, free: [] as number[], premium: [] as number[] }
+}
+
+const currentPassTier = (s: Parameters<typeof activePass>[0]) => passTier(Math.max(0, s.xp - activePass(s).baseXp))
+
 export function Pass() {
   const s = useSave()
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => { s.ensurePass(); void refreshEntitlements() }, [])
-  const pass = s.pass?.season === PASS.season && s.pass.baseXp >= 0 ? s.pass : { season: PASS.season, baseXp: s.xp, free: [], premium: [] }
+  const pass = activePass(s)
   const xp = Math.max(0, s.xp - pass.baseXp)
   const tier = passTier(xp)
   const premium = (s.entitlements ?? []).includes('pass-s1')
@@ -117,7 +123,7 @@ export function Profile() {
   const st = s.stats
   const rate = st.battles ? Math.round((st.wins / st.battles) * 100) : 0
   const commit = () => { s.setName(name); setName(useSave.getState().name); setEditing(false) }
-  const tier = passTier(s.xp - Math.max(0, s.pass?.baseXp ?? 0))
+  const tier = currentPassTier(s)
   return (
     <Screen className="profile2">
       <TopBar title="Profile" right={<button className="icon-btn icon-img" onClick={() => nav.push({ k: 'settings' })} aria-label="Settings"><Img id="ui/icons/settings" /></button>} />
@@ -144,8 +150,8 @@ export function Profile() {
         <div><dt>Wins</dt><dd>{st.wins}</dd></div>
         <div><dt>Win rate</dt><dd>{rate}%</dd></div>
         <div><dt>Best rip</dt><dd>{st.bestRpm.toLocaleString()}</dd></div>
-        <div><dt>Tower</dt><dd>{s.tower}<small>/50</small></dd></div>
-        <div><dt>Beasts</dt><dd>{Object.keys(s.beasts).length}<small>/6</small></dd></div>
+        <div><dt>Tower</dt><dd>{s.tower}<small>/{TOWER_FLOORS}</small></dd></div>
+        <div><dt>Beasts</dt><dd>{Object.keys(s.beasts).length}<small>/{Object.keys(BEASTS).length}</small></dd></div>
       </dl>
       <h2 className="section-title">Your style</h2>
       <div className="p2-tabs" role="tablist" aria-label="Style">
@@ -155,7 +161,7 @@ export function Profile() {
         {items.map(c => {
           const have = owned(c.id), on = selected[tab] === c.id
           return (
-            <button key={c.id} role="radio" aria-checked={on} disabled={!have} className={`p2-item ${on ? 'on' : ''} ${have ? '' : 'locked'}`} onClick={() => pick(c.id)}>
+            <button key={c.id} role="radio" aria-checked={on} aria-disabled={!have} className={`p2-item ${on ? 'on' : ''} ${have ? '' : 'locked'}`} onClick={() => { if (have) pick(c.id) }}>
               {c.art ? <Img id={c.art} /> : <span className="p2-title-art">{c.name}</span>}
               <strong>{c.name}</strong>
               <small>{on ? 'Equipped' : have ? 'Tap to equip' : unlockHint(c.id)}</small>

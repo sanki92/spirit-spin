@@ -20,7 +20,7 @@ export type Route =
   | { k: 'settings' }
   | { k: 'battle'; opponent: TopBuild; floor: number | null; boss: BossId | null; opponentName: string }
   | { k: 'result'; result: MatchResult; settlement: Settlement; opponentName: string; next?: Route }
-  | { k: 'awaken' }
+  | { k: 'awaken'; then?: Route }
   | { k: 'friends'; join?: string }
   | { k: 'ranked' }
   | { k: 'pass' }

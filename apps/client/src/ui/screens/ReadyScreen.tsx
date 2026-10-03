@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { assetUrl, hasAsset } from '../../assets/assets'
 import { useRuntime } from '../../runtime'
 
@@ -9,7 +9,12 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
     setBusy(true)
     onReady(await rt.arm(mic))
   }
-  useEffect(() => { if (import.meta.env.DEV && new URLSearchParams(location.search).has('screen')) void arm(false) }, [])
+  const auto = useRef(false)
+  useEffect(() => {
+    if (!import.meta.env.DEV || auto.current || !new URLSearchParams(location.search).has('screen')) return
+    auto.current = true
+    void arm(false)
+  }, [])
   return (
     <div className="screen ready-screen" style={hasAsset('backgrounds/main-menu') ? { backgroundImage: `url(${assetUrl('backgrounds/main-menu')})` } : undefined}>
       {hasAsset('ui/logo') && <img className="logo" src={assetUrl('ui/logo')} alt="Spirit Spin" />}

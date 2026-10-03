@@ -114,6 +114,7 @@ export function applyBattle(prev: BeastState, s: BattleSummary, date: string): {
     bump(b, 'respect', 2, `You defeated ${s.opponent}`, date, changes)
     remember(b, { at: date, text: `Defeated ${s.opponent} in the Spirit Tower`, importance: 4, tags: ['boss', s.boss] })
   }
+  if (new Set(s.finishes).size >= 2) bump(b, 'curiosity', 1, 'You won rounds in different ways', date, changes)
   if (s.perfectRips >= 2) bump(b, 'pride', 1, 'Your rips were PERFECT', date, changes)
   if (s.aggression >= 0.6) bump(b, 'courage', 1, 'You fought aggressively', date, changes)
   if (s.aggression <= 0.25) bump(b, 'calm', 1, 'You fought with patience', date, changes)

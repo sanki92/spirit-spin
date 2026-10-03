@@ -28,7 +28,6 @@ SIZE_RULES = [
     (r"^characters/bosses/[a-z]+/", 320, 80),
     (r"^characters/(avatars/|commentator/)", 256, 80),
     (r"^characters/.*-full$", 900, 80),
-    (r"^characters/rival-full$", 900, 80),
     (r"/summon$", 900, 78),
     (r"/card-art$", 1024, 76),
     (r"/cutin$", 1024, 76),
