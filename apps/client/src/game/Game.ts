@@ -8,6 +8,7 @@ import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
 import { buildStadium } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
+import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
@@ -26,6 +27,7 @@ export class Game {
   readonly stage: Stage
   readonly stepper: Stepper
   readonly fx: Fx
+  techFx: TechFx | null = null
   tops: [TopMesh, TopMesh] | null = null
   spirits: [SpiritBillboard, SpiritBillboard] | null = null
   specs: [TopSpec, TopSpec] | null = null
@@ -68,6 +70,8 @@ export class Game {
     const quality = detectQuality()
     const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire, wind, shadow } }, quality === 'low' ? 60 : 140))
     g.stage.world.add(buildStadium(bowl, floor))
+    g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow })
+    g.stage.world.add(g.techFx.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
     for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor]) g.stage.renderer.initTexture(t)
     return g
@@ -214,6 +218,7 @@ export class Game {
         vis = n < 45
       }
       pos[i] = { x, y }
+      this.tops[i as 0 | 1].fade(1, dt)
       this.tops[i as 0 | 1].update(x, y, fa.spin, fa.wobble + (fa.out ? 0.6 : 0), fa.spirit, dt * 0.3, vis)
     }
     for (; c.fired <= i0; c.fired++) {
@@ -240,6 +245,7 @@ export class Game {
 
   private draw(alpha: number, dt: number): void {
     if (this.cine) {
+      this.techFx?.hide()
       this.drawCine(this.cine, dt)
       this.fx.update(dt * 0.35, this.stage.camera)
       this.stage.render(dt)
@@ -248,6 +254,7 @@ export class Game {
     const b = this.battle
     const scaled = dt * (this.stepper.scale || 0.05)
     if (!b && this.tops) for (const t of this.tops) t.group.visible = false
+    if (!b) this.techFx?.hide()
     if (!b) this.stage.follow(0, 0)
     if (b && this.tops && this.spirits) {
       const sum = this.spirits.findIndex(s => s.summoning)
@@ -271,6 +278,11 @@ export class Game {
         top.group.position.y += (1 - this.dropT) ** 2 * 1.4
         const o = b.tops[(1 - i) as 0 | 1]
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
+        top.fade(t.phaseTicks > 0 ? 0.18 : 1, dt)
+      }
+      if (this.techFx && this.specs) {
+        const sp = this.specs
+        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && t0.spiritTicks > 0, sp[1].beastId === 'nagara' && t1.spiritTicks > 0], scaled, document.documentElement.classList.contains('reduce-motion'))
       }
     }
     this.fx.update(scaled, this.stage.camera)

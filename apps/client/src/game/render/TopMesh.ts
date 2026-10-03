@@ -1,4 +1,5 @@
 import { AdditiveBlending, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, Texture } from 'three'
+import { ringGeometry } from './partMesh'
 import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
@@ -24,6 +25,14 @@ function disc(r: number, map: Texture, y: number, extra: { opacity?: number; add
   return m
 }
 
+function solid(map: Texture, r: number, y: number, depth: number): Mesh {
+  const { geometry, edge } = ringGeometry(map, depth, depth * 0.15)
+  const m = new Mesh(geometry, [new MeshBasicMaterial({ map, alphaTest: 0.35 }), new MeshLambertMaterial({ color: edge.multiplyScalar(0.8) })])
+  m.scale.setScalar(r)
+  m.position.y = y
+  return m
+}
+
 export class TopMesh {
   readonly group = new Group()
   private spinner = new Group()
@@ -31,6 +40,7 @@ export class TopMesh {
   private glow: Mesh
   private angle = 0
   private precess = 0
+  private faded = 1
 
   constructor(tex: TopTextures, physicsRadius: number, type: string) {
     const radius = physicsRadius * VISUAL_SCALE
@@ -43,7 +53,7 @@ export class TopMesh {
     const tip = new Mesh(new ConeGeometry(radius * 0.22, 0.05, 16), new MeshLambertMaterial({ color: 0x9aa3b8 }))
     tip.rotation.x = Math.PI
     tip.position.y = 0.02
-    this.spinner.add(body, tip, disc(radius * 0.86, tex.disc, 0.072), disc(radius, tex.blade, 0.078), disc(radius * 0.36, tex.emblem, 0.084))
+    this.spinner.add(body, tip, solid(tex.disc, radius * 0.86, 0.064, 0.06), solid(tex.blade, radius, 0.073, 0.075), disc(radius * 0.36, tex.emblem, 0.074 + radius * 0.09))
     for (let i = 1; i <= 3; i++) {
       const b = disc(radius, tex.blade, 0.079 + i * 0.0005, { opacity: 0.22, additive: true })
       b.rotation.z = i * 0.35
@@ -52,6 +62,19 @@ export class TopMesh {
     }
     this.glow = disc(radius * 1.7, tex.emblem, 0.03, { opacity: 0, additive: true, color: tint })
     this.group.add(this.spinner, this.glow)
+  }
+
+  fade(target: number, dt: number): void {
+    const f = this.faded + (target - this.faded) * Math.min(1, dt * 14)
+    if (Math.abs(f - this.faded) < 0.002) return
+    this.faded = f
+    this.spinner.traverse(o => {
+      const m = (o as Mesh).material as MeshBasicMaterial | undefined
+      if (!m) return
+      if (!m.transparent) { m.transparent = true; m.needsUpdate = true }
+      m.userData.base ??= m.opacity
+      m.opacity = (m.userData.base as number) * f
+    })
   }
 
   update(x: number, y: number, spin: number, wobble: number, spirit: boolean, dt: number, visible: boolean): void {
