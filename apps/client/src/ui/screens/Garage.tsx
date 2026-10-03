@@ -50,6 +50,7 @@ export function Garage() {
   const [draft, setDraft] = useState<TopBuild>(s.loadout ?? { bladeId: 'fang', discId: 'standard', tipId: 'flat', beastId: s.starter ?? 'voltfang' })
   const [slot, setSlot] = useState<Slot>('blade')
   const [burst, setBurst] = useState(0)
+  const [ready3d, setReady3d] = useState(false)
   const [flash, setFlash] = useState<string | null>(null)
   const flashTimer = useRef(0)
   useEffect(() => () => clearTimeout(flashTimer.current), [])
@@ -66,6 +67,8 @@ export function Garage() {
   const info = kind ? partInfo(kind, currentId) : null
   const nextSpec = kind && cost !== null ? assembleTop(storyBuild({ ...s, partLevels: { ...p.partLevels, [partKey(kind, currentId)]: level + 1 } }, draft)) : spec
 
+  const gains = (Object.keys(STAT_NAME) as (keyof TopStats)[]).map(k => [k, nextSpec.stats[k] - spec.stats[k]] as const).filter(([, d]) => d > 0)
+  const spilled = !!info && gains.length > 0 && !gains.some(([k]) => k === info.primary)
   const options: { id: string; label: string; img: string; rarity?: string | undefined; lv?: number }[] =
     slot === 'beast'
       ? (Object.keys(s.beasts) as BeastId[]).map(id => ({ id, label: BEASTS[id].name, img: `${beastArt(id, s.beasts[id]?.awakened)}/emblem` }))
@@ -118,8 +121,9 @@ export function Garage() {
       <TopBar title="Garage" right={<div className="wallet"><Shards /><Coins /></div>} />
       <div className="garage-stage" style={{ ['--c' as string]: BEASTS[draft.beastId].color }}>
         <div className="viewer-wrap">
-          <Suspense fallback={<TopPreview build={draft} size={240} />}>
-            <TopViewer blade={draft.bladeId} disc={draft.discId} tip={draft.tipId} emblem={`${art}/emblem`} color={BEASTS[draft.beastId].color} focus={focus} still={s.settings.reducedMotion} />
+          <div className={`viewer-2d ${ready3d ? 'gone' : ''}`} aria-hidden="true"><TopPreview build={draft} size={240} /></div>
+          <Suspense fallback={null}>
+            <TopViewer blade={draft.bladeId} disc={draft.discId} tip={draft.tipId} emblem={`${art}/emblem`} color={BEASTS[draft.beastId].color} focus={focus} still={s.settings.reducedMotion} onReady={() => setReady3d(true)} />
           </Suspense>
           {burst > 0 && <SpiritBurst key={burst} beast={draft.beastId} art={art} />}
           <span className="viewer-hint">Drag to turn</span>
@@ -144,10 +148,11 @@ export function Garage() {
         <section className={`part-detail ${info.rarity}`}>
           <div>
             <strong>{info.name}</strong>
-            <span className="part-sub"><em className={`rarity ${info.rarity}`}>{info.rarity}</em> · Level {level} of {MAX_PART_LEVEL} · boosts {STAT_NAME[info.primary]}</span>
+            <span className="part-sub"><em className={`rarity ${info.rarity}`}>{info.rarity}</em> · Level {level} of {MAX_PART_LEVEL}</span>
+            <span className="part-gain">{cost === null ? 'Fully upgraded' : gains.length ? `Next level: ${gains.map(([k, d]) => `+${d} ${STAT_NAME[k]}`).join(', ')}${spilled ? ` (${STAT_NAME[info.primary]} is maxed)` : ''}` : 'Every stat this part can raise is maxed'}</span>
           </div>
           {cost === null ? <span className="maxed">Max level</span> : (
-            <button className="upgrade-btn" onClick={upgrade} disabled={(s.shards ?? 0) < cost} aria-label={`Upgrade ${info.name} for ${cost} Spirit Shards`}>
+            <button className="upgrade-btn" onClick={upgrade} disabled={(s.shards ?? 0) < cost || gains.length === 0} aria-label={`Upgrade ${info.name} for ${cost} Spirit Shards`}>
               <span>Upgrade</span>
               <b><Img id="ui/icon-spirit-shard" />{cost}</b>
             </button>

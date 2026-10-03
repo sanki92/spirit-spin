@@ -1,5 +1,5 @@
 import { AdditiveBlending, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, Texture } from 'three'
-import { ringGeometry } from './partMesh'
+import { cachedRing } from './partMesh'
 import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
@@ -26,7 +26,7 @@ function disc(r: number, map: Texture, y: number, extra: { opacity?: number; add
 }
 
 function solid(map: Texture, r: number, y: number, depth: number): Mesh {
-  const { geometry, edge } = ringGeometry(map, depth, depth * 0.15)
+  const { geometry, edge } = cachedRing(map.uuid, map, depth, depth * 0.15)
   const m = new Mesh(geometry, [new MeshBasicMaterial({ map, alphaTest: 0.35 }), new MeshLambertMaterial({ color: edge.multiplyScalar(0.8) })])
   m.scale.setScalar(r)
   m.position.y = y

@@ -103,6 +103,7 @@ function need<T>(table: Record<string, T>, id: string, what: string): T {
 }
 
 export const MAX_PART_LEVEL = 5
+export const SPILL: Record<keyof TopStats, keyof TopStats> = { attack: 'speed', defense: 'stamina', stamina: 'defense', speed: 'attack' }
 const lvl = (v: number | undefined) => (Number.isFinite(v) ? Math.max(1, Math.min(MAX_PART_LEVEL, Math.floor(v!))) - 1 : 0)
 export const bladePrimary = (b: Blade): keyof TopStats => (b.defense > b.attack ? 'defense' : 'attack')
 export const discPrimary = (d: Disc): keyof TopStats => (d.mass >= 1.15 ? 'defense' : d.rim >= 0.75 ? 'stamina' : 'speed')
@@ -119,10 +120,16 @@ export function assembleTop(build: TopBuild): TopSpec {
     stamina: TIP_STAMINA[t.kind] + d.rim * 3 - (t.decayMod - 1) * 10,
     speed: TIP_SPEED[t.kind] - (d.mass - 1) * 6 + (t.driveMod - 1) * 10,
   }
-  raw[bladePrimary(b)] += lvl(build.levels?.blade)
-  raw[discPrimary(d)] += lvl(build.levels?.disc)
-  raw[tipPrimary(t)] += lvl(build.levels?.tip)
   const stats: TopStats = { attack: clampStat(raw.attack), defense: clampStat(raw.defense), stamina: clampStat(raw.stamina), speed: clampStat(raw.speed) }
+  const boost = (k: keyof TopStats, points: number) => {
+    const into = Math.min(points, 10 - stats[k])
+    stats[k] += into
+    const rest = points - into, s2 = SPILL[k]
+    stats[s2] = Math.min(10, stats[s2] + rest)
+  }
+  boost(bladePrimary(b), lvl(build.levels?.blade))
+  boost(discPrimary(d), lvl(build.levels?.disc))
+  boost(tipPrimary(t), lvl(build.levels?.tip))
   return {
     ...build,
     type: topType(b, t.kind),

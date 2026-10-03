@@ -12,6 +12,16 @@ describe('story progression', () => {
     expect(upgradeCost(1)).toBe(20)
     expect(upgradeCost(5)).toBeNull()
   })
+  it('upgrade points past the 10 cap spill into the related stat instead of being wasted', () => {
+    const b = { bladeId: 'bastion', discId: 'heavy', tipId: 'ball', beastId: 'aegiron' as const }
+    const base = assembleTop(b)
+    const up = (blade: number, disc = 1) => assembleTop({ ...b, levels: { blade, disc, tip: 1 } }).stats
+    expect(base.stats.defense).toBeLessThan(10)
+    expect(up(5).defense).toBe(10)
+    expect(up(5).stamina).toBeGreaterThan(base.stats.stamina)
+    expect(up(5, 5).stamina).toBeGreaterThanOrEqual(up(5).stamina)
+    expect(assembleTop({ bladeId: 'fury', discId: 'standard', tipId: 'flat', beastId: 'voltfang' }).stats.speed).toBe(assembleTop({ bladeId: 'fury', discId: 'standard', tipId: 'flat', beastId: 'voltfang', levels: {} }).stats.speed)
+  })
   it('trait unlocks at trust 30 or by purchase, ultimate when awakened', () => {
     expect(kitFor('voltfang', p, { trust: 10, awakened: null })).toEqual({ trait: false, ultimate: false })
     expect(kitFor('voltfang', p, { trust: 30, awakened: null }).trait).toBe(true)

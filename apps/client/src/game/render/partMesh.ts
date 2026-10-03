@@ -70,20 +70,19 @@ export function ringGeometry(t: Texture, depth: number, bevel: number): { geomet
   const to = (p: [number, number]) => new Vector2((p[0] + 0.5 - w / 2) / half, -(p[1] + 0.5 - h / 2) / half)
   let outerRaw: [number, number][] = []
   for (let ox = 0; ox < cx && outerRaw.length < 120; ox++) if (solid(ox, cy) && !solid(ox - 1, cy)) outerRaw = trace(solid, ox, cy, ox - 1, cy)
-  const outer = simplify(outerRaw, 0.7)
+  const outer = simplify(outerRaw, 1.1)
   const shape = outer.length >= 3 ? new Shape(outer.map(to)) : new Shape().absarc(0, 0, 0.95, 0, Math.PI * 2, false)
   const reach = (pts: [number, number][]) => Math.max(...pts.map(([x, y]) => Math.hypot(x - cx, y - cy)))
   if (!solid(cx, cy)) {
     let ix = cx
     while (ix > 0 && !solid(ix, cy)) ix--
     if (ix > 0 && cx - ix > 2) {
-      const inner = simplify(trace(solid, ix, cy, ix + 1, cy), 0.7)
+      const inner = simplify(trace(solid, ix, cy, ix + 1, cy), 1.1)
       if (inner.length > 8 && outer.length >= 3 && reach(inner) < reach(outer) * 0.85) shape.holes.push(new Path(inner.map(to)))
     }
   }
-  const g = new ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.5, bevelSegments: 2, curveSegments: 1, UVGenerator: uvGen })
+  const g = new ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.5, bevelSegments: 1, curveSegments: 1, UVGenerator: uvGen })
   g.rotateX(-Math.PI / 2)
-  g.computeVertexNormals()
   let r = 0, gg = 0, b = 0, n = 0
   for (const [x, y] of outerRaw) {
     for (let k = 0; k < 3; k++) {
@@ -122,4 +121,21 @@ export function tipGeometry(t: Texture, height: number): { geometry: BufferGeome
   uv.needsUpdate = true
   geometry.translate(0, -height, 0)
   return { geometry, radius: Math.max(...rows.map(r => r.r)) * k }
+}
+
+const ringCache = new Map<string, { geometry: BufferGeometry; edge: Color }>()
+const tipCache = new Map<string, { geometry: BufferGeometry; radius: number }>()
+
+export function cachedRing(key: string, t: Texture, depth: number, bevel: number): { geometry: BufferGeometry; edge: Color } {
+  const k = `${key}|${depth}|${bevel}`
+  let hit = ringCache.get(k)
+  if (!hit) { hit = ringGeometry(t, depth, bevel); ringCache.set(k, hit) }
+  return { geometry: hit.geometry.clone(), edge: hit.edge.clone() }
+}
+
+export function cachedTip(key: string, t: Texture, height: number): { geometry: BufferGeometry; radius: number } {
+  const k = `${key}|${height}`
+  let hit = tipCache.get(k)
+  if (!hit) { hit = tipGeometry(t, height); tipCache.set(k, hit) }
+  return { geometry: hit.geometry.clone(), radius: hit.radius }
 }

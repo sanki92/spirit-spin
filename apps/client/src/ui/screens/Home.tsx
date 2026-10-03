@@ -1,4 +1,4 @@
-import { BOSSES, chapterOf, COSMETICS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
+import { BOSSES, chapterOf, COSMETICS, STARTER_BUILDS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
 import { useEffect, useMemo } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
@@ -35,6 +35,13 @@ export function Home() {
       if (r) useSave.setState({ greet: { day: today, beast: beastId, line: r.line, mood: r.mood } })
     })
   }, [beastId, today, ai])
+  useEffect(() => {
+    const st = useSave.getState()
+    const b = st.loadout ?? (st.starter ? STARTER_BUILDS[st.starter] : null)
+    if (!b) return
+    const idle = (window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1200))
+    idle(() => void import('../TopViewer').then(m => m.prewarmTop(b)).catch(() => undefined))
+  }, [])
   const next = Math.min(TOWER_FLOORS, s.tower + 1)
   const floor = towerFloor(next)
   const chapter = chapterOf(next)
