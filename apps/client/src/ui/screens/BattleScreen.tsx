@@ -23,7 +23,6 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       if (disposed) {
         game.stop()
         game.stage.renderer.dispose()
-        game.stage.renderer.forceContextLoss()
         return
       }
       game.start()
@@ -39,7 +38,6 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       ctrl.current?.dispose()
       game?.stop()
       game?.stage.renderer.dispose()
-      game?.stage.renderer.forceContextLoss()
     }
   }, [setup, theme, onEnd, rt, forceSwipe, controller])
 
