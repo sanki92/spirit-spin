@@ -8,6 +8,7 @@ import { useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
+import { Loader, Skeleton, SkeletonList } from '../Loader'
 import { TopPreview } from './Garage'
 
 async function api<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T }> {
@@ -76,7 +77,7 @@ export function Ranked() {
         <Img id="ui/icons/ranked" className="rank-icon" />
         <span className="rank-label">{pool === 'motion' ? 'Motion league' : 'Swipe league'}</span>
         <strong className="rank-rating">{rating ?? '—'}</strong>
-        <span className="rank-record">{info ? `${info.won} wins · ${info.played - info.won} losses` : offline ? 'Offline' : 'Loading…'}</span>
+        <span className="rank-record">{info ? `${info.won} wins · ${info.played - info.won} losses` : offline ? 'Offline' : <Skeleton kind="line" w={120} />}</span>
       </section>
       {locked ? (
         <section className="setting locked-card">
@@ -179,7 +180,7 @@ export function Cups({ join }: { join?: string | undefined }) {
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="friend-list">
         <h2>Your tournaments</h2>
-        {list === null ? <p className="fine">Loading…</p> : list.length === 0 ? <div className="empty-state"><Img id="ui/icons/cups" /><p>No tournaments yet. Host one above and send the code to your friends.</p></div> : list.map(c => (
+        {list === null ? <SkeletonList rows={3} /> : list.length === 0 ? <div className="empty-state"><Img id="ui/icons/cups" /><p>No tournaments yet. Host one above and send the code to your friends.</p></div> : list.map(c => (
           <button key={c.id} className="friend cup-row" onClick={() => nav.push({ k: 'cup', id: c.id })}>
             <span className="friend-initial" aria-hidden>{c.name.slice(0, 1).toUpperCase()}</span>
             <div><strong>{c.name}</strong><span>{c.status === 'running' ? `Round ${c.round} of ${c.roundsTotal}` : STATUS[c.status]}</span></div>
@@ -219,7 +220,7 @@ export function CupScreen({ id }: { id: string }) {
     const t = setInterval(() => { if (document.visibilityState === 'visible') void load() }, 5000)
     return () => clearInterval(t)
   }, [id])
-  if (!cup) return <Screen className="cup"><TopBar title="Tournament" />{error ? <p className="form-error" role="alert">{error}</p> : <p className="fine">Loading…</p>}</Screen>
+  if (!cup) return <Screen className="cup"><TopBar title="Tournament" />{error ? <p className="form-error" role="alert">{error}</p> : <Loader label="Loading tournament" tips={false} />}</Screen>
 
   const nameOf = (pid: string | null) => cup.entries.find(e => e.playerId === pid)?.name ?? 'Bye'
   const mine = cup.pairings.find(p => p.round === cup.round && (p.a === me || p.b === me))

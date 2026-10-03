@@ -7,6 +7,7 @@ import { useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
 import { Img, Screen, Slash, TopBar } from '../kit'
+import { SkeletonList } from '../Loader'
 
 type Phase = { k: 'idle' } | { k: 'connecting' } | { k: 'hosting'; code: string } | { k: 'joining' } | { k: 'waiting'; code: string } | { k: 'error'; text: string }
 
@@ -195,7 +196,7 @@ function FriendList({ onChallenge }: { onChallenge: () => void }) {
       )}
       <section className="friend-list" aria-label="Friends">
         <h2>Friends</h2>
-        {friends === null ? <p className="fine">Loading…</p> : friends.length + outgoing.length === 0 ? (
+        {friends === null ? <SkeletonList rows={2} /> : friends.length + outgoing.length === 0 ? (
           <p className="fine">No friends yet. Swap friend codes with someone; once you have both added each other, they show up here.</p>
         ) : [...friends.map(f => ({ ...f, pending: false })), ...outgoing.map(f => ({ ...f, pending: true }))].map(f => (
           <div key={f.playerId} className="friend">

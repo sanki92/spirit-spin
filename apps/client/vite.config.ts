@@ -51,14 +51,14 @@ export default defineConfig({
     ...(process.env.HTTP_ONLY ? [] : [basicSsl({ name: 'spirit-spin-dev', domains: ['*.sslip.io', 'localhost'] })]),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['icons/*.png', 'favicon.ico', 'favicon-32.png', 'favicon-16.png', 'og-image.jpg'],
       manifest: {
         id: '/',
         name: 'Spirit Spin',
         short_name: 'Spirit Spin',
         lang: 'en',
         categories: ['games', 'entertainment'],
-        description: 'Rip your phone. Summon your spirit. Battle your friends.',
+        description: 'Rip your phone to launch your top, summon your spirit beast and battle your friends.',
         theme_color: '#0a0f24',
         background_color: '#0a0f24',
         display: 'standalone',

@@ -10,12 +10,14 @@ export function Splash() {
   const nav = useNav()
   const birthYear = useSave(s => s.birthYear)
   return (
-    <Screen bg="key-art/style-anchor-v3" className="splash" >
-      <button className="splash-hit" onClick={() => nav.replace(birthYear ? { k: 'ready' } : { k: 'age' })} aria-label="Start">
-        <Img id="ui/logo" className="logo" fallback={<h1 className="wordmark slant">Spirit Spin</h1>} />
-        <span className="tap-hint">Tap to start</span>
+    <div className="screen entry splash2">
+      <Img id="key-art/hero-portrait" className="entry-art" eager fallback={<Img id="key-art/style-anchor-v3" className="entry-art" eager />} />
+      <button className="entry-hit" onClick={() => nav.replace(birthYear ? { k: 'ready' } : { k: 'age' })} aria-label="Start">
+        <Img id="ui/logo" className="entry-logo" eager fallback={<h1 className="wordmark slant">Spirit Spin</h1>} />
+        <span className="entry-tag">Six spirits. One rip.</span>
+        <span className="entry-start">Tap to start</span>
       </button>
-    </Screen>
+    </div>
   )
 }
 

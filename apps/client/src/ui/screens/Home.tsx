@@ -42,7 +42,7 @@ export function Home() {
   const first = !s.onboarded.firstBattle
   const quests = s.quests.list
   const doneCount = quests.filter(q => s.quests.claimed.includes(q.id)).length
-  const play = () => (first ? nav.push({ k: 'battle', opponent: BOSSES.kaze.build, floor: null, boss: null, opponentName: 'Kaze' }) : nav.push({ k: 'tower' }))
+  const play = () => (first ? nav.push({ k: 'battle', opponent: towerFloor(1).opponent, floor: 1, boss: null, opponentName: 'Floor 1 Spinner' }) : nav.push({ k: 'tower' }))
   const chapterDone = Math.max(0, Math.min(chapter.floors[1], s.tower) - chapter.floors[0] + 1)
   return (
     <Screen className="home2" bg="backgrounds/main-menu">
@@ -75,12 +75,12 @@ export function Home() {
 
       <button className="h2-story" onClick={play}>
         <span className="h2-story-face">
-          <Img id={first ? 'characters/bosses/kaze/confident' : floor.boss ? `characters/bosses/${floor.boss}/confident` : `characters/bosses/${chapter.boss}/confident`} />
+          <Img id={floor.boss ? `characters/bosses/${floor.boss}/confident` : `characters/bosses/${chapter.boss}/confident`} />
         </span>
         <span className="h2-story-text">
-          <small>{first ? 'Your first battle' : s.tower >= TOWER_FLOORS ? 'Tower cleared' : `Chapter ${chapter.id} · ${chapter.title}`}</small>
-          <strong>{first ? 'Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Rematch any floor' : floor.boss ? `Boss: ${BOSSES[floor.boss].name}` : `Floor ${next}`}</strong>
-          {!first && s.tower < TOWER_FLOORS && <i className="h2-story-bar"><i style={{ transform: `scaleX(${chapterDone / (chapter.floors[1] - chapter.floors[0] + 1)})` }} /></i>}
+          <small>{first ? 'Your first battle · Chapter 1' : s.tower >= TOWER_FLOORS ? 'Tower cleared' : `Chapter ${chapter.id} · ${chapter.title}`}</small>
+          <strong>{first ? 'Floor 1' : s.tower >= TOWER_FLOORS ? 'Rematch any floor' : floor.boss ? `Boss: ${BOSSES[floor.boss].name}` : `Floor ${next}`}</strong>
+          {s.tower < TOWER_FLOORS && <i className="h2-story-bar"><i style={{ transform: `scaleX(${chapterDone / (chapter.floors[1] - chapter.floors[0] + 1)})` }} /></i>}
         </span>
         <span className="h2-story-go">Battle</span>
       </button>

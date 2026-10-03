@@ -150,34 +150,34 @@
   "h": 256
  },
  "beasts/aegiron/expressions/furious": {
-  "url": "/assets/beasts/aegiron/expressions/furious.webp?v=b39402fd",
+  "url": "/assets/beasts/aegiron/expressions/furious.webp?v=7aa02e44",
   "w": 320,
-  "h": 320
+  "h": 318
  },
  "beasts/aegiron/expressions/joyful": {
-  "url": "/assets/beasts/aegiron/expressions/joyful.webp?v=7d9d74bd",
+  "url": "/assets/beasts/aegiron/expressions/joyful.webp?v=68042a92",
   "w": 320,
-  "h": 280
+  "h": 269
  },
  "beasts/aegiron/expressions/neutral": {
-  "url": "/assets/beasts/aegiron/expressions/neutral.webp?v=e5483563",
-  "w": 318,
-  "h": 320
+  "url": "/assets/beasts/aegiron/expressions/neutral.webp?v=d8cddd24",
+  "w": 320,
+  "h": 308
  },
  "beasts/aegiron/expressions/proud": {
-  "url": "/assets/beasts/aegiron/expressions/proud.webp?v=d873edfc",
-  "w": 302,
+  "url": "/assets/beasts/aegiron/expressions/proud.webp?v=a1d3720b",
+  "w": 316,
   "h": 320
  },
  "beasts/aegiron/expressions/sad": {
-  "url": "/assets/beasts/aegiron/expressions/sad.webp?v=c6a07956",
+  "url": "/assets/beasts/aegiron/expressions/sad.webp?v=791774f4",
   "w": 320,
   "h": 314
  },
  "beasts/aegiron/expressions/sulky": {
-  "url": "/assets/beasts/aegiron/expressions/sulky.webp?v=db4df8c4",
+  "url": "/assets/beasts/aegiron/expressions/sulky.webp?v=3588c13f",
   "w": 320,
-  "h": 305
+  "h": 298
  },
  "beasts/aegiron/summon": {
   "url": "/assets/beasts/aegiron/summon.webp?v=d7fddaa2",
@@ -300,33 +300,33 @@
   "h": 256
  },
  "beasts/agnyx/expressions/furious": {
-  "url": "/assets/beasts/agnyx/expressions/furious.webp?v=f1574446",
+  "url": "/assets/beasts/agnyx/expressions/furious.webp?v=81568e42",
   "w": 309,
   "h": 320
  },
  "beasts/agnyx/expressions/joyful": {
-  "url": "/assets/beasts/agnyx/expressions/joyful.webp?v=fe7bd78a",
-  "w": 294,
+  "url": "/assets/beasts/agnyx/expressions/joyful.webp?v=7418a6c0",
+  "w": 292,
   "h": 320
  },
  "beasts/agnyx/expressions/neutral": {
-  "url": "/assets/beasts/agnyx/expressions/neutral.webp?v=fd7e2f3d",
-  "w": 267,
+  "url": "/assets/beasts/agnyx/expressions/neutral.webp?v=eeba322f",
+  "w": 281,
   "h": 320
  },
  "beasts/agnyx/expressions/proud": {
-  "url": "/assets/beasts/agnyx/expressions/proud.webp?v=b75c5f05",
-  "w": 271,
+  "url": "/assets/beasts/agnyx/expressions/proud.webp?v=0414b3f5",
+  "w": 278,
   "h": 320
  },
  "beasts/agnyx/expressions/sad": {
-  "url": "/assets/beasts/agnyx/expressions/sad.webp?v=7d0cc354",
+  "url": "/assets/beasts/agnyx/expressions/sad.webp?v=a776abd8",
   "w": 282,
   "h": 320
  },
  "beasts/agnyx/expressions/sulky": {
-  "url": "/assets/beasts/agnyx/expressions/sulky.webp?v=fdc0d102",
-  "w": 235,
+  "url": "/assets/beasts/agnyx/expressions/sulky.webp?v=38d0bf16",
+  "w": 238,
   "h": 320
  },
  "beasts/agnyx/summon": {
@@ -450,33 +450,33 @@
   "h": 256
  },
  "beasts/nagara/expressions/furious": {
-  "url": "/assets/beasts/nagara/expressions/furious.webp?v=540d1ab6",
-  "w": 223,
+  "url": "/assets/beasts/nagara/expressions/furious.webp?v=874eec64",
+  "w": 220,
   "h": 320
  },
  "beasts/nagara/expressions/joyful": {
-  "url": "/assets/beasts/nagara/expressions/joyful.webp?v=75930fa5",
-  "w": 204,
+  "url": "/assets/beasts/nagara/expressions/joyful.webp?v=cb361385",
+  "w": 209,
   "h": 320
  },
  "beasts/nagara/expressions/neutral": {
-  "url": "/assets/beasts/nagara/expressions/neutral.webp?v=8e4092c4",
-  "w": 225,
+  "url": "/assets/beasts/nagara/expressions/neutral.webp?v=96796211",
+  "w": 265,
   "h": 320
  },
  "beasts/nagara/expressions/proud": {
-  "url": "/assets/beasts/nagara/expressions/proud.webp?v=6c8b521e",
-  "w": 216,
+  "url": "/assets/beasts/nagara/expressions/proud.webp?v=ff8c5006",
+  "w": 219,
   "h": 320
  },
  "beasts/nagara/expressions/sad": {
-  "url": "/assets/beasts/nagara/expressions/sad.webp?v=fe6a88d2",
-  "w": 198,
+  "url": "/assets/beasts/nagara/expressions/sad.webp?v=3f7685a8",
+  "w": 262,
   "h": 320
  },
  "beasts/nagara/expressions/sulky": {
-  "url": "/assets/beasts/nagara/expressions/sulky.webp?v=20586fb1",
-  "w": 215,
+  "url": "/assets/beasts/nagara/expressions/sulky.webp?v=77c5a2e2",
+  "w": 265,
   "h": 320
  },
  "beasts/nagara/summon": {
@@ -750,8 +750,8 @@
   "h": 256
  },
  "beasts/voltfang/expressions/furious": {
-  "url": "/assets/beasts/voltfang/expressions/furious.webp?v=e6c4761c",
-  "w": 256,
+  "url": "/assets/beasts/voltfang/expressions/furious.webp?v=932f18eb",
+  "w": 266,
   "h": 320
  },
  "beasts/voltfang/expressions/joyful": {
@@ -760,8 +760,8 @@
   "h": 320
  },
  "beasts/voltfang/expressions/neutral": {
-  "url": "/assets/beasts/voltfang/expressions/neutral.webp?v=5db3b773",
-  "w": 235,
+  "url": "/assets/beasts/voltfang/expressions/neutral.webp?v=c54dc5bb",
+  "w": 231,
   "h": 320
  },
  "beasts/voltfang/expressions/proud": {
@@ -770,13 +770,13 @@
   "h": 320
  },
  "beasts/voltfang/expressions/sad": {
-  "url": "/assets/beasts/voltfang/expressions/sad.webp?v=debb6b66",
-  "w": 245,
+  "url": "/assets/beasts/voltfang/expressions/sad.webp?v=46decc86",
+  "w": 248,
   "h": 320
  },
  "beasts/voltfang/expressions/sulky": {
-  "url": "/assets/beasts/voltfang/expressions/sulky.webp?v=4697a60e",
-  "w": 251,
+  "url": "/assets/beasts/voltfang/expressions/sulky.webp?v=5f100c9b",
+  "w": 259,
   "h": 320
  },
  "beasts/voltfang/summon": {
@@ -1179,6 +1179,16 @@
   "w": 614,
   "h": 900
  },
+ "key-art/hero-landscape": {
+  "url": "/assets/key-art/hero-landscape.webp?v=fcc15db6",
+  "w": 1280,
+  "h": 853
+ },
+ "key-art/hero-portrait": {
+  "url": "/assets/key-art/hero-portrait.webp?v=01c008e2",
+  "w": 853,
+  "h": 1280
+ },
  "key-art/style-anchor-v3": {
   "url": "/assets/key-art/style-anchor-v3.webp?v=c67cec85",
   "w": 1024,
@@ -1409,6 +1419,11 @@
   "w": 1024,
   "h": 1024
  },
+ "ui/app-icon": {
+  "url": "/assets/ui/app-icon.webp?v=85abcc79",
+  "w": 1024,
+  "h": 1024
+ },
  "ui/banner-defeat": {
   "url": "/assets/ui/banner-defeat.webp?v=a0a1ab73",
   "w": 720,
@@ -1604,6 +1619,16 @@
   "w": 192,
   "h": 169
  },
+ "ui/icons/mic": {
+  "url": "/assets/ui/icons/mic.webp?v=78b7bca6",
+  "w": 159,
+  "h": 192
+ },
+ "ui/icons/motion": {
+  "url": "/assets/ui/icons/motion.webp?v=aa6b777e",
+  "w": 165,
+  "h": 192
+ },
  "ui/icons/pass": {
   "url": "/assets/ui/icons/pass.webp?v=f5414350",
   "w": 192,
@@ -1628,6 +1653,11 @@
   "url": "/assets/ui/icons/shop.webp?v=f5f1db22",
   "w": 145,
   "h": 192
+ },
+ "ui/icons/sound": {
+  "url": "/assets/ui/icons/sound.webp?v=e0cf5d08",
+  "w": 192,
+  "h": 143
  },
  "ui/icons/tower": {
   "url": "/assets/ui/icons/tower.webp?v=4a03b1c6",

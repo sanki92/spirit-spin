@@ -4,6 +4,7 @@ import { BEASTS } from '../../game/beasts'
 import { Game, type StadiumTheme } from '../../game/Game'
 import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
+import { Loader } from '../Loader'
 import { BattleHud } from '../hud/BattleHud'
 
 export type ControllerFactory = (game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2]) => BattleController
@@ -52,7 +53,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
   return (
     <div className="screen battle-screen">
       <canvas ref={canvas} className="game-canvas" />
-      {loading && <div className="loading">LOADING STADIUM…</div>}
+      {loading && <Loader full label="Entering the stadium" />}
       {!loading && (
         <BattleHud
           beasts={[setup.player.beastId, setup.opponent.beastId]}

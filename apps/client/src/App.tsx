@@ -4,6 +4,7 @@ import type { MatchResult, MatchSetup } from './game/BattleController'
 import { setHaptics } from './input/haptics'
 import { useRuntime } from './runtime'
 import { warmImages } from './assets/assets'
+import { Loader } from './ui/Loader'
 import { currentRoute, useNav, type Route } from './state/nav'
 import { storyBuild, useSave } from './state/save'
 import { reconcileStory, settleMatch } from './state/settle'
@@ -24,7 +25,7 @@ import { Result } from './ui/screens/Result'
 
 const BattleScreen = lazy(() => import('./ui/screens/BattleScreen').then(m => ({ default: m.BattleScreen })))
 const Stadium = lazy(() => import('./ui/screens/Stadium').then(m => ({ default: m.Stadium })))
-const Loading = () => <div className="screen center"><div className="loading">LOADING STADIUM…</div></div>
+const Loading = () => <Loader full label="Loading" />
 const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<Loading />}>{children}</Suspense>
 
 export function App() {

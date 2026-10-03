@@ -1,7 +1,8 @@
-import { chromium, devices } from 'playwright'
+import { chromium, webkit, devices } from 'playwright'
 
 const [, , out = 'e2e/out/look', ...steps] = process.argv
-const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] })
+const engine = process.env.LOOK_ENGINE === 'webkit' ? webkit : chromium
+const browser = await engine.launch(process.env.LOOK_ENGINE === 'webkit' ? {} : { args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] })
 const dev = process.env.LOOK_DEVICE ? devices[process.env.LOOK_DEVICE] : devices['Pixel 7']
 const ctx = await browser.newContext({ ...dev, ignoreHTTPSErrors: true, ...(process.env.LOOK_H ? { viewport: { width: 390, height: Number(process.env.LOOK_H) } } : {}) })
 const page = await ctx.newPage()

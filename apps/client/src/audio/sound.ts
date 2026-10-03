@@ -12,7 +12,8 @@ export class Sound {
   muted = false
 
   constructor() {
-    this.ctx = new AudioContext({ latencyHint: 'interactive' })
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    this.ctx = new Ctx({ latencyHint: 'interactive' })
     this.master = this.ctx.createGain()
     this.master.gain.value = 0.9
     this.master.connect(this.ctx.destination)

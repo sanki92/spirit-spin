@@ -7,7 +7,7 @@ const EAGER = import.meta.env.DEV && typeof location !== 'undefined' && new URLS
 
 export function Img({ id, alt = '', className, fallback, eager = false }: { id: string; alt?: string; className?: string; fallback?: ReactNode; eager?: boolean }) {
   if (!hasAsset(id)) return <>{fallback ?? null}</>
-  return <img className={className} src={assetUrl(id)} alt={alt} draggable={false} loading={eager || EAGER ? 'eager' : 'lazy'} decoding="async" />
+  return <img className={`${className ?? ''} img-wait`} src={assetUrl(id)} alt={alt} draggable={false} loading={eager || EAGER ? 'eager' : 'lazy'} decoding="async" onLoad={e => e.currentTarget.classList.replace('img-wait', 'img-in')} onError={e => e.currentTarget.classList.remove('img-wait')} />
 }
 
 export function Screen({ children, bg, className = '' }: { children: ReactNode; bg?: string; className?: string }) {

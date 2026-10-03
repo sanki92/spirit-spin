@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { assetUrl, hasAsset } from '../../assets/assets'
+import { Img } from '../kit'
 import { useRuntime } from '../../runtime'
 
 export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => void }) {
@@ -16,14 +16,20 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
     void arm(false)
   }, [])
   return (
-    <div className="screen ready-screen" style={hasAsset('backgrounds/main-menu') ? { backgroundImage: `url(${assetUrl('backgrounds/main-menu')})` } : undefined}>
-      {hasAsset('ui/logo') && <img className="logo" src={assetUrl('ui/logo')} alt="Spirit Spin" />}
-      <div className="ready-body">
-        {hasAsset('onboarding/tap-ready') && <img className="ready-art" src={assetUrl('onboarding/tap-ready')} alt="" />}
-        <button className="btn-primary big" onClick={() => void arm()} disabled={busy}>
-          {busy ? 'ARMING…' : 'TAP TO READY'}
-        </button>
-        <p className="fine">Turns on motion launch, sound and the Spirit Call mic. Nothing is recorded.</p>
+    <div className="screen entry ready2">
+      <Img id="key-art/hero-portrait" className="entry-art dim" eager />
+      <div className="ready2-body">
+        <Img id="ui/logo" className="entry-logo small" eager />
+        <section className="ready2-panel">
+          <h1>Get ready to rip</h1>
+          <ul>
+            <li><Img id="ui/icons/motion" eager /><span><strong>Motion launch</strong><small>Rip your phone to launch your top.</small></span></li>
+            <li><Img id="ui/icons/sound" eager /><span><strong>Sound</strong><small>Hear every clash and the commentator.</small></span></li>
+            <li><Img id="ui/icons/mic" eager /><span><strong>Spirit Call mic</strong><small>Shout to summon. Nothing is recorded.</small></span></li>
+          </ul>
+          <button className="cta cyan" onClick={() => void arm()} disabled={busy}><span>{busy ? 'Arming…' : 'Tap to ready'}</span></button>
+          <p className="ready2-fine">You can switch to swipe launch and silent Spirit Call anytime in Settings.</p>
+        </section>
       </div>
     </div>
   )
