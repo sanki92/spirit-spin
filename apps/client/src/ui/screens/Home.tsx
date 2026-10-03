@@ -98,37 +98,3 @@ export function Home() {
     </Screen>
   )
 }
-
-export function Tower() {
-  const nav = useNav()
-  const cleared = useSave(s => s.tower)
-  const floors = useMemo(() => Array.from({ length: TOWER_FLOORS }, (_, i) => towerFloor(TOWER_FLOORS - i)), [])
-  const current = Math.min(TOWER_FLOORS, cleared + 1)
-  useEffect(() => {
-    document.getElementById(`floor-${current}`)?.scrollIntoView({ block: 'center' })
-  }, [current])
-  const start = (n: number) => {
-    const f = towerFloor(n)
-    nav.push({ k: 'battle', opponent: f.opponent, floor: n, boss: f.boss, opponentName: f.boss ? BOSSES[f.boss].name : `Floor ${n} Spinner` })
-  }
-  return (
-    <Screen className="tower" bg="backgrounds/tower">
-      <TopBar title="Spirit Tower" />
-      <ol className="floors">
-        {floors.map(f => {
-          const state = f.floor <= cleared ? 'cleared' : f.floor === current ? 'current' : 'locked'
-          return (
-            <li key={f.floor} id={`floor-${f.floor}`} className={`floor ${state} ${f.boss ? 'boss' : ''}`}>
-              {f.boss ? <Img id={`characters/bosses/${f.boss}/confident`} className="floor-face" fallback={<Img id="characters/rival-full" className="floor-face" />} /> : <span className="floor-num">{f.floor}</span>}
-              <div className="floor-info">
-                <strong>{f.boss ? `${BOSSES[f.boss].name} · ${BOSSES[f.boss].title}` : `Floor ${f.floor}`}</strong>
-                <span>+{f.reward.coins} coins{f.reward.part ? ` · ${f.reward.part.id} ${f.reward.part.kind}` : ''}{f.reward.unlocksBeastSlot ? ' · new beast' : ''}</span>
-              </div>
-              {state !== 'locked' && <button className="go" onClick={() => start(f.floor)}>{state === 'cleared' ? 'Replay' : 'Battle'}</button>}
-            </li>
-          )
-        })}
-      </ol>
-    </Screen>
-  )
-}

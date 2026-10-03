@@ -1,4 +1,4 @@
-import { assembleTop, BEAST_IDS, scoreRip, STARTER_BUILDS, type BeastId } from '@spirit/core'
+import { assembleTop, STARTER_BEASTS, scoreRip, STARTER_BUILDS, type BeastId } from '@spirit/core'
 import { useEffect, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
@@ -68,7 +68,7 @@ export function StarterSelect() {
         <Stat name="Speed" value={spec.stats.speed} />
       </div>
       <div className="starter-picks" role="radiogroup">
-        {BEAST_IDS.map(id => (
+        {STARTER_BEASTS.map(id => (
           <button key={id} role="radio" aria-checked={id === pick} className={`emblem-pick ${id === pick ? 'on' : ''}`} onClick={() => setPick(id)} style={{ ['--c' as string]: BEASTS[id].color }}>
             <Img id={`beasts/${id}/emblem`} alt={BEASTS[id].name} />
           </button>

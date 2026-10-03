@@ -14,7 +14,8 @@ import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
 import { Garage } from './ui/screens/Garage'
-import { beastArt, Home, Tower } from './ui/screens/Home'
+import { beastArt, Home } from './ui/screens/Home'
+import { Tower } from './ui/screens/Tower'
 import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
 import { AgeGate, Calibrate, Safety, Splash, StarterSelect } from './ui/screens/Onboarding'
 import { ReadyScreen } from './ui/screens/ReadyScreen'
@@ -110,7 +111,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     (r: MatchResult) => {
       useSave.getState().markOnboarded('firstBattle')
       const settlement = settleMatch(r, route.floor, route.boss, route.opponentName)
-      nav.replace({ k: 'result', result: r, settlement, opponentName: route.opponentName })
+      nav.replace({ k: 'result', result: r, settlement, opponentName: route.opponentName, ...(route.floor ? { next: { k: 'tower' } as const } : {}) })
     },
     [route, nav],
   )

@@ -433,3 +433,39 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .seat-empty { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: var(--steel-2); font-family: 'Bebas Neue'; font-size: 30px; color: var(--muted); }
 .stadium-card { flex-wrap: wrap; }
 @media (min-aspect-ratio: 4/3) { .stadium-body { grid-template-columns: 1.2fr 1fr; } .stadium { gap: 10px; } .stadium-logo { width: min(26vw, 300px); margin-top: 0; } .stadium-code { font-size: clamp(56px, 8vw, 120px); } .stadium-qr img, .qr-wait { width: min(26vw, 260px); } .stadium-join p, .stadium-join li { font-size: clamp(14px, 1.4vw, 20px); } }
+.chapter { display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(10, 16, 40, 0.72); border: 1px solid rgba(255, 255, 255, 0.08); }
+.chapter.locked { opacity: 0.6; }
+.chapter.complete { border-color: rgba(255, 207, 74, 0.35); }
+.chapter-head { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+.chapter-face { width: 64px; height: 64px; object-fit: cover; object-position: top; border-radius: 14px; background: var(--steel); }
+.chapter-title { display: grid; gap: 3px; }
+.chapter-title span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.chapter-title strong { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 1px; line-height: 1; }
+.chapter-title em { font-style: normal; font-size: 14px; color: var(--chrome); }
+.chapter-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.chapter-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #ffe9a6); transform-origin: left; }
+.chapter-unlocks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chapter-unlocks li { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(255, 207, 74, 0.12); color: #ffe39a; }
+.floor-rewards { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 2px; }
+.floor-rewards i { display: inline-flex; align-items: center; gap: 3px; font-style: normal; }
+.floor-rewards img { width: 16px; height: 16px; object-fit: contain; }
+.floor-rewards .reward-part, .floor-rewards .reward-beast { color: #ffe39a; font-weight: 600; }
+.floor-rewards .reward-part img, .floor-rewards .reward-beast img { width: 20px; height: 20px; }
+.boss-talk { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(180deg, rgba(5, 8, 26, 0.35), rgba(5, 8, 26, 0.92) 70%); animation: talkIn 0.3s ease-out both; cursor: pointer; }
+.boss-talk-art { position: absolute; left: 50%; bottom: 150px; height: min(70vh, 620px); transform: translateX(-50%); object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)); animation: talkArt 0.45s cubic-bezier(0.2, 1.1, 0.4, 1) both; pointer-events: none; }
+.boss-talk.outro .boss-talk-art { filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)) saturate(0.8); }
+.boss-talk-box { position: relative; margin: 0 12px calc(16px + var(--safe-bottom)); padding: 14px 16px 16px; border-radius: 16px; background: rgba(10, 15, 38, 0.96); border: 1px solid rgba(255, 207, 74, 0.4); display: grid; gap: 10px; cursor: default; }
+.boss-talk-head { display: flex; align-items: center; gap: 10px; }
+.boss-talk-face { width: 48px; height: 48px; object-fit: cover; object-position: top; border-radius: 12px; }
+.boss-talk-head strong { display: block; font-family: 'Bebas Neue'; font-size: 24px; letter-spacing: 1px; color: var(--gold); line-height: 1; }
+.boss-talk-head span { font-size: 13px; color: var(--muted); }
+.boss-talk-line { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; color: var(--text); animation: lineIn 0.25s ease-out both; min-height: 2.7em; }
+.boss-talk-hint { justify-self: end; font-size: 13px; color: var(--muted); animation: pulse 0.9s ease-in-out infinite alternate; }
+.boss-talk-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; }
+.boss-talk-actions .slash { flex: 1; }
+.ghost-btn { min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: var(--chrome); font-weight: 700; font-size: 16px; cursor: pointer; }
+@keyframes talkIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes talkArt { from { transform: translate(-30%, 20px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@keyframes lineIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.reduce-motion .boss-talk, .reduce-motion .boss-talk-art, .reduce-motion .boss-talk-line, .reduce-motion .boss-talk-hint { animation: none; }
+@media (prefers-reduced-motion: reduce) { .boss-talk, .boss-talk-art, .boss-talk-line, .boss-talk-hint { animation: none; } }

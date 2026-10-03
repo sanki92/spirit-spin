@@ -1004,6 +1004,36 @@
   "w": 445,
   "h": 473
  },
+ "characters/bosses/kaze/angry": {
+  "url": "/assets/characters/bosses/kaze/angry.webp",
+  "w": 308,
+  "h": 411
+ },
+ "characters/bosses/kaze/confident": {
+  "url": "/assets/characters/bosses/kaze/confident.webp",
+  "w": 312,
+  "h": 423
+ },
+ "characters/bosses/kaze/defeated": {
+  "url": "/assets/characters/bosses/kaze/defeated.webp",
+  "w": 337,
+  "h": 405
+ },
+ "characters/bosses/kaze/respect": {
+  "url": "/assets/characters/bosses/kaze/respect.webp",
+  "w": 310,
+  "h": 400
+ },
+ "characters/bosses/kaze/shocked": {
+  "url": "/assets/characters/bosses/kaze/shocked.webp",
+  "w": 321,
+  "h": 421
+ },
+ "characters/bosses/kaze/shout": {
+  "url": "/assets/characters/bosses/kaze/shout.webp",
+  "w": 308,
+  "h": 419
+ },
  "characters/bosses/mira-full": {
   "url": "/assets/characters/bosses/mira-full.webp",
   "w": 714,

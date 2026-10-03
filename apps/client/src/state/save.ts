@@ -35,6 +35,7 @@ export interface SaveData {
   partLevels: Record<string, number>
   traits: BeastId[]
   dailyWin: string
+  outros: number[]
 }
 
 export interface SaveActions {
@@ -88,6 +89,7 @@ const fresh = (): SaveData => ({
   partLevels: {},
   traits: [],
   dailyWin: '',
+  outros: [],
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])
