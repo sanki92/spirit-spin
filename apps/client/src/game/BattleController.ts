@@ -1,5 +1,5 @@
 import {
-  applyRound, botInput, botRip, composeRip, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
+  applyRound, botInput, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState,
   type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
@@ -12,6 +12,8 @@ import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
 import { useSave } from '../state/save'
+import { coachTip } from './coach'
+import { tierOf, type LaunchTier } from './launchPlan'
 
 export interface MatchSetup {
   player: TopBuild
@@ -20,6 +22,7 @@ export interface MatchSetup {
   playerHesitates: boolean
   seed: number
   art: [string, string]
+  coach?: boolean
 }
 
 export interface MatchResult {
@@ -39,6 +42,8 @@ const GRIP_MS = 1100
 const BEAT_MS = 650
 const CAPTURE_AFTER_MS = 700
 const FAIL_RIP = (t0: number) => composeRip(0.15, 0.3, 0.45, 0, t0)
+const RESOLVE_AFTER_START_MS = RIP.windowMs + 10
+const mag = (s: MotionSample) => Math.hypot(s.ax, s.ay, s.az)
 const FAIL_TEXT: Record<RipFail['reason'], string> = { 'no-pull': 'TOO SOFT', 'too-early': 'FALSE START', 'too-late': 'TOO LATE' }
 
 export class BattleController {
@@ -64,16 +69,28 @@ export class BattleController {
   protected hesitationLeft: boolean
   protected disposed = false
   protected announcer: Announcer
+  protected resolvedAt = -1
+  protected windowFrom = -Infinity
+  protected coachSince = 0
+  protected coached = false
+  protected pullShown = 0
+  protected lastTiers: [LaunchTier, LaunchTier] = ['GOOD', 'GOOD']
 
   constructor(
     protected game: Game,
     protected setup: MatchSetup,
-    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void },
+    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void; onCalibrate?: (pulls: number[]) => Calibration },
   ) {
     this.botRng = createRng(setup.seed ^ 0x9e3779b9)
     this.hesitationLeft = setup.playerHesitates
     this.announcer = new Announcer(deps.sound, () => useSave.getState().settings.commentator !== false)
     game.bind(() => this.tick(), dt => this.frame(dt))
+    game.onLand = (side, tier) => {
+      if (this.disposed) return
+      const hard = tier === 'PERFECT' || tier === 'GREAT' || tier === 'OVERSPIN'
+      deps.sound.play(hard ? 'clashHeavy' : 'clash', { volume: tier === 'FAIL' || tier === 'WEAK' ? 0.35 : hard ? 0.8 : 0.55, rate: tier === 'PERFECT' ? 0.8 : 1 })
+      if (side === 0) buzz(tier === 'PERFECT' ? [40, 30, 70] : hard ? 35 : 15)
+    }
   }
 
   get inputMode(): 'motion' | 'swipe' {
@@ -82,13 +99,14 @@ export class BattleController {
 
   start(): void {
     log('match.start', { player: this.setup.player, opponent: this.setup.opponent, bot: this.setup.bot, hesitates: this.setup.playerHesitates, input: this.inputMode })
-    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null })
+    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, coachTip: null, coach: false, pull: 0 })
     this.later(300, () => this.announcer.say('intro', true))
     this.later(1400, () => this.beginRound())
   }
 
   dispose(): void {
     this.disposed = true
+    useHud.getState().set({ coachTip: null, coach: false, pull: 0 })
     this.announcer.dispose()
     this.deps.sound.stopHums()
     for (const t of this.timers) clearTimeout(t)
@@ -96,7 +114,8 @@ export class BattleController {
   }
 
   submitSwipe(points: TouchSample[]): void {
-    if (useHud.getState().phase === 'countdown' || useHud.getState().phase === 'grip') this.swipe = points
+    const p = useHud.getState().phase
+    if ((p === 'countdown' || p === 'grip' || p === 'coach') && this.resolvedAt !== this.launchAt) this.swipe = points
   }
 
   requestSpirit(): void {
@@ -113,17 +132,24 @@ export class BattleController {
   }
 
   protected beginRound(): void {
+    if (this.setup.coach && !this.coached && this.match.round === 1) return this.coachRound()
     this.countdown(performance.now() + (this.match.round === 1 ? GRIP_MS * 2.2 : GRIP_MS) + BEAT_MS * 3)
   }
 
-  protected countdown(t0: number): void {
+  protected prepRound(): void {
     this.game.skipCine(false)
-    const hud = useHud.getState()
     this.swipe = null
+    this.windowFrom = -Infinity
+    this.pullShown = 0
     this.game.setBattle(null)
     this.game.fx.clearDecals()
-    hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: null, inputMode: this.inputMode, round: this.match.round })
+    this.game.arm()
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: null, pull: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
+  }
+
+  protected countdown(t0: number): void {
+    this.prepRound()
     this.launchAt = t0
     const s = this.deps.sound
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
@@ -133,6 +159,7 @@ export class BattleController {
     }
     s.play('launch', { at: s.perfToAudio(t0) })
     this.later(t0 - performance.now(), () => {
+      if (this.resolvedAt === t0) return
       useHud.getState().set({ countdown: 'LAUNCH' })
       buzz(40)
       this.announcer.say('rip', true)
@@ -140,17 +167,78 @@ export class BattleController {
     this.later(t0 + CAPTURE_AFTER_MS - performance.now(), () => this.resolveLaunch())
   }
 
+  protected coachRound(): void {
+    this.prepRound()
+    this.launchAt = Infinity
+    const s = this.deps.sound
+    const start = performance.now() + GRIP_MS
+    for (const [i, label] of (['3', '2', '1'] as const).entries()) {
+      const at = start + BEAT_MS * i
+      s.play('tick', { at: s.perfToAudio(at), volume: 0.8 })
+      this.later(at - performance.now(), () => useHud.getState().set({ phase: 'countdown', countdown: label }))
+    }
+    this.later(start + BEAT_MS * 3 - performance.now(), () => {
+      this.swipe = null
+      this.coachSince = performance.now()
+      useHud.getState().set({ phase: 'coach', countdown: null })
+      buzz(20)
+    })
+  }
+
+  protected pollLaunch(now: number): void {
+    const phase = useHud.getState().phase
+    const sensors = this.deps.sensors?.live ? this.deps.sensors : null
+    if (phase === 'coach') {
+      const from = this.coachSince + 400
+      const start = now > from ? sensors?.window(from, now).find(s => mag(s) > RIP.startThreshold) : undefined
+      if (start && now >= start.t + RESOLVE_AFTER_START_MS) {
+        this.windowFrom = from
+        this.launchAt = start.t - RIP.timingCenterMs
+        this.swipe = null
+        this.resolveLaunch()
+      } else if (!start && this.swipe) {
+        const t0 = this.swipe[0]!.t
+        if (scoreSwipe(this.swipe, t0, window.innerHeight).ok) {
+          this.launchAt = t0
+          this.resolveLaunch()
+        } else this.swipe = null
+      }
+      return
+    }
+    if (phase !== 'countdown' || now < this.launchAt || this.resolvedAt === this.launchAt) return
+    const t0 = this.launchAt
+    const start = sensors?.window(t0 + RIP.earliestMs, t0 + RIP.latestMs).find(s => mag(s) > RIP.startThreshold)
+    if (start && now < start.t + RESOLVE_AFTER_START_MS) return
+    if (start || (this.swipe && scoreSwipe(this.swipe, t0, window.innerHeight).ok)) this.resolveLaunch()
+  }
+
+  protected meterPull(now: number): void {
+    const sensors = this.deps.sensors
+    const phase = useHud.getState().phase
+    if (!sensors?.live || (phase !== 'countdown' && phase !== 'coach')) return
+    const w = sensors.window(now - RIP.windowMs, now)
+    let pull = 0
+    for (let i = 1; i < w.length; i++) pull += mag(w[i]!) * Math.min((w[i]!.t - w[i - 1]!.t) / 1000, 1 / 30)
+    this.pullShown = Math.max(pull / this.deps.calibration.pull100, this.pullShown - 1.2 / 60)
+    if (Math.abs(useHud.getState().pull - this.pullShown) > 0.015) useHud.getState().set({ pull: this.pullShown })
+  }
+
   protected resolveLaunch(): void {
     const t0 = this.launchAt
+    if (this.resolvedAt === t0 || this.disposed) return
+    this.resolvedAt = t0
+    const coaching = useHud.getState().phase === 'coach'
     let res: RipResult | RipFail
-    const motion = this.deps.sensors?.live ? scoreRip(this.deps.sensors.window(t0 - 1100, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration) : null
+    const from = Math.max(t0 - 1100, this.windowFrom)
+    if (coaching) this.calibrateFromCoach(from, t0)
+    const motion = this.deps.sensors?.live ? scoreRip(this.deps.sensors.window(from, t0 + CAPTURE_AFTER_MS), t0, this.deps.calibration) : null
     const swiped = this.swipe ? scoreSwipe(this.swipe, t0, window.innerHeight) : null
     const usedSwipe = !!swiped?.ok && (!motion?.ok || swiped.rpm > motion.rpm)
     res = usedSwipe ? (swiped as RipResult) : motion ?? swiped ?? { ok: false, reason: 'no-pull' }
     if (!usedSwipe) this.swipe = null
     const rip = res.ok ? res : FAIL_RIP(t0)
     const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
-    const win = this.swipe ? null : this.deps.sensors?.window(t0 - 1100, t0 + CAPTURE_AFTER_MS) ?? []
+    const win = this.swipe ? null : this.deps.sensors?.window(from, t0 + CAPTURE_AFTER_MS) ?? []
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
     log('rip', {
       round: this.match.round, mode: this.swipe ? 'swipe' : this.deps.sensors?.live ? 'motion' : 'none', ok: res.ok,
@@ -165,9 +253,12 @@ export class BattleController {
     this.bestRpm = Math.max(this.bestRpm, rip.rpm)
     if (res.ok && res.quality === 'PERFECT' && !res.overspin) this.perfectRips++
     if (res.ok && res.overspin) this.overspins++
+    this.lastTiers = [tierOf(res), tierOf(opp)]
+    if (coaching) this.finishCoach(res, usedSwipe || !motion)
     useHud.getState().set({
       phase: 'launch',
       countdown: null,
+      pull: 0,
       callout: res.ok ? { quality: res.overspin ? 'OVERSPIN' : res.quality, rpm: res.rpm } : { quality: 'FAIL', rpm: rip.rpm, note: FAIL_TEXT[res.reason] },
     })
     const cue = !res.ok ? 'weak' : res.overspin ? 'overspin' : res.quality === 'PERFECT' ? 'perfect' : res.quality === 'WEAK' ? 'weak' : null
@@ -180,9 +271,25 @@ export class BattleController {
   protected launch(rip: RipResult, opp: RipResult, _motion: MotionSample[] | null, _swipe: TouchSample[] | null): void {
     const hesitate = this.hesitationLeft
     const battle = createBattle(this.game.specs!, [{ rip, hesitate }, { rip: opp, hesitate: false }], (this.setup.seed + this.match.round * 7919) >>> 0)
-    this.game.dropT = 0
     this.game.setBattle(battle)
+    this.game.launch(this.lastTiers)
     this.enterBattlePhase()
+  }
+
+  protected calibrateFromCoach(from: number, t0: number): void {
+    const s = useSave.getState()
+    if (!this.deps.sensors?.live || this.swipe || s.onboarded.calibrated || !this.deps.onCalibrate) return
+    const raw = scoreRip(this.deps.sensors.window(from, t0 + CAPTURE_AFTER_MS), t0, { pull100: 1 })
+    if (!raw.ok) return
+    this.deps.calibration = this.deps.onCalibrate([raw.pullRatio])
+    s.markOnboarded('calibrated')
+  }
+
+  protected finishCoach(res: RipResult | RipFail, swipe: boolean): void {
+    this.coached = true
+    log('coach.launch', { ok: res.ok, quality: res.ok ? res.quality : res.reason, swipe, waitedMs: Math.round(performance.now() - this.coachSince) })
+    useHud.getState().set({ coach: false, coachTip: coachTip(res, swipe) })
+    this.later(5200, () => useHud.getState().set({ coachTip: null }))
   }
 
   protected enterBattlePhase(): void {
@@ -330,6 +437,9 @@ export class BattleController {
   }
 
   protected frame(dt: number): void {
+    const now = performance.now()
+    this.meterPull(now)
+    this.pollLaunch(now)
     const shout = this.deps.shout
     if (shout?.ready) {
       const b = this.game.battle

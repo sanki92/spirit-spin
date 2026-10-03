@@ -4,10 +4,10 @@ const [, , out = 'e2e/out/look', ...steps] = process.argv
 const engine = process.env.LOOK_ENGINE === 'webkit' ? webkit : chromium
 const browser = await engine.launch(process.env.LOOK_ENGINE === 'webkit' ? {} : { args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] })
 const dev = process.env.LOOK_DEVICE ? devices[process.env.LOOK_DEVICE] : devices['Pixel 7']
-const ctx = await browser.newContext({ ...dev, ignoreHTTPSErrors: true, ...(process.env.LOOK_H ? { viewport: { width: 390, height: Number(process.env.LOOK_H) } } : {}) })
+const ctx = await browser.newContext({ ...dev, ignoreHTTPSErrors: true, ...(process.env.LOOK_H ? { viewport: { width: 390, height: Number(process.env.LOOK_H) } } : {}), ...(process.env.LOOK_DPR ? { deviceScaleFactor: Number(process.env.LOOK_DPR) } : {}) })
 const page = await ctx.newPage()
 page.on('pageerror', e => console.log('PAGEERROR', e.message))
-page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text().slice(0, 200)) })
+page.on('console', m => { if (m.type() === 'error' || m.text().startsWith('[look]')) console.log('CONSOLE', m.text().slice(0, 300)) })
 await page.goto((process.env.LOOK_URL ?? 'https://localhost:5173') + '/?sim')
 await page.getByRole('button', { name: 'Start' }).click()
 await page.getByRole('button', { name: /continue/i }).click()

@@ -7,6 +7,7 @@ import { authHeader } from '../state/sync'
 import { log } from '../telemetry'
 import { BattleController, type MatchResult, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
+import { tierOf } from './launchPlan'
 
 export interface IssuedGhost { matchId: string; seed: number; pool: 'motion' | 'swipe'; deck: TopBuild[]; opponent: { name: string; rating: number; deck: TopBuild[]; rips: RipView[]; brain: BotBrain } }
 export interface GhostVerdict { winner: 0 | 1; scores: [number, number]; rating?: number; delta?: number }
@@ -45,10 +46,11 @@ export class GhostController extends BattleController {
     const rip = judged.rip
     useHud.getState().set({ callout: judged.view.ok ? { quality: judged.view.overspin ? 'OVERSPIN' : judged.view.quality, rpm: judged.view.rpm } : { quality: 'FAIL', rpm: judged.view.rpm, note: 'TOO SOFT' } })
     const mine = assembleTop(deckTop(this.issued.deck, round)), theirs = assembleTop(deckTop(this.issued.opponent.deck, round))
-    const battle = createBattle([mine, theirs], [{ rip, hesitate: false }, { rip: ghostRip(this.issued.opponent.rips, round), hesitate: false }], ghostSeeds(this.issued.seed).battle(round))
+    const theirRip = ghostRip(this.issued.opponent.rips, round)
+    const battle = createBattle([mine, theirs], [{ rip, hesitate: false }, { rip: theirRip, hesitate: false }], ghostSeeds(this.issued.seed).battle(round))
     this.roundInputs = []
-    this.game.dropT = 0
     this.game.setBattle(battle)
+    this.game.launch([tierOf(judged.view), tierOf(theirRip)])
     this.enterBattlePhase()
   }
 

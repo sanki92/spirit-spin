@@ -34,6 +34,11 @@
   "w": 720,
   "h": 1080
  },
+ "backgrounds/vs-clash": {
+  "url": "/assets/backgrounds/vs-clash.webp?v=8009a519",
+  "w": 720,
+  "h": 1080
+ },
  "beasts/aegiron/awakened-sage/card-art": {
   "url": "/assets/beasts/aegiron/awakened-sage/card-art.webp?v=2c5d0ddf",
   "w": 683,
@@ -1228,6 +1233,21 @@
   "url": "/assets/onboarding/calibrate.webp?v=0cd3a5ed",
   "w": 640,
   "h": 541
+ },
+ "onboarding/guide-grip": {
+  "url": "/assets/onboarding/guide-grip.webp?v=ab8983e4",
+  "w": 446,
+  "h": 640
+ },
+ "onboarding/guide-pull": {
+  "url": "/assets/onboarding/guide-pull.webp?v=e4ff5b51",
+  "w": 437,
+  "h": 640
+ },
+ "onboarding/guide-ready": {
+  "url": "/assets/onboarding/guide-ready.webp?v=12aeae99",
+  "w": 427,
+  "h": 640
  },
  "onboarding/no-throw": {
   "url": "/assets/onboarding/no-throw.webp?v=06020ccc",

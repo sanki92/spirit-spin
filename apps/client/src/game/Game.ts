@@ -10,6 +10,8 @@ import { buildStadium } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
+import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
+import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
 
@@ -18,6 +20,8 @@ interface TopF { x: number; y: number; vx: number; vy: number; spin: number; wob
 interface Frame { t: [TopF, TopF]; clash: { x: number; y: number; energy: number } | null }
 interface Cine { frames: Frame[]; t: number; dur: number; fired: number; impact: boolean; hold: number; loser: 0 | 1 | null; done: () => void }
 const REPLAY_TICKS = 80
+const HOLD: [Snap, Snap] = [{ x: 0, y: -0.52 }, { x: 0, y: 0.52 }]
+interface LaunchAnim { t: number; dur: number; plans: [LaunchPlan, LaunchPlan]; tiers: [LaunchTier, LaunchTier]; landed: [boolean, boolean] }
 
 const tex = (id: string, fallback: string): Promise<Texture> => texture(hasAsset(id) ? id : fallback)
 const summonTex = (art: string, beast: string): Promise<Texture> =>
@@ -32,7 +36,12 @@ export class Game {
   spirits: [SpiritBillboard, SpiritBillboard] | null = null
   specs: [TopSpec, TopSpec] | null = null
   battle: BattleState | null = null
-  dropT = 1
+  launchers: [LaunchRig | null, LaunchRig | null] = [null, null]
+  playerLauncher: string | null = null
+  onLand: ((side: 0 | 1, tier: LaunchTier) => void) | null = null
+  private armed = false
+  private anim: LaunchAnim | null = null
+  private clockS = 0
   private prev: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private corr: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private removeResize: (() => void) | null = null
@@ -88,6 +97,12 @@ export class Game {
       summonTex(beastArt[1], builds[1].beastId),
     ])
     const shock = await tex('vfx/shockwave', 'vfx/impact-flash')
+    const rigArt = [this.playerLauncher ?? `launchers/${builds[0].beastId}`, `launchers/${builds[1].beastId}`].map(id => (hasAsset(id) ? id : null))
+    const rigTex = await Promise.all(rigArt.map(id => (id ? texture(id).catch(() => null) : null)))
+    for (const r of this.launchers) if (r) { this.stage.world.remove(r.group); r.dispose() }
+    this.launchers = [rigTex[0] ? new LaunchRig(rigTex[0], 0) : null, rigTex[1] ? new LaunchRig(rigTex[1], 1) : null]
+    for (const r of this.launchers) if (r) this.stage.world.add(r.group)
+    for (const t of rigTex) if (t) this.stage.renderer.initTexture(t)
     if (this.tops) for (const t of this.tops) { this.stage.world.remove(t.group); t.dispose() }
     if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
     this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
@@ -108,6 +123,28 @@ export class Game {
   bind(onTick: () => void, onFrame: (dt: number) => void): void {
     this.onTick = onTick
     this.onFrame = onFrame
+  }
+
+  arm(): void {
+    this.armed = true
+    this.anim = null
+  }
+
+  disarm(): void {
+    this.armed = false
+    this.anim = null
+    for (const r of this.launchers) r?.hide()
+  }
+
+  get launching(): boolean {
+    return !!this.anim
+  }
+
+  launch(tiers: [LaunchTier, LaunchTier]): void {
+    const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
+    const plans: [LaunchPlan, LaunchPlan] = [planFor(tiers[0], still), planFor(tiers[1], still)]
+    this.armed = false
+    this.anim = { t: 0, dur: launchDuration(plans), plans, tiers, landed: [false, false] }
   }
 
   setBattle(b: BattleState | null): void {
@@ -143,8 +180,7 @@ export class Game {
       const dtMs = Math.min(100, now - this.last)
       this.last = now
       this.stepper.scale = now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
-      const alpha = this.battle && this.dropT >= 1 ? this.stepper.advance(dtMs) : 0
-      this.dropT = Math.min(1, this.dropT + dtMs / 380)
+      const alpha = this.battle && !this.anim ? this.stepper.advance(dtMs) : 0
       this.draw(alpha, dtMs / 1000)
       this.stage.adapt(dtMs)
       this.onFrame?.(dtMs / 1000)
@@ -243,6 +279,49 @@ export class Game {
     }
   }
 
+  private drawHold(dt: number): void {
+    for (let i = 0; i < 2; i++) {
+      const h = HOLD[i]!, rig = this.launchers[i]
+      rig?.pose(h.x, h.y, this.clockS, 0)
+      const top = this.tops![i as 0 | 1]
+      top.fade(1, dt)
+      top.update(h.x, h.y, 0.06, 0, false, dt, true)
+      top.group.position.y += HOLD_HEIGHT - HANG + (rig ? Math.sin(this.clockS * 2.3 + i * 1.7) * 0.012 : 0)
+    }
+    this.stage.follow(0, 0)
+  }
+
+  private drawLaunch(b: BattleState, a: LaunchAnim, dt: number): void {
+    a.t += dt * 1000
+    this.techFx?.hide()
+    this.stage.follow(0, 0)
+    for (let i = 0; i < 2; i++) {
+      const side = i as 0 | 1, plan = a.plans[side], h = HOLD[side]!, t = b.tops[side], top = this.tops![side]
+      const u = flightProgress(plan, a.t)
+      const kick = Math.min(1, a.t / KICK_MS)
+      this.launchers[side]?.pose(h.x, h.y, this.clockS, Math.min(1, a.t / 520))
+      const x = h.x + (t.x - h.x) * u, y = h.y + (t.y - h.y) * u
+      const spin = 0.06 + (t.spin - 0.06) * kick
+      top.fade(1, dt)
+      top.update(x, y, spin, plan.wobble * (1 - u * 0.5), false, dt, true)
+      top.group.position.y += (HOLD_HEIGHT - HANG) * (1 - u)
+      this.prev[side] = { x: t.x, y: t.y }
+      if (u >= 1 && !a.landed[side]) {
+        a.landed[side] = true
+        const perfect = a.tiers[side] === 'PERFECT' || a.tiers[side] === 'GREAT'
+        this.fx.clash(t.x, t.y, plan.impact, perfect ? this.elementOf(side) : null)
+        if (plan.shake) this.stage.shake(plan.shake)
+        if (plan.punch) this.stage.punch(plan.punch)
+        this.onLand?.(side, a.tiers[side])
+      }
+    }
+    if (a.t >= a.dur) {
+      this.anim = null
+      for (const r of this.launchers) r?.hide()
+      this.stepper.reset()
+    }
+  }
+
   private draw(alpha: number, dt: number): void {
     if (this.cine) {
       this.techFx?.hide()
@@ -253,7 +332,16 @@ export class Game {
     }
     const b = this.battle
     const scaled = dt * (this.stepper.scale || 0.05)
-    if (!b && this.tops) for (const t of this.tops) t.group.visible = false
+    this.clockS += dt
+    if (!b && this.tops && this.armed) this.drawHold(dt)
+    else if (!b && this.tops) for (const t of this.tops) t.group.visible = false
+    if (!b && !this.armed) for (const r of this.launchers) r?.hide()
+    if (b && this.anim && this.tops) {
+      this.drawLaunch(b, this.anim, dt)
+      this.fx.update(dt, this.stage.camera)
+      this.stage.render(dt)
+      return
+    }
     if (!b) this.techFx?.hide()
     if (!b) this.stage.follow(0, 0)
     if (b && this.tops && this.spirits) {
@@ -275,7 +363,6 @@ export class Game {
         const x = p.x + (t.x - p.x) * alpha + c.x, y = p.y + (t.y - p.y) * alpha + c.y
         const top = this.tops[i as 0 | 1]
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out)
-        top.group.position.y += (1 - this.dropT) ** 2 * 1.4
         const o = b.tops[(1 - i) as 0 | 1]
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
         top.fade(t.phaseTicks > 0 ? 0.18 : 1, dt)

@@ -5,6 +5,7 @@ import { useRuntime } from '../../runtime'
 import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
 import { Img, Screen, Slash, Stat } from '../kit'
+import { GuideStrip } from '../hud/LaunchHud'
 
 export function Splash() {
   const nav = useNav()
@@ -86,7 +87,6 @@ export function StarterSelect() {
 
 export function Safety() {
   const nav = useNav()
-  const rt = useRuntime()
   const mark = useSave(s => s.markOnboarded)
   return (
     <Screen className="center safety">
@@ -100,7 +100,7 @@ export function Safety() {
         <li><b>Rip</b> On LAUNCH, pull it sharply down toward you, then stop.</li>
         <li><b>Safe</b> Never let go and never throw. Timing beats strength.</li>
       </ol>
-      <Slash onClick={() => { mark('safety'); nav.replace(rt.sensors ? { k: 'calibrate' } : { k: 'home' }) }}>Got it</Slash>
+      <Slash onClick={() => { mark('safety'); nav.reset({ k: 'home' }) }}>Got it</Slash>
     </Screen>
   )
 }
@@ -137,7 +137,7 @@ export function Calibrate() {
   return (
     <Screen className="center calibrate">
       <h2 className="slant">Tune your launcher</h2>
-      <Img id="onboarding/calibrate" className="cal-art" />
+      <GuideStrip size="big" active={beat === 'RIP!' ? 2 : beat === 'Set' ? 1 : 0} />
       {step < 3 ? (
         <>
           <p className="body">Rip {3 - step} more {3 - step === 1 ? 'time' : 'times'} at your normal strength.</p>
@@ -146,10 +146,10 @@ export function Calibrate() {
       ) : (
         <>
           <p className="body">Done. Your launcher is tuned to you. Full power comes from a clean pull, not a hard one.</p>
-          <Slash tone="gold" onClick={() => nav.reset({ k: 'home' })}>Enter the arena</Slash>
+          <Slash tone="gold" onClick={() => nav.back()}>Done</Slash>
         </>
       )}
-      {step < 3 && <button className="text-btn" onClick={() => { mark('calibrated'); nav.reset({ k: 'home' }) }}>Skip for now</button>}
+      {step < 3 && <button className="text-btn" onClick={() => nav.back()}>Cancel</button>}
     </Screen>
   )
 }

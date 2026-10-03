@@ -56,12 +56,12 @@ function simplify(pts: [number, number][], eps: number): [number, number][] {
   return pts.filter((_, i) => keep[i])
 }
 
-const uvGen = {
+const uvGen = (sx: number, sy: number) => ({
   generateTopUV: (_g: ExtrudeGeometry, v: number[], a: number, b: number, c: number) =>
-    [a, b, c].map(i => new Vector2(v[i * 3]! * 0.5 + 0.5, v[i * 3 + 1]! * 0.5 + 0.5)),
+    [a, b, c].map(i => new Vector2(v[i * 3]! * sx + 0.5, v[i * 3 + 1]! * sy + 0.5)),
   generateSideWallUV: (_g: ExtrudeGeometry, v: number[], a: number, b: number, c: number, d: number) =>
-    [a, b, c, d].map(i => new Vector2(v[i * 3]! * 0.5 + 0.5, v[i * 3 + 1]! * 0.5 + 0.5)),
-}
+    [a, b, c, d].map(i => new Vector2(v[i * 3]! * sx + 0.5, v[i * 3 + 1]! * sy + 0.5)),
+})
 
 export function ringGeometry(t: Texture, depth: number, bevel: number): { geometry: BufferGeometry; edge: Color } {
   const { data, w, h } = pixels(t)
@@ -81,7 +81,7 @@ export function ringGeometry(t: Texture, depth: number, bevel: number): { geomet
       if (inner.length > 8 && outer.length >= 3 && reach(inner) < reach(outer) * 0.85) shape.holes.push(new Path(inner.map(to)))
     }
   }
-  const g = new ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.5, bevelSegments: 1, curveSegments: 1, UVGenerator: uvGen })
+  const g = new ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.5, bevelSegments: 1, curveSegments: 1, UVGenerator: uvGen(half / w, half / h) })
   g.rotateX(-Math.PI / 2)
   let r = 0, gg = 0, b = 0, n = 0
   for (const [x, y] of outerRaw) {

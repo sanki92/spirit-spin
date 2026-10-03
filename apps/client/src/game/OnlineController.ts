@@ -4,6 +4,7 @@ import { useHud } from '../state/hud'
 import { log } from '../telemetry'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
+import { tierOf } from './launchPlan'
 
 const r3 = (v: number) => Math.round(v * 1000) / 1000
 const r2 = (v: number) => Math.round(v * 100) / 100
@@ -100,8 +101,8 @@ export class OnlineController extends BattleController {
     const mine = m.rips[this.side]
     useHud.getState().set({ callout: mine.ok ? { quality: mine.overspin ? 'OVERSPIN' : mine.quality, rpm: mine.rpm } : { quality: 'FAIL', rpm: mine.rpm, note: 'TOO SOFT' } })
     log('net.start', { round: m.round, mine: mine.rpm, theirs: m.rips[(1 - this.side) as Side].rpm, rtt: Math.round(rt.rtt) })
-    this.game.dropT = 0
     this.game.setBattle(view(s, this.side))
+    this.game.launch([tierOf(mine), tierOf(m.rips[(1 - this.side) as Side])])
     this.enterBattlePhase()
   }
 

@@ -3,6 +3,7 @@ import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
+import { tierOf } from './launchPlan'
 
 export class SpectatorController extends BattleController {
   private pred: Predictor | null = null
@@ -53,8 +54,8 @@ export class SpectatorController extends BattleController {
       this.spiritSeen = [false, false]
       const best = m.rips[0].rpm >= m.rips[1].rpm ? 0 : 1
       useHud.getState().set({ callout: { quality: m.rips[best].ok ? m.rips[best].quality : 'FAIL', rpm: m.rips[best].rpm, note: this.names[best] } })
-      this.game.dropT = 0
       this.game.setBattle(s)
+      this.game.launch([tierOf(m.rips[0]), tierOf(m.rips[1])])
       this.enterBattlePhase()
     } else if (m.k === 'snap' && this.pred) {
       const before = this.pred.state.tops.map(t => ({ x: t.x, y: t.y }))

@@ -1,7 +1,7 @@
 import type { BeastId, FinishKind, RipQuality } from '@spirit/core'
 import { create } from 'zustand'
 
-export type BattlePhase = 'idle' | 'grip' | 'countdown' | 'launch' | 'battle' | 'roundEnd' | 'matchEnd' | 'paused'
+export type BattlePhase = 'idle' | 'grip' | 'countdown' | 'coach' | 'launch' | 'battle' | 'roundEnd' | 'matchEnd' | 'paused'
 export type Countdown = '3' | '2' | '1' | 'LAUNCH' | null
 export interface Callout { quality: RipQuality | 'OVERSPIN' | 'FAIL'; rpm: number; note?: string }
 export type Banner = FinishKind | 'victory' | 'defeat' | 'vs' | 'spiritCall' | 'shout' | null
@@ -23,6 +23,9 @@ export interface HudState {
   notice: string | null
   announcer: { id: string; text: string; face: 'hyped' | 'laughing' | 'pointing' | 'serious' | 'shocked' | 'thumbs-up' } | null
   cine: { skip: () => void } | null
+  pull: number
+  coach: boolean
+  coachTip: { title: string; text: string } | null
   set: (p: Partial<HudState>) => void
 }
 
@@ -43,5 +46,8 @@ export const useHud = create<HudState>(set => ({
   notice: null,
   announcer: null,
   cine: null,
+  pull: 0,
+  coach: false,
+  coachTip: null,
   set: p => set(p),
 }))

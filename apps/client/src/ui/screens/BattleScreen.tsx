@@ -1,9 +1,11 @@
+import { assembleTop } from '@spirit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BattleController, type MatchResult, type MatchSetup } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
 import { Game, type StadiumTheme } from '../../game/Game'
 import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
+import { useSave } from '../../state/save'
 import { Loader } from '../Loader'
 import { BattleHud } from '../hud/BattleHud'
 
@@ -20,6 +22,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
     let game: Game | null = null
     void (async () => {
       game = await Game.create(canvas.current!, theme)
+      if (!spectator) game.playerLauncher = playerLauncher()
       await game.setTops([setup.player, setup.opponent], setup.art)
       if (disposed) {
         game.stop()
@@ -27,7 +30,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
         return
       }
       game.start()
-      const deps = { sound: rt.sound, sensors: forceSwipe || spectator ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd }
+      const deps = { sound: rt.sound, sensors: forceSwipe || spectator ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd, onCalibrate: (pulls: number[]) => rt.saveCalibration(pulls) }
       const c = controller ? controller(game, setup, deps) : new BattleController(game, setup, deps)
       ctrl.current = c
       if (import.meta.env.DEV) Object.assign(window, { __ctrl: c, __game: game })
@@ -57,6 +60,8 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       {!loading && (
         <BattleHud
           beasts={[setup.player.beastId, setup.opponent.beastId]}
+          arts={setup.art}
+          types={[assembleTop(setup.player).type, assembleTop(setup.opponent).type]}
           names={names ?? [BEASTS[setup.player.beastId].name, BEASTS[setup.opponent.beastId].name]}
           spectator={spectator}
           onSpirit={onSpirit}
@@ -66,4 +71,10 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
       )}
     </div>
   )
+}
+
+function playerLauncher(): string {
+  const s = useSave.getState()
+  const id = s.cosmetics?.launcher ?? `launcher-${s.loadout?.beastId ?? s.starter ?? 'voltfang'}`
+  return `launchers/${id.replace('launcher-', '')}`
 }

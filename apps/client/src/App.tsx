@@ -119,6 +119,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
       playerHesitates: !firstBattle && !!beast && hesitates(beast),
       seed: (Date.now() ^ (route.floor ?? 0) * 2654435761) >>> 0,
       art: [beastArt(player.beastId, beast?.awakened), `beasts/${opponentBeast}`],
+      coach: firstBattle,
     }),
     [route],
   )
@@ -183,7 +184,7 @@ function warmArt(): void {
   const art = s.beasts[b]?.awakened ? `beasts/${b}/awakened-${s.beasts[b]!.awakened}` : `beasts/${b}`
   const icons = ['live', 'ranked', 'cups', 'garage', 'collection', 'shop', 'pass', 'journal', 'quests', 'settings'].map(i => `ui/icons/${i}`)
   const faces = ['neutral', 'proud', 'joyful', 'sad', 'furious', 'sulky'].map(m => `${art}/expressions/${m}`)
-  const battle = ['ui/banner-victory', 'ui/banner-defeat', 'ui/banner-vs', 'ui/countdown-3', 'ui/countdown-2', 'ui/countdown-1', 'ui/countdown-launch', 'ui/callout-perfect', 'ui/callout-great', 'ui/callout-good', 'ui/callout-weak', `ui/hud-plate-${b}`, `${art}/cutin`, `${art}/summon`, `launchers/${b}`, 'backgrounds/share']
+  const battle = ['ui/banner-victory', 'ui/banner-defeat', 'ui/banner-vs', 'ui/countdown-3', 'ui/countdown-2', 'ui/countdown-1', 'ui/countdown-launch', 'ui/callout-perfect', 'ui/callout-great', 'ui/callout-good', 'ui/callout-weak', `ui/hud-plate-${b}`, `${art}/cutin`, `${art}/summon`, `launchers/${b}`, 'backgrounds/share', 'backgrounds/vs-clash', 'onboarding/guide-grip', 'onboarding/guide-ready', 'onboarding/guide-pull']
   const parts = [...s.owned.blades.map(id => `parts/blade-${id}`), ...s.owned.discs.map(id => `parts/disc-${id}`), ...s.owned.tips.map(id => `parts/tip-${id}`)]
   warmImages([`${art}/card-art`, `${art}/emblem`, 'ui/icon-coin', 'ui/icon-spirit-shard', ...icons, ...faces, ...battle, 'backgrounds/garage', 'backgrounds/tower', ...parts])
 }
