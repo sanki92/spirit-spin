@@ -1,11 +1,61 @@
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
-import { appendFileSync, mkdirSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
-import { VitePWA } from 'vite-plugin-pwa'
+import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa'
 
 const LOG_DIR = resolve(__dirname, '../../.local/device-logs')
+
+const MANIFEST: Partial<ManifestOptions> = {
+  id: '/',
+  name: 'Spirit Spin',
+  short_name: 'Spirit Spin',
+  lang: 'en',
+  categories: ['games', 'entertainment'],
+  description: 'Rip your phone to launch your top, summon your spirit beast and battle your friends.',
+  theme_color: '#0a0f24',
+  background_color: '#0a0f24',
+  display: 'standalone',
+  orientation: 'portrait',
+  start_url: '/',
+  scope: '/',
+  icons: [
+    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+  ],
+  shortcuts: [
+    { name: 'Spirit Tower', short_name: 'Tower', url: '/?go=tower', icons: [{ src: '/icons/shortcuts/tower.png', sizes: '192x192', type: 'image/png' }] },
+    { name: 'Garage', short_name: 'Garage', url: '/?go=garage', icons: [{ src: '/icons/shortcuts/garage.png', sizes: '192x192', type: 'image/png' }] },
+    { name: 'Live battle', short_name: 'Live', url: '/?go=friends', icons: [{ src: '/icons/shortcuts/live.png', sizes: '192x192', type: 'image/png' }] },
+  ],
+  screenshots: [
+    { src: '/screenshots/home.webp', sizes: '1082x2202', type: 'image/webp', form_factor: 'narrow', label: 'Your spirit beast and the Story Tower' },
+    { src: '/screenshots/garage.webp', sizes: '1082x2202', type: 'image/webp', form_factor: 'narrow', label: 'Build and upgrade your top in 3D' },
+    { src: '/screenshots/tower.webp', sizes: '1082x2202', type: 'image/webp', form_factor: 'narrow', label: 'Climb 50 floors and beat the bosses' },
+    { src: '/screenshots/result.webp', sizes: '1082x2202', type: 'image/webp', form_factor: 'narrow', label: 'Rewards after every battle' },
+  ],
+}
+
+function devPwa(): Plugin {
+  return {
+    name: 'dev-pwa',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/manifest.webmanifest', (_req, res) => {
+        res.setHeader('Content-Type', 'application/manifest+json')
+        res.end(JSON.stringify(MANIFEST))
+      })
+    },
+    transformIndexHtml(html) {
+      const icon = readFileSync(resolve(__dirname, 'public/apple-touch-icon.png')).toString('base64')
+      return html
+        .replace('<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />', `<link rel="apple-touch-icon" href="data:image/png;base64,${icon}" />`)
+        .replace('</head>', '    <link rel="manifest" href="/manifest.webmanifest" />\n  </head>')
+    },
+  }
+}
 
 function deviceLogs(): Plugin {
   return {
@@ -48,28 +98,12 @@ export default defineConfig({
     },
     react(),
     deviceLogs(),
+    devPwa(),
     ...(process.env.HTTP_ONLY ? [] : [basicSsl({ name: 'spirit-spin-dev', domains: ['*.sslip.io', 'localhost'] })]),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png', 'favicon.ico', 'favicon-32.png', 'favicon-16.png', 'og-image.jpg'],
-      manifest: {
-        id: '/',
-        name: 'Spirit Spin',
-        short_name: 'Spirit Spin',
-        lang: 'en',
-        categories: ['games', 'entertainment'],
-        description: 'Rip your phone to launch your top, summon your spirit beast and battle your friends.',
-        theme_color: '#0a0f24',
-        background_color: '#0a0f24',
-        display: 'standalone',
-        orientation: 'portrait',
-        start_url: '/',
-        icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
+      includeAssets: ['icons/*.png', 'icons/shortcuts/*.png', 'favicon.ico', 'favicon-32.png', 'favicon-16.png', 'og-image.jpg', 'apple-touch-icon.png'],
+      manifest: MANIFEST,
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2}'],
         globIgnores: ['**/__*.html', '**/devices.html'],

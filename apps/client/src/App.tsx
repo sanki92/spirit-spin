@@ -66,10 +66,12 @@ export function App() {
       warmArt()
       nav.reset({ k: 'home' })
       const q = new URLSearchParams(location.search)
-      const join = q.get('join'), cup = q.get('cup')
-      if (join || cup) history.replaceState(null, '', location.pathname)
+      const join = q.get('join'), cup = q.get('cup'), go = q.get('go')
+      if (join || cup || go) history.replaceState(null, '', location.pathname)
       if (join && /^[A-Za-z0-9]{4}$/.test(join)) nav.push({ k: 'friends', join })
       else if (cup && /^[A-Za-z0-9]{6}$/.test(cup)) nav.push({ k: 'cups', join: cup })
+      else if (go === 'tower' || go === 'garage') nav.push({ k: go })
+      else if (go === 'friends') nav.push({ k: 'friends' })
     }
   }, [nav])
 
