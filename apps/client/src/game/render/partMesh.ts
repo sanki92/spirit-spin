@@ -97,23 +97,27 @@ export function ringGeometry(t: Texture, depth: number, bevel: number): { geomet
 
 export function tipGeometry(t: Texture, height: number): { geometry: BufferGeometry; radius: number } {
   const { data, w, h } = pixels(t)
-  const rows: { y: number; r: number }[] = []
+  const rows: { y: number; r: number; c: number }[] = []
   for (let y = 0; y < h; y += 2) {
     let l = -1, rr = -1
     for (let x = 0; x < w; x++) if (data[(y * w + x) * 4 + 3]! > 110) { if (l < 0) l = x; rr = x }
-    if (l >= 0) rows.push({ y, r: (rr - l) / 2 })
+    if (l >= 0) rows.push({ y, r: (rr - l) / 2, c: (l + rr + 1) / 2 })
   }
   const top = rows[0]?.y ?? 0, bottom = rows[rows.length - 1]?.y ?? h, span = Math.max(1, bottom - top)
   const k = height / span
   const pts = [new Vector2(0, 0)]
-  for (let i = rows.length - 1; i >= 0; i--) pts.push(new Vector2(Math.max(0.002, rows[i]!.r * k), (bottom - rows[i]!.y) * k))
+  const centers = [rows[rows.length - 1]?.c ?? w / 2]
+  for (let i = rows.length - 1; i >= 0; i--) {
+    pts.push(new Vector2(Math.max(0.002, rows[i]!.r * k * 0.97), (bottom - rows[i]!.y) * k))
+    centers.push(rows[i]!.c)
+  }
   pts.push(new Vector2(0, height))
+  centers.push(rows[0]?.c ?? w / 2)
   const geometry = new LatheGeometry(pts, 48)
   const pos = geometry.attributes.position!, uv = geometry.attributes.uv!
-  const ww = w * k
   for (let i = 0; i < pos.count; i++) {
-    const vy = pos.getY(i)
-    uv.setXY(i, 0.5 + pos.getX(i) / ww, 1 - (bottom - vy / k) / h)
+    const j = i % pts.length, vy = pos.getY(i)
+    uv.setXY(i, (centers[j]! + pos.getX(i) / k) / w, 1 - (bottom - vy / k) / h)
   }
   uv.needsUpdate = true
   geometry.translate(0, -height, 0)
