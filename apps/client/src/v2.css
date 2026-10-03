@@ -22,7 +22,7 @@
 .result2 { align-items: stretch; gap: 14px; padding-bottom: calc(96px + var(--safe-bottom)); overflow-x: hidden; }
 .r2-glow { position: fixed; inset: -20% -30% auto; height: 70vh; background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--c) 35%, transparent), transparent 65%); pointer-events: none; z-index: 0; }
 .result2.lost .r2-glow { filter: saturate(0.4); opacity: 0.6; }
-.result2 > * { position: relative; z-index: 1; }
+.result2 > *:not(.r2-glow):not(.r2-actions) { position: relative; z-index: 1; }
 .r2-head { display: grid; justify-items: center; gap: 4px; padding-top: 4px; }
 .r2-banner { width: min(62vw, 330px); margin-bottom: -14px; animation: r2Pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 .r2-score { display: flex; align-items: baseline; gap: 14px; font-family: 'Bebas Neue', sans-serif; line-height: 0.9; }
