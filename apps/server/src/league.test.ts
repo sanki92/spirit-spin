@@ -4,6 +4,7 @@ import {
 } from '@spirit/core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp, type App } from './app'
+import { cleanDeck } from './league'
 
 let app: App
 beforeAll(async () => {
@@ -117,5 +118,15 @@ describe('ranked ghosts', () => {
     expect(me.played).toBe(2)
     expect(me.ratingSwipe).toBe(sub.rating)
     if (sub.winner === 0) expect(sub.rating).toBeGreaterThan(afterIssue)
+  })
+})
+
+describe('ghost decks', () => {
+  it('strip story-only kit and part levels so tournament ghosts use base strength', () => {
+    const buffed = [{ ...DECK[0]!, kit: { trait: true, ultimate: true }, levels: { blade: 5, disc: 5, tip: 5 } }]
+    expect(cleanDeck(buffed)).toEqual([DECK[0]])
+    expect(cleanDeck([{ bladeId: 'nope', discId: 'standard', tipId: 'flat', beastId: 'voltfang' }])).toBeNull()
+    expect(cleanDeck([])).toBeNull()
+    expect(cleanDeck('x')).toBeNull()
   })
 })

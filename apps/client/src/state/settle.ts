@@ -42,3 +42,12 @@ export function settleMatch(result: MatchResult, floor: number | null, boss: Bos
   if (shards) useSave.getState().addShards(shards)
   return { coins: r.coins + bonus, xp: r.xp, changes: r.changes, unlocked, part, shards }
 }
+
+export function reconcileStory(): void {
+  const s = useSave.getState()
+  for (let n = 1; n <= s.tower; n++) {
+    const r = towerFloor(n).reward
+    if (r.part && !s.owned[`${r.part.kind}s`].includes(r.part.id)) s.addPart(`${r.part.kind}s`, r.part.id)
+    if (r.beast && !useSave.getState().beasts[r.beast]) s.unlockBeast(r.beast)
+  }
+}

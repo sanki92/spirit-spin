@@ -43,7 +43,8 @@ export function battleHash(s: BattleState): string {
   const n: number[] = [s.tick, s.rng.s]
   for (const t of s.tops) {
     n.push(t.x, t.y, t.vx, t.vy, t.spin, t.wobble, t.shatter, t.gauge, t.spiritTicks, t.overspinTicks,
-      t.lastHitTick, +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered)
+      t.lastHitTick, +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered,
+      t.stunTicks, t.shieldTicks, t.pullTicks, t.phaseTicks, t.burnTicks, t.steps, t.strikes, t.strikeMul, +t.stealArmed, +t.ambushUsed)
   }
   return hashNumbers(n)
 }

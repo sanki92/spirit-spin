@@ -58,8 +58,8 @@ export function resolveClash(s: BattleState, out: BattleEvent[]): void {
   if (a.shieldTicks > 0 && !b.strikeArmed) { kBonA *= T.bastionTaken; kAonB *= sa.ultimate ? X.reflectUlt : T.bastionReflect }
   if (isTideOn(a, sa) && !b.strikeArmed) kBonA *= T.tideGuard
   if (isTideOn(b, sb) && !a.strikeArmed) kAonB *= T.tideGuard
-  if (a.pullTicks > 0 && b.shieldTicks === 0) kAonB *= X.pullClash
-  if (b.pullTicks > 0 && a.shieldTicks === 0) kBonA *= X.pullClash
+  if (a.pullTicks > 0 && b.shieldTicks <= 0) kAonB *= X.pullClash
+  if (b.pullTicks > 0 && a.shieldTicks <= 0) kBonA *= X.pullClash
   if (sa.trait && sa.beastId === 'umbrax' && !a.ambushUsed) { kAonB *= X.ambush; a.ambushUsed = true }
   if (sb.trait && sb.beastId === 'umbrax' && !b.ambushUsed) { kBonA *= X.ambush; b.ambushUsed = true }
   if (sa.trait && sa.beastId === 'agnyx' && a.spin < X.embersSpin) kAonB *= X.embersAtk

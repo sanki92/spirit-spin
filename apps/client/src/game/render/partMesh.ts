@@ -71,13 +71,14 @@ export function ringGeometry(t: Texture, depth: number, bevel: number): { geomet
   let outerRaw: [number, number][] = []
   for (let ox = 0; ox < cx && outerRaw.length < 120; ox++) if (solid(ox, cy) && !solid(ox - 1, cy)) outerRaw = trace(solid, ox, cy, ox - 1, cy)
   const outer = simplify(outerRaw, 0.7)
-  const shape = new Shape(outer.map(to))
+  const shape = outer.length >= 3 ? new Shape(outer.map(to)) : new Shape().absarc(0, 0, 0.95, 0, Math.PI * 2, false)
+  const reach = (pts: [number, number][]) => Math.max(...pts.map(([x, y]) => Math.hypot(x - cx, y - cy)))
   if (!solid(cx, cy)) {
     let ix = cx
     while (ix > 0 && !solid(ix, cy)) ix--
     if (ix > 0 && cx - ix > 2) {
       const inner = simplify(trace(solid, ix, cy, ix + 1, cy), 0.7)
-      if (inner.length > 8) shape.holes.push(new Path(inner.map(to)))
+      if (inner.length > 8 && outer.length >= 3 && reach(inner) < reach(outer) * 0.85) shape.holes.push(new Path(inner.map(to)))
     }
   }
   const g = new ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel * 0.5, bevelSegments: 2, curveSegments: 1, UVGenerator: uvGen })

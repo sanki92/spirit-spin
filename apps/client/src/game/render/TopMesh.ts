@@ -64,6 +64,14 @@ export class TopMesh {
     this.group.add(this.spinner, this.glow)
   }
 
+  dispose(): void {
+    this.group.traverse(o => {
+      const m = o as Mesh
+      m.geometry?.dispose()
+      for (const mat of (Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) as MeshBasicMaterial[]) mat.dispose()
+    })
+  }
+
   fade(target: number, dt: number): void {
     const f = this.faded + (target - this.faded) * Math.min(1, dt * 14)
     if (Math.abs(f - this.faded) < 0.002) return

@@ -122,7 +122,7 @@ export class BattleController {
     this.swipe = null
     this.game.setBattle(null)
     this.game.fx.clearDecals()
-    hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, inputMode: this.inputMode, round: this.match.round })
+    hud.set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: null, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
     this.launchAt = t0
     const s = this.deps.sound

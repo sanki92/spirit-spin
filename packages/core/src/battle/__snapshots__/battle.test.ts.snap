@@ -1,3 +1,3 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`battle determinism > golden hash for seed 42 after 300 ticks is stable 1`] = `"006be10c"`;
+exports[`battle determinism > golden hash for seed 42 after 300 ticks is stable 1`] = `"7152106c"`;

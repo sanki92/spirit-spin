@@ -60,10 +60,11 @@ export default function TopViewer(p: ViewerProps) {
     const set = (n: ViewerProps) => {
       const prev = props
       props = n
-      if (prev.blade !== n.blade) load(`parts/blade-${n.blade}`, t => { const r = ringGeometry(t, BLADE_D, 0.012); remesh(blade, r.geometry, t, r.edge) })
-      if (prev.disc !== n.disc) load(`parts/disc-${n.disc}`, t => { const r = ringGeometry(t, DISC_D, 0.01); remesh(disc, r.geometry, t, r.edge) })
-      if (prev.emblem !== n.emblem) load(n.emblem, t => { coinTop.map = t; coinTop.needsUpdate = true })
+      if (prev.blade !== n.blade) load(`parts/blade-${n.blade}`, t => { if (props.blade !== n.blade) return; const r = ringGeometry(t, BLADE_D, 0.012); remesh(blade, r.geometry, t, r.edge) })
+      if (prev.disc !== n.disc) load(`parts/disc-${n.disc}`, t => { if (props.disc !== n.disc) return; const r = ringGeometry(t, DISC_D, 0.01); remesh(disc, r.geometry, t, r.edge) })
+      if (prev.emblem !== n.emblem) load(n.emblem, t => { if (props.emblem !== n.emblem) return; coinTop.map = t; coinTop.needsUpdate = true })
       if (prev.tip !== n.tip) load(`parts/tip-${n.tip}`, t => {
+        if (props.tip !== n.tip) return
         const { geometry, radius } = tipGeometry(t, TIP_H)
         remesh(tip, geometry, t)
         core.geometry.dispose()
@@ -147,6 +148,7 @@ export default function TopViewer(p: ViewerProps) {
         for (const mm of (Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) as MeshStandardMaterial[]) mm.dispose()
       })
       renderer.dispose()
+      renderer.forceContextLoss()
       renderer.domElement.remove()
     }
   }, [])

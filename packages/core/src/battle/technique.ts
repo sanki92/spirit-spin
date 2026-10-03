@@ -58,14 +58,14 @@ export function tickTechnique(t: TopState, spec: TopSpec, foe: TopState): void {
   if (t.burnTicks > 0) { t.burnTicks--; t.spin -= X.burnDrain / 60 }
   if (t.pullTicks > 0) {
     t.pullTicks--
-    if (t.pullTicks === 0 && spec.ultimate) {
+    if (t.pullTicks <= 0 && spec.ultimate) {
       const d = Math.sqrt(foe.x * foe.x + foe.y * foe.y)
       if (d > 1e-3) { foe.vx += (foe.x / d) * X.fling; foe.vy += (foe.y / d) * X.fling }
     }
   }
   if (t.phaseTicks > 0) {
     t.phaseTicks--
-    if (t.phaseTicks === 0) {
+    if (t.phaseTicks <= 0) {
       behind(t, foe, 0.26)
       t.strikeArmed = true
       t.strikeMul = X.stepMul
@@ -74,7 +74,7 @@ export function tickTechnique(t: TopState, spec: TopSpec, foe: TopState): void {
       if (t.steps > 0) t.phaseTicks = X.phase
     }
   }
-  if (spec.beastId === 'nagara' && t.spiritTicks > 0 && foe.pullTicks === 0) {
+  if (spec.beastId === 'nagara' && t.spiritTicks > 0 && foe.pullTicks <= 0) {
     t.spin = Math.min(1.1, t.spin + T.tideRegen / 60)
     foe.spin -= X.tideDrain / 60
   }

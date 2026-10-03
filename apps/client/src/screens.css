@@ -460,7 +460,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .boss-talk-head strong { display: block; font-family: 'Bebas Neue'; font-size: 24px; letter-spacing: 1px; color: var(--gold); line-height: 1; }
 .boss-talk-head span { font-size: 13px; color: var(--muted); }
 .boss-talk-line { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; color: var(--text); animation: lineIn 0.25s ease-out both; min-height: 2.7em; }
-.boss-talk-hint { justify-self: end; font-size: 13px; color: var(--muted); animation: pulse 0.9s ease-in-out infinite alternate; }
+.boss-talk-hint { justify-self: end; min-height: 40px; padding: 0 12px; border: 0; background: none; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; animation: pulse 0.9s ease-in-out infinite alternate; }
 .boss-talk-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; }
 .boss-talk-actions .slash { flex: 1; }
 .ghost-btn { min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: var(--chrome); font-weight: 700; font-size: 16px; cursor: pointer; }

@@ -25,10 +25,10 @@ button { font-family: inherit; }
 .fine { color: var(--muted); font-size: 14px; text-align: center; max-width: 300px; }
 
 .ready-screen { justify-content: space-between; padding: calc(24px + var(--safe-top)) 16px calc(32px + var(--safe-bottom)); }
-.ready-screen .logo { width: min(86vw, 520px); filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.6)); }
+.ready-screen .logo { width: min(86vw, 520px); max-height: 24vh; object-fit: contain; filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.6)); }
 .ready-body { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .ready-body .fine { color: var(--chrome); background: rgba(7, 11, 31, 0.78); padding: 8px 14px; border-radius: 10px; }
-.ready-art { width: min(52vw, 260px); }
+.ready-art { width: min(52vw, 260px); max-height: 36vh; object-fit: contain; }
 
 .battle-screen { background: #05081a; }
 .game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

@@ -88,7 +88,7 @@ export class Game {
       summonTex(beastArt[1], builds[1].beastId),
     ])
     const shock = await tex('vfx/shockwave', 'vfx/impact-flash')
-    if (this.tops) for (const t of this.tops) this.stage.world.remove(t.group)
+    if (this.tops) for (const t of this.tops) { this.stage.world.remove(t.group); t.dispose() }
     if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
     this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
     this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color)]
@@ -183,7 +183,7 @@ export class Game {
 
   finishCam(loser: 0 | 1 | null, done: () => void): boolean {
     this.record()
-    if (this.hist.length < 24) { done(); return false }
+    if (this.hist.length < 24) return false
     this.cine = { frames: [...this.hist], t: 0, dur: 2600, fired: 0, impact: false, hold: 0, loser, done }
     this.slowUntil = 0
     return true

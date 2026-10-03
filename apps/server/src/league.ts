@@ -59,15 +59,17 @@ export async function issueGhostMatch(db: Db, o: { playerId: string; opponentId:
   return { matchId: row!.id, seed, pool: o.pool, deck: o.spec.deck, opponent: { name: o.spec.ghostName, rating: o.spec.ghostRating, deck: o.spec.ghostDeck, rips: o.spec.ghostRips, brain: o.spec.brain } }
 }
 
+export function cleanDeck(d: unknown): TopBuild[] | null {
+  const r = z.array(Build).min(1).safeParse(d)
+  if (!r.success) return null
+  try { r.data.forEach(b => assembleTop(b)); return r.data } catch { return null }
+}
+
 export async function ghostOf(db: Db, id: string, fallbackDeck: TopBuild[]) {
   const st = await ensureStats(db, id)
   const [p] = await db.select({ name: players.name, save: players.save }).from(players).where(eq(players.id, id)).limit(1)
   const loadout = (p?.save as { loadout?: TopBuild } | undefined)?.loadout
-  const valid = (d: unknown): d is TopBuild[] => {
-    if (!Array.isArray(d) || !d.length) return false
-    try { d.forEach(b => assembleTop(b as TopBuild)); return true } catch { return false }
-  }
-  const deck = valid(st.deck) ? st.deck : valid(loadout ? [loadout] : null) ? [loadout!] : fallbackDeck
+  const deck = cleanDeck(st.deck) ?? cleanDeck(loadout ? [loadout] : null) ?? fallbackDeck
   return { name: p?.name ?? 'Spinner', deck, rips: st.rips as RipView[], aggression: st.aggression, rating: st.rating }
 }
 

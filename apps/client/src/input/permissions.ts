@@ -8,7 +8,7 @@ export async function requestAll(audio: AudioContext, wantMic: boolean): Promise
   const [motionState] = await Promise.all([
     motionReq ? motionReq().catch(() => 'denied' as const) : Promise.resolve('granted' as const),
     orientReq ? orientReq().catch(() => 'denied' as const) : Promise.resolve('granted' as const),
-    audio.resume().catch(() => undefined),
+    Promise.race([audio.resume().catch(() => undefined), new Promise(r => setTimeout(r, 1500))]),
   ])
   let mic: Promise<MediaStream | null> = Promise.resolve(null)
   if (wantMic && navigator.mediaDevices?.getUserMedia) {

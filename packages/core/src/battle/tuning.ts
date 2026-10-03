@@ -44,7 +44,7 @@ export const T = {
   spinBase: 0.4, spinFromRpm: 0.6, overspinBonus: 0.1,
   tech: {
     stun: 45, stunUlt: 84, stunCruise: 0.35, stunGrip: 2.2, fangMul: 2.4,
-    shield: 214.9599, reflectUlt: 1.45,
+    shield: 215, reflectUlt: 1.45,
     tideDrain: 0, tideSlow: 0.92, tidePush: 0.9,
     stealUlt: 2, phoenixDash: 0.539, burnTicks: 120, burnDrain: 0.12,
     pull: 120, pullUlt: 180, pullForce: 4.1061, pullClash: 1.5, pullMass: 1.4367, fling: 1.6,

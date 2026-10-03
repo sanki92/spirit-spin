@@ -1,10 +1,10 @@
 import { BLADES, BOSSES, CHAPTERS, DISCS, TIPS, towerFloor, TOWER_FLOORS, type BossId, type Chapter } from '@spirit/core'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
 import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
-import { Img, Screen, Slash, TopBar } from '../kit'
+import { Img, Screen, TopBar } from '../kit'
 
 const face = (b: BossId, mood: string) => `characters/bosses/${b}/${mood}`
 const full = (b: BossId) => (b === 'kaze' ? 'characters/rival-full' : `characters/bosses/${b}-full`)
@@ -18,8 +18,10 @@ function BossTalk({ chapter, mode, onDone, onCancel }: { chapter: Chapter; mode:
   const b = BOSSES[chapter.boss]
   const mood = mode === 'intro' ? (i === lines.length - 1 ? 'shout' : 'confident') : i === 0 ? 'defeated' : 'respect'
   const next = () => { rt.sound.play('ui', { volume: 0.5 }); if (!last) setI(i + 1) }
+  const focus = useRef<HTMLButtonElement>(null)
+  useEffect(() => { focus.current?.focus() }, [last])
   return (
-    <div className={`boss-talk ${mode}`} role="dialog" aria-modal="true" aria-label={`${b.name} speaks`} onClick={last ? undefined : next}>
+    <div className={`boss-talk ${mode}`} role="dialog" aria-modal="true" aria-label={`${b.name} speaks`} onClick={last ? undefined : next} onKeyDown={e => { if (e.key === 'Escape' && onCancel) onCancel() }}>
       <Img id={full(chapter.boss)} className="boss-talk-art" eager />
       <div className="boss-talk-box">
         <div className="boss-talk-head">
@@ -30,9 +32,9 @@ function BossTalk({ chapter, mode, onDone, onCancel }: { chapter: Chapter; mode:
         {last ? (
           <div className="boss-talk-actions">
             {mode === 'intro' && onCancel && <button className="ghost-btn" onClick={onCancel}>Not yet</button>}
-            <Slash tone="gold" onClick={onDone}>{mode === 'intro' ? 'Battle!' : 'Continue'}</Slash>
+            <button ref={focus} className="slash gold" onClick={onDone}><span>{mode === 'intro' ? 'Battle!' : 'Continue'}</span></button>
           </div>
-        ) : <span className="boss-talk-hint">Tap to continue</span>}
+        ) : <button ref={focus} className="boss-talk-hint" onClick={e => { e.stopPropagation(); next() }}>Tap to continue</button>}
       </div>
     </div>
   )

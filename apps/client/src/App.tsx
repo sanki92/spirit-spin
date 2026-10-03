@@ -5,7 +5,7 @@ import { setHaptics } from './input/haptics'
 import { useRuntime } from './runtime'
 import { currentRoute, useNav, type Route } from './state/nav'
 import { storyBuild, useSave } from './state/save'
-import { settleMatch } from './state/settle'
+import { reconcileStory, settleMatch } from './state/settle'
 import type { ControllerFactory } from './ui/screens/BattleScreen'
 import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
@@ -51,6 +51,7 @@ export function App() {
     if (!s.starter) nav.reset({ k: 'starter' })
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
     else {
+      reconcileStory()
       nav.reset({ k: 'home' })
       const q = new URLSearchParams(location.search)
       const join = q.get('join'), cup = q.get('cup')
