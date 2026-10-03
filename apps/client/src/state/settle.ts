@@ -1,8 +1,8 @@
-import { BLADES, DISCS, SHARDS, TIPS, STARTER_BEASTS, towerFloor, type BattleSummary, type BeastId, type BossId, type Change } from '@spirit/core'
+import { BLADES, DISCS, LEVEL_UP_SHARDS, levelForXp, SHARDS, TIPS, winStreakBonus, STARTER_BEASTS, towerFloor, type BattleSummary, type BeastId, type BossId, type Change } from '@spirit/core'
 import type { MatchResult } from '../game/BattleController'
 import { todayKey, useSave } from './save'
 
-export interface Settlement { coins: number; xp: number; changes: Change[]; unlocked: BeastId | null; part: string | null; shards: number }
+export interface Settlement { coins: number; xp: number; changes: Change[]; unlocked: BeastId | null; part: string | null; shards: number; streak: number; streakCoins: number; levelUps: number }
 
 export function settleMatch(result: MatchResult, floor: number | null, boss: BossId | null, opponentName: string): Settlement {
   const save = useSave.getState()
@@ -12,6 +12,7 @@ export function settleMatch(result: MatchResult, floor: number | null, boss: Bos
     spiritCalls: result.spiritCalls, aggression: result.aggression, boss, opponent: opponentName,
   }
   const firstClear = won && floor !== null && floor > save.tower
+  const levelBefore = levelForXp(save.xp)
   const r = save.recordMatch({ won, perfectRips: result.perfectRips, spiritCalls: result.spiritCalls, finishes: result.finishes, comeback: result.comeback, bestRpm: result.bestRpm }, summary, floor)
   let unlocked: BeastId | null = null, part: string | null = null, bonus = 0, shards = 0
   if (won && useSave.getState().dailyWin !== todayKey()) {
@@ -39,8 +40,13 @@ export function settleMatch(result: MatchResult, floor: number | null, boss: Bos
       }
     }
   }
+  const streak = won ? (useSave.getState().winStreak ?? 0) + 1 : 0
+  const streakCoins = won ? Math.round(r.coins * winStreakBonus(streak)) : 0
+  const levelUps = Math.max(0, levelForXp(useSave.getState().xp) - levelBefore)
+  shards += levelUps * LEVEL_UP_SHARDS
+  useSave.setState(s => ({ winStreak: streak, coins: s.coins + streakCoins }))
   if (shards) useSave.getState().addShards(shards)
-  return { coins: r.coins + bonus, xp: r.xp, changes: r.changes, unlocked, part, shards }
+  return { coins: r.coins + bonus + streakCoins, xp: r.xp, changes: r.changes, unlocked, part, shards, streak, streakCoins, levelUps }
 }
 
 export function reconcileStory(): void {

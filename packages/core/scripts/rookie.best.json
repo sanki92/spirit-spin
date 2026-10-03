@@ -1,0 +1,63 @@
+{
+ "score": 5.2,
+ "params": {
+  "voltfang": {
+   "atk": 5,
+   "def": 1,
+   "sr": 2,
+   "drive": 0.7,
+   "decay": 1.14,
+   "disc": "compact"
+  },
+  "aegiron": {
+   "atk": 2,
+   "def": 5,
+   "sr": 2,
+   "drive": 0.9,
+   "decay": 1.08,
+   "disc": "rim"
+  },
+  "nagara": {
+   "atk": 1,
+   "def": 3,
+   "sr": 5,
+   "drive": 0.8,
+   "decay": 1.18,
+   "disc": "standard"
+  },
+  "agnyx": {
+   "atk": 4,
+   "def": 3,
+   "sr": 2,
+   "drive": 0.9,
+   "decay": 1.14,
+   "disc": "standard"
+  }
+ },
+ "matrix": [
+  [
+   50,
+   48,
+   45,
+   90
+  ],
+  [
+   57,
+   50,
+   57,
+   50
+  ],
+  [
+   63,
+   43,
+   50,
+   60
+  ],
+  [
+   20,
+   55,
+   45,
+   50
+  ]
+ ]
+}

@@ -1,5 +1,5 @@
-import { BOSSES, chapterOf, COSMETICS, STARTER_BUILDS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
-import { useEffect, useMemo } from 'react'
+import { BLADES, BOSSES, chapterOf, COSMETICS, DAILY_TRACK, DISCS, loginState, ROOKIE_BUILDS, TIPS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
+import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
 import { useNav } from '../../state/nav'
@@ -37,7 +37,7 @@ export function Home() {
   }, [beastId, today, ai])
   useEffect(() => {
     const st = useSave.getState()
-    const b = st.loadout ?? (st.starter ? STARTER_BUILDS[st.starter] : null)
+    const b = st.loadout ?? (st.starter ? ROOKIE_BUILDS[st.starter] : null)
     if (!b) return
     const idle = (window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1200))
     idle(() => void import('../TopViewer').then(m => m.prewarmTop(b)).catch(() => undefined))
@@ -50,6 +50,15 @@ export function Home() {
   const quests = s.quests.list
   const doneCount = quests.filter(q => s.quests.claimed.includes(q.id)).length
   const play = () => (first ? nav.push({ k: 'battle', opponent: towerFloor(1).opponent, floor: 1, boss: null, opponentName: 'Floor 1 Spinner' }) : nav.push({ k: 'tower' }))
+  const nextUnlock = (() => {
+    for (let f = s.tower + 1; f <= TOWER_FLOORS && f <= s.tower + 8; f++) {
+      const r = towerFloor(f).reward
+      if (r.beast) return { floors: f - s.tower, label: `${r.beast[0]!.toUpperCase()}${r.beast.slice(1)} joins you`, img: `beasts/${r.beast}/emblem` }
+      if (r.part) { const t = r.part.kind === 'blade' ? BLADES : r.part.kind === 'disc' ? DISCS : TIPS; return { floors: f - s.tower, label: `${t[r.part.id]?.name ?? r.part.id} ${r.part.kind}`, img: `parts/${r.part.kind}-${r.part.id}` } }
+      if (r.unlocksBeastSlot) return { floors: f - s.tower, label: 'A new spirit beast', img: null }
+    }
+    return null
+  })()
   const chapterDone = Math.max(0, Math.min(chapter.floors[1], s.tower) - chapter.floors[0] + 1)
   return (
     <Screen className="home2" bg="backgrounds/main-menu">
@@ -92,6 +101,14 @@ export function Home() {
         <span className="h2-story-go">Battle</span>
       </button>
 
+      {!first && <DailyTrack />}
+      {!first && nextUnlock && (
+        <button className="h2-next" onClick={() => nav.push({ k: 'tower' })}>
+          {nextUnlock.img && <Img id={nextUnlock.img} />}
+          <span><small>{nextUnlock.floors === 1 ? 'Next floor unlocks' : `${nextUnlock.floors} floors to`}</small><strong>{nextUnlock.label}</strong></span>
+          <i className="h2-next-bar"><i style={{ transform: `scaleX(${Math.max(0.08, 1 - (nextUnlock.floors - 1) / 6)})` }} /></i>
+        </button>
+      )}
       {!first && (
         <nav className="h2-modes" aria-label="Play with others">
           <button onClick={() => nav.push({ k: 'friends' })} aria-label="Live, battle a friend"><Img id="ui/icons/live" /><strong>Live</strong><span>With a friend</span></button>
@@ -126,5 +143,31 @@ export function Home() {
         <button onClick={() => nav.push({ k: 'journal' })}><Img id="ui/icons/journal" /><span>Journal</span></button>
       </nav>
     </Screen>
+  )
+}
+
+function DailyTrack() {
+  const s = useSave()
+  const st = loginState(s.login?.last ?? '', s.login?.streak ?? 0, todayKey())
+  const [got, setGot] = useState<{ coins: number; shards: number } | null>(null)
+  const claim = () => setGot(s.claimDaily())
+  return (
+    <section className="h2-daily panel" aria-label="Daily login rewards">
+      <h2 className="section-title">Daily rewards<small>{st.canClaim ? `Day ${st.day} ready` : got ? 'Claimed' : 'Come back tomorrow'}</small></h2>
+      <ol>
+        {DAILY_TRACK.map((r, i) => {
+          const d = i + 1, done = d < st.day || (!st.canClaim && d === st.day), today = st.canClaim && d === st.day
+          return (
+            <li key={d} className={`${done ? 'done' : ''} ${today ? 'today' : ''} ${d === 7 ? 'big' : ''}`}>
+              <span>Day {d}</span>
+              <Img id={r.shards && !r.coins ? 'ui/icon-spirit-shard' : 'ui/icon-coin'} />
+              <b>{r.coins ? r.coins : r.shards}{r.coins && r.shards ? '+' : ''}</b>
+            </li>
+          )
+        })}
+      </ol>
+      {st.canClaim && <button className="cta gold h2-daily-claim" onClick={claim}><span>Claim day {st.day}</span></button>}
+      {got && <p className="h2-daily-got" role="status">+{got.coins ? `${got.coins} coins` : ''}{got.coins && got.shards ? ' and ' : ''}{got.shards ? `${got.shards} shards` : ''}</p>}
+    </section>
   )
 }

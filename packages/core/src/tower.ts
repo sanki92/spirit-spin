@@ -1,5 +1,5 @@
 import type { BotBrain } from './bot'
-import type { BeastId, TopBuild } from './parts'
+import { ROOKIE_BUILDS, STARTER_BEASTS, type BeastId, type TopBuild } from './parts'
 
 export type BossId = 'kaze' | 'mira' | 'brick' | 'vex' | 'ren'
 
@@ -14,6 +14,7 @@ export const BOSSES: Record<BossId, Boss> = {
 }
 
 const BOSS_AT: Record<number, BossId> = { 10: 'kaze', 20: 'mira', 30: 'brick', 40: 'vex', 50: 'ren' }
+const ROOKIES = STARTER_BEASTS.map(b => ({ blade: ROOKIE_BUILDS[b].bladeId, disc: ROOKIE_BUILDS[b].discId, tip: ROOKIE_BUILDS[b].tipId, beast: b }))
 const ROTATION: { blade: string; disc: string; tip: string; beast: BeastId }[] = [
   { blade: 'fang', disc: 'standard', tip: 'flat', beast: 'voltfang' },
   { blade: 'bastion', disc: 'heavy', tip: 'ball', beast: 'aegiron' },
@@ -28,10 +29,12 @@ const ROTATION: { blade: string; disc: string; tip: string; beast: BeastId }[] =
   { blade: 'eclipse', disc: 'gyro', tip: 'spike', beast: 'umbrax' },
 ]
 export const PART_DROPS: Record<number, { kind: 'blade' | 'disc' | 'tip'; id: string }> = {
-  3: { kind: 'blade', id: 'guard' }, 5: { kind: 'tip', id: 'rush' }, 7: { kind: 'disc', id: 'feather' }, 10: { kind: 'disc', id: 'compact' },
-  13: { kind: 'blade', id: 'spiral' }, 15: { kind: 'blade', id: 'saw' }, 17: { kind: 'tip', id: 'wide' }, 20: { kind: 'tip', id: 'orb' },
+  2: { kind: 'tip', id: 'flat' }, 3: { kind: 'blade', id: 'guard' }, 4: { kind: 'blade', id: 'ember' }, 5: { kind: 'tip', id: 'rush' }, 6: { kind: 'tip', id: 'needle' }, 7: { kind: 'disc', id: 'feather' },
+  8: { kind: 'disc', id: 'compact' }, 9: { kind: 'tip', id: 'semi' }, 10: { kind: 'disc', id: 'orbit' }, 11: { kind: 'tip', id: 'ball' }, 12: { kind: 'blade', id: 'fang' },
+  13: { kind: 'blade', id: 'spiral' }, 14: { kind: 'blade', id: 'bastion' }, 15: { kind: 'blade', id: 'saw' }, 16: { kind: 'blade', id: 'crescent' }, 17: { kind: 'tip', id: 'wide' },
+  18: { kind: 'blade', id: 'wing' }, 19: { kind: 'blade', id: 'pebble' }, 20: { kind: 'tip', id: 'orb' },
 23: { kind: 'blade', id: 'gale' }, 25: { kind: 'blade', id: 'dome' }, 27: { kind: 'tip', id: 'spike' },
-  30: { kind: 'disc', id: 'orbit' }, 33: { kind: 'blade', id: 'eclipse' }, 35: { kind: 'disc', id: 'gyro' }, 37: { kind: 'blade', id: 'prism' },
+  30: { kind: 'disc', id: 'heavy' }, 33: { kind: 'blade', id: 'eclipse' }, 35: { kind: 'disc', id: 'gyro' }, 37: { kind: 'blade', id: 'prism' },
   40: { kind: 'blade', id: 'halo' }, 43: { kind: 'tip', id: 'grip' }, 45: { kind: 'disc', id: 'titan' }, 47: { kind: 'blade', id: 'fury' },
   50: { kind: 'blade', id: 'tempest' },
 }
@@ -55,7 +58,7 @@ export function towerFloor(n: number): TowerFloor {
     const b = BOSSES[bossId]
     return { floor: n, opponent: b.build, brain: b.brain, boss: bossId, reward }
   }
-  const pool = ROTATION.slice(0, Math.min(ROTATION.length, 4 + Math.floor(n / 12)))
+  const pool = n < 10 ? ROOKIES : ROTATION.slice(0, Math.min(ROTATION.length, 4 + Math.floor(n / 12)))
   const r = pool[(n * 7) % pool.length] as (typeof ROTATION)[number]
   const k = (n - 1) / (TOWER_FLOORS - 1)
   const brain: BotBrain = { skill: 0.15 + 0.78 * k ** 0.85, aggression: 0.35 + ((n * 37) % 50) / 100, reaction: Math.round(90 - 78 * k) }

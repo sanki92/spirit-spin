@@ -52,6 +52,10 @@ export const BLADES: Record<string, Blade> = Object.fromEntries([
   blade('eclipse', 'Eclipse Shard', 5, 4, 7, 'rare'),
   blade('spiral', 'Thunder Spiral', 9, 3, 4, 'rare'),
   blade('guard', 'Moon Guard', 3, 7, 6, 'common'),
+  blade('spark', 'Spark Edge', 5, 1, 2, 'common'),
+  blade('pebble', 'Pebble Shell', 2, 5, 2, 'common'),
+  blade('ripple', 'Ripple Veil', 1, 3, 5, 'common'),
+  blade('ember', 'Ember Wing', 4, 4, 3, 'common'),
 ].map(b => [b.id, b]))
 
 export const DISCS: Record<string, Disc> = Object.fromEntries([
@@ -75,6 +79,10 @@ export const TIPS: Record<string, Tip> = Object.fromEntries([
   tip('spike', 'Spike', 'needle', 0.9, 0.88, 'rare'),
   tip('grip', 'Grip Flat', 'flat', 1.1, 1.0, 'epic'),
   tip('wide', 'Wide Ball', 'ball', 0.95, 0.97, 'rare'),
+  tip('rookie-flat', 'Rookie Flat', 'flat', 0.7, 1.14, 'common'),
+  tip('rookie-ball', 'Rookie Ball', 'ball', 0.9, 1.08, 'common'),
+  tip('rookie-needle', 'Rookie Needle', 'needle', 0.8, 1.18, 'common'),
+  tip('rookie-semi', 'Rookie Semi', 'semi', 0.85, 1.14, 'common'),
 ].map(t => [t.id, t]))
 
 export const STARTER_BUILDS: Record<BeastId, TopBuild> = {
@@ -82,6 +90,15 @@ export const STARTER_BUILDS: Record<BeastId, TopBuild> = {
   aegiron: { bladeId: 'bastion', discId: 'heavy', tipId: 'ball', beastId: 'aegiron' },
   nagara: { bladeId: 'crescent', discId: 'rim', tipId: 'needle', beastId: 'nagara' },
   agnyx: { bladeId: 'wing', discId: 'heavy', tipId: 'semi', beastId: 'agnyx' },
+  zephyra: { bladeId: 'gale', discId: 'standard', tipId: 'needle', beastId: 'zephyra' },
+  umbrax: { bladeId: 'eclipse', discId: 'gyro', tipId: 'semi', beastId: 'umbrax' },
+}
+
+export const ROOKIE_BUILDS: Record<BeastId, TopBuild> = {
+  voltfang: { bladeId: 'spark', discId: 'compact', tipId: 'rookie-flat', beastId: 'voltfang' },
+  aegiron: { bladeId: 'pebble', discId: 'rim', tipId: 'rookie-ball', beastId: 'aegiron' },
+  nagara: { bladeId: 'ripple', discId: 'standard', tipId: 'rookie-needle', beastId: 'nagara' },
+  agnyx: { bladeId: 'ember', discId: 'heavy', tipId: 'rookie-semi', beastId: 'agnyx' },
   zephyra: { bladeId: 'gale', discId: 'standard', tipId: 'needle', beastId: 'zephyra' },
   umbrax: { bladeId: 'eclipse', discId: 'gyro', tipId: 'semi', beastId: 'umbrax' },
 }

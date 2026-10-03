@@ -8,6 +8,7 @@ import { recover, recoveryCode } from '../../state/sync'
 import { Axis, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
+import { PartSheet } from '../PartSheet'
 
 export function Journal() {
   const s = useSave()
@@ -101,6 +102,7 @@ const partName = (kind: 'blade' | 'disc' | 'tip', id: string) => (kind === 'blad
 export function Collection() {
   const s = useSave()
   const [tab, setTab] = useState<'beasts' | 'blades' | 'discs' | 'tips'>('beasts')
+  const [sheet, setSheet] = useState<{ kind: 'blade' | 'disc' | 'tip'; id: string } | null>(null)
   const kind = tab === 'beasts' ? null : (tab.slice(0, -1) as 'blade' | 'disc' | 'tip')
   const all = tab === 'beasts' ? (Object.keys(BEASTS) as BeastId[]) : Object.keys(tab === 'blades' ? BLADES : tab === 'discs' ? DISCS : TIPS)
   const has = (id: string) => (tab === 'beasts' ? id in s.beasts : s.owned[tab].includes(id))
@@ -141,16 +143,17 @@ export function Collection() {
           {all.map(id => {
             const own = has(id), part = (kind === 'blade' ? BLADES : kind === 'disc' ? DISCS : TIPS)[id]!
             return (
-              <article key={id} className={`c2-part ${part.rarity} ${own ? '' : 'locked'}`}>
+              <button key={id} className={`c2-part ${part.rarity} ${own ? '' : 'locked'}`} onClick={() => setSheet({ kind, id })} aria-label={`${part.name}, ${own ? 'owned' : partHint(kind, id)}. Show details`}>
                 <Img id={`parts/${kind}-${id}`} />
                 <strong>{part.name}</strong>
                 <span className={`rarity ${part.rarity}`}>{part.rarity}</span>
                 {!own && <em>{partHint(kind, id)}</em>}
-              </article>
+              </button>
             )
           })}
         </div>
       )}
+      {sheet && <PartSheet kind={sheet.kind} id={sheet.id} onClose={() => setSheet(null)} />}
     </Screen>
   )
 }
@@ -175,6 +178,7 @@ export function Shop() {
   const items = useMemo(() => shopRotation(day, 6, tower), [day, tower, refresh])
   const [msg, setMsg] = useState<string | null>(null)
   const [tab, setTab] = useState<'parts' | 'cosmetics'>('parts')
+  const [sheet, setSheet] = useState<(typeof items)[number] | null>(null)
   const nav = useNav()
   const owns = (kind: 'blade' | 'disc' | 'tip', id: string) => s.owned[`${kind}s`].includes(id)
   const buy = (kind: 'blade' | 'disc' | 'tip', id: string, price: number) => {
@@ -198,15 +202,16 @@ export function Shop() {
       <p className="s2-note">Clearing Tower floors adds their story parts to the shop.</p>
       <div className="shop-grid">
         {items.map(it => (
-          <div key={it.id} className={`shop-item ${it.rarity}`}>
+          <button key={it.id} className={`shop-item ${it.rarity}`} onClick={() => setSheet(it)} aria-label={`${partName(it.kind, it.partId)}, ${it.rarity} ${it.kind}, ${owns(it.kind, it.partId) ? 'owned' : `${it.price} coins`}. Show details`}>
             <Img id={`parts/${it.kind}-${it.partId}`} className="shop-img" />
             <strong>{partName(it.kind, it.partId)}</strong>
             <span><b className={`rarity ${it.rarity}`}>{it.rarity}</b> {it.kind}</span>
-            {owns(it.kind, it.partId) ? <em>Owned</em> : <button onClick={() => buy(it.kind, it.partId, it.price)}><Img id="ui/icon-coin" />{it.price}</button>}
-          </div>
+            {owns(it.kind, it.partId) ? <em>Owned</em> : <i className="shop-price"><Img id="ui/icon-coin" />{it.price}</i>}
+          </button>
         ))}
       </div>
       </>)}
+      {sheet && <PartSheet kind={sheet.kind} id={sheet.partId} price={sheet.price} onClose={() => setSheet(null)} onBuy={() => buy(sheet.kind, sheet.partId, sheet.price)} />}
       {msg && <p className="toast pop" onAnimationEnd={() => setTimeout(() => setMsg(null), 2200)}>{msg}</p>}
     </Screen>
   )

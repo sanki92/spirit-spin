@@ -129,6 +129,12 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
         </div>
       </section>
 
+      {(st.streak >= 2 || st.levelUps > 0) && (
+        <div className="r2-bonus">
+          {st.streak >= 2 && <span>Win streak {st.streak} · +{st.streakCoins} coins</span>}
+          {st.levelUps > 0 && <span className="lvl">Level up! +{st.levelUps * 10} shards</span>}
+        </div>
+      )}
       <p className="r2-stats">
         <span>Best rip <b>{result.bestRpm.toLocaleString()}</b> RPM</span>
         {result.perfectRips > 0 && <span><b>{result.perfectRips}</b> perfect</span>}

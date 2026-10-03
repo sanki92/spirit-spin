@@ -1,4 +1,4 @@
-import { assembleTop, STARTER_BEASTS, TECHNIQUES, scoreRip, STARTER_BUILDS, type BeastId } from '@spirit/core'
+import { assembleTop, STARTER_BEASTS, TECHNIQUES, scoreRip, ROOKIE_BUILDS, type BeastId } from '@spirit/core'
 import { useEffect, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
@@ -51,7 +51,7 @@ export function StarterSelect() {
   const nav = useNav()
   const choose = useSave(s => s.chooseStarter)
   const [pick, setPick] = useState<BeastId>('voltfang')
-  const spec = assembleTop(STARTER_BUILDS[pick])
+  const spec = assembleTop(ROOKIE_BUILDS[pick])
   const info = BEASTS[pick]
   return (
     <Screen className="starter" bg="backgrounds/main-menu">
@@ -79,7 +79,7 @@ export function StarterSelect() {
         ))}
       </div>
       <Slash tone="gold" onClick={() => { choose(pick); nav.replace({ k: 'safety' }) }}>Partner with {info.name}</Slash>
-      <p className="fine">You'll earn the other three in the Spirit Tower.</p>
+      <p className="fine">Every partner starts as a rookie. Win Tower floors, earn parts and upgrade to grow stronger. You'll meet the other three in the Spirit Tower.</p>
     </Screen>
   )
 }

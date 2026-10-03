@@ -102,3 +102,20 @@ export function progressBuild(build: TopBuild, p: Progress, beast: Pick<BeastSta
   const lv = (k: PartKind, id: string) => p.partLevels[partKey(k, id)] ?? 1
   return { ...build, levels: { blade: lv('blade', build.bladeId), disc: lv('disc', build.discId), tip: lv('tip', build.tipId) }, kit: kitFor(build.beastId, p, beast) }
 }
+
+export interface DailyReward { coins?: number; shards?: number }
+export const DAILY_TRACK: DailyReward[] = [{ coins: 60 }, { shards: 10 }, { coins: 90 }, { shards: 15 }, { coins: 130 }, { shards: 25 }, { coins: 200, shards: 60 }]
+export const LEVEL_UP_SHARDS = 10
+export const winStreakBonus = (streak: number) => Math.min(0.5, Math.max(0, streak - 1) * 0.1)
+
+const dayBefore = (key: string) => {
+  const d = new Date(`${key}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+export function loginState(last: string, streak: number, today: string): { day: number; canClaim: boolean } {
+  if (last === today) return { day: Math.max(1, streak), canClaim: false }
+  const continues = last !== '' && last === dayBefore(today) && streak < DAILY_TRACK.length
+  return { day: continues ? streak + 1 : 1, canClaim: true }
+}

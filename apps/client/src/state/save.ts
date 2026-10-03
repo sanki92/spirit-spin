@@ -1,5 +1,5 @@
 import {
-  applyBattle, applyQuestProgress, MAX_PART_LEVEL, partKey, progressBuild, SHARDS, TRAIT_COST, upgradeCost, type PartKind, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, dailyQuests, levelForXp, matchRewards, newBeast, STARTER_BUILDS,
+  applyBattle, applyQuestProgress, MAX_PART_LEVEL, partKey, progressBuild, SHARDS, TRAIT_COST, upgradeCost, type PartKind, COSMETICS, FREE_COSMETICS, PASS, PASS_TIERS, passTier, dailyQuests, levelForXp, matchRewards, newBeast, ROOKIE_BUILDS, DAILY_TRACK, loginState,
   type BattleSummary, type BeastId, type BeastState, type Change, type MatchSummary, type Mood, type Quest, type TopBuild,
 } from '@spirit/core'
 import { create } from 'zustand'
@@ -36,6 +36,8 @@ export interface SaveData {
   traits: BeastId[]
   dailyWin: string
   outros: number[]
+  login: { last: string; streak: number }
+  winStreak: number
 }
 
 export interface SaveActions {
@@ -60,6 +62,7 @@ export interface SaveActions {
   addShards(n: number): void
   upgradePart(kind: PartKind, id: string): boolean
   buyTrait(id: BeastId): boolean
+  claimDaily(): { coins: number; shards: number } | null
   reset(): void
 }
 
@@ -89,6 +92,8 @@ const fresh = (): SaveData => ({
   traits: [],
   dailyWin: '',
   outros: [],
+  login: { last: '', streak: 0 },
+  winStreak: 0,
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])
@@ -99,7 +104,7 @@ export const useSave = create<SaveData & SaveActions>()(
       ...fresh(),
       setBirthYear: y => set({ birthYear: y }),
       chooseStarter: id => {
-        const b = STARTER_BUILDS[id]
+        const b = ROOKIE_BUILDS[id]
         set(s => ({
           starter: id,
           beasts: { ...s.beasts, [id]: newBeast(id, true) },
@@ -108,7 +113,7 @@ export const useSave = create<SaveData & SaveActions>()(
         }))
       },
       unlockBeast: id => {
-        const b = STARTER_BUILDS[id]
+        const b = ROOKIE_BUILDS[id]
         set(s =>
           s.beasts[id]
             ? s
@@ -198,6 +203,15 @@ export const useSave = create<SaveData & SaveActions>()(
         if (!s.beasts[id] || (s.traits ?? []).includes(id) || (s.shards ?? 0) < TRAIT_COST) return false
         set({ shards: s.shards - TRAIT_COST, traits: [...(s.traits ?? []), id] })
         return true
+      },
+      claimDaily: () => {
+        const s = get()
+        const today = todayKey()
+        const st = loginState(s.login?.last ?? '', s.login?.streak ?? 0, today)
+        if (!st.canClaim) return null
+        const r = DAILY_TRACK[st.day - 1]!
+        set({ coins: s.coins + (r.coins ?? 0), shards: (s.shards ?? 0) + (r.shards ?? 0), login: { last: today, streak: st.day } })
+        return { coins: r.coins ?? 0, shards: r.shards ?? 0 }
       },
       reset: () => set(fresh()),
     }),

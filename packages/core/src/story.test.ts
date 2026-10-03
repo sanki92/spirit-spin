@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assembleTop, STARTER_BUILDS } from './parts'
-import { CHAPTERS, chapterOf, kitFor, progressBuild, upgradeCost } from './story'
+import { CHAPTERS, chapterOf, DAILY_TRACK, kitFor, loginState, progressBuild, upgradeCost, winStreakBonus } from './story'
 import { towerFloor } from './tower'
 
 describe('story progression', () => {
@@ -27,6 +27,19 @@ describe('story progression', () => {
     expect(kitFor('voltfang', p, { trust: 30, awakened: null }).trait).toBe(true)
     expect(kitFor('aegiron', { ...p, traits: ['aegiron'] }, undefined).trait).toBe(true)
     expect(kitFor('voltfang', p, { trust: 0, awakened: 'storm' }).ultimate).toBe(true)
+  })
+  it('login track advances on consecutive days, restarts after a gap or after day 7, claims once a day', () => {
+    expect(loginState('', 0, '2026-10-04')).toEqual({ day: 1, canClaim: true })
+    expect(loginState('2026-10-03', 3, '2026-10-04')).toEqual({ day: 4, canClaim: true })
+    expect(loginState('2026-10-01', 3, '2026-10-04')).toEqual({ day: 1, canClaim: true })
+    expect(loginState('2026-10-04', 4, '2026-10-04')).toEqual({ day: 4, canClaim: false })
+    expect(loginState('2026-10-03', DAILY_TRACK.length, '2026-10-04').day).toBe(1)
+    expect(loginState('2026-12-31', 2, '2027-01-01').day).toBe(3)
+  })
+  it('win streak bonus grows 10% per extra win and caps at 50%', () => {
+    expect(winStreakBonus(1)).toBe(0)
+    expect(winStreakBonus(3)).toBeCloseTo(0.2)
+    expect(winStreakBonus(20)).toBe(0.5)
   })
   it('chapters cover floors 1-50 with their boss at the last floor', () => {
     for (const c of CHAPTERS) expect(towerFloor(c.floors[1]).boss).toBe(c.boss)
