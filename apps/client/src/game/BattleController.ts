@@ -117,6 +117,7 @@ export class BattleController {
   }
 
   protected countdown(t0: number): void {
+    this.game.skipCine(false)
     const hud = useHud.getState()
     this.swipe = null
     this.game.setBattle(null)
@@ -215,6 +216,7 @@ export class BattleController {
     switch (e.k) {
       case 'clash': {
         this.roundClashes++
+        g.noteClash(e.x, e.y, e.energy)
         const heavy = e.energy > 1.5
         g.fx.clash(e.x, e.y, e.energy, heavy ? g.elementOf(Math.random() < 0.5 ? 0 : 1) : null)
         s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3), rate: 0.9 + Math.random() * 0.25 })
@@ -267,25 +269,38 @@ export class BattleController {
     log('round', { round: this.match.round, outcome: o, seconds: +(bt.tick / 60).toFixed(1), clashes: this.roundClashes, tops: bt.tops.map(t => ({ spin: +t.spin.toFixed(2), shatter: +t.shatter.toFixed(2), out: t.out, x: +t.x.toFixed(2), y: +t.y.toFixed(2) })), avgTilt: this.tiltTicks ? +(this.tiltSum / this.tiltTicks).toFixed(2) : 0 })
     this.roundClashes = 0
     const b = g.battle!
-    if (o.finish === 'shatter' || (o.finish === 'spirit' && o.winner !== null && b.tops[(1 - o.winner) as 0 | 1].shattered)) {
-      const loser = b.tops[(1 - (o.winner ?? 0)) as 0 | 1]
-      g.fx.crack(loser.x, loser.y)
-    }
-    g.slowmo(0.25, 1300)
-    g.stage.shake(0.1)
-    s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish')
-    buzz([60, 40, 120])
+    const loser = o.winner === null ? null : ((1 - o.winner) as 0 | 1)
     g.spirits?.forEach(sp => sp.show(false))
     this.match = applyRound(this.match, o)
     this.announcer.say(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spin' : o.finish === 'spirit' ? 'spiritFinish' : 'draw', true)
     const [p, q] = this.match.scores
-    if (this.match.winner === null && Math.max(p, q) >= 3) this.later(2000, () => this.announcer.say('matchPoint', true))
     this.maxDeficit = Math.max(this.maxDeficit, q - p)
-    useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores })
-    this.later(2300, () => {
-      if (this.match.winner === null) return this.beginRound()
-      this.concludeMatch()
-    })
+    const impact = () => {
+      if (this.disposed) return
+      if (o.finish === 'shatter' || (o.finish === 'spirit' && loser !== null && b.tops[loser].shattered)) {
+        const l = b.tops[loser ?? 1]
+        g.fx.crack(l.x, l.y)
+      }
+      g.stage.shake(0.1)
+      s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish')
+      buzz([60, 40, 120])
+      useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores, cine: null })
+      if (this.match.winner === null && Math.max(p, q) >= 3) this.later(1800, () => this.announcer.say('matchPoint', true))
+      this.later(2300, () => {
+        if (this.match.winner === null) return this.beginRound()
+        this.concludeMatch()
+      })
+    }
+    const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
+    const decisive = o.finish === 'ringout' || o.finish === 'shatter' || o.finish === 'spirit' || (o.finish === 'spin' && this.match.winner !== null)
+    if (!still && decisive && g.finishCam(loser, impact)) {
+      s.play('clashHeavy', { volume: 0.5, rate: 0.55 })
+      useHud.getState().set({ phase: 'roundEnd', banner: null, cine: { skip: () => g.skipCine() } })
+      log('finishCam', { round: this.match.round, finish: o.finish })
+    } else {
+      g.slowmo(0.25, 1300)
+      impact()
+    }
   }
 
   protected concludeMatch(): void {

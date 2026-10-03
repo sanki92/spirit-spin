@@ -13,6 +13,10 @@ import { TopMesh } from './render/TopMesh'
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
 
 interface Snap { x: number; y: number }
+interface TopF { x: number; y: number; vx: number; vy: number; spin: number; wobble: number; spirit: boolean; out: boolean }
+interface Frame { t: [TopF, TopF]; clash: { x: number; y: number; energy: number } | null }
+interface Cine { frames: Frame[]; t: number; dur: number; fired: number; impact: boolean; hold: number; loser: 0 | 1 | null; done: () => void }
+const REPLAY_TICKS = 80
 
 const tex = (id: string, fallback: string): Promise<Texture> => texture(hasAsset(id) ? id : fallback)
 const summonTex = (art: string, beast: string): Promise<Texture> =>
@@ -35,6 +39,9 @@ export class Game {
   private slowUntil = 0
   private slowScale = 1
   private onTick: (() => void) | null = null
+  private hist: Frame[] = []
+  private pendingClash: Frame['clash'] = null
+  private cine: Cine | null = null
   private onFrame: ((dt: number) => void) | null = null
 
   private constructor(readonly canvas: HTMLCanvasElement, fx: Fx) {
@@ -101,6 +108,8 @@ export class Game {
 
   setBattle(b: BattleState | null): void {
     this.battle = b
+    this.hist = []
+    this.pendingClash = null
     this.stepper.reset()
     if (b) this.prev = [{ x: b.tops[0].x, y: b.tops[0].y }, { x: b.tops[1].x, y: b.tops[1].y }]
   }
@@ -148,9 +157,94 @@ export class Game {
     if (!b || b.outcome) return
     this.prev = [{ x: b.tops[0].x, y: b.tops[0].y }, { x: b.tops[1].x, y: b.tops[1].y }]
     this.onTick?.()
+    if (!this.cine) this.record()
+  }
+
+  private record(): void {
+    const b = this.battle
+    if (!b) return
+    const f = (i: 0 | 1): TopF => { const t = b.tops[i]; return { x: t.x, y: t.y, vx: t.vx, vy: t.vy, spin: t.spin, wobble: t.wobble, spirit: t.spiritTicks > 0, out: t.out } }
+    this.hist.push({ t: [f(0), f(1)], clash: this.pendingClash })
+    this.pendingClash = null
+    if (this.hist.length > REPLAY_TICKS) this.hist.shift()
+  }
+
+  noteClash(x: number, y: number, energy: number): void {
+    this.pendingClash = { x, y, energy }
+  }
+
+  get replaying(): boolean {
+    return !!this.cine
+  }
+
+  finishCam(loser: 0 | 1 | null, done: () => void): boolean {
+    this.record()
+    if (this.hist.length < 24) { done(); return false }
+    this.cine = { frames: [...this.hist], t: 0, dur: 2600, fired: 0, impact: false, hold: 0, loser, done }
+    this.slowUntil = 0
+    return true
+  }
+
+  skipCine(run = true): void {
+    const c = this.cine
+    if (!c) return
+    this.cine = null
+    this.stage.cinematic(false)
+    if (run) c.done()
+  }
+
+  private drawCine(c: Cine, dt: number): void {
+    if (!this.tops) return
+    const ms = dt * 1000
+    if (!c.impact) c.t += ms
+    const p = Math.min(1, c.t / c.dur)
+    const u = 1 - (1 - p) * (1 - p) * (1 - p)
+    const fi = u * (c.frames.length - 1), i0 = Math.floor(fi), a = fi - i0
+    const A = c.frames[i0]!, B = c.frames[Math.min(c.frames.length - 1, i0 + 1)]!
+    const pos: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
+    for (let i = 0; i < 2; i++) {
+      const fa = A.t[i as 0 | 1], fb = B.t[i as 0 | 1]
+      let x = fa.x + (fb.x - fa.x) * a, y = fa.y + (fb.y - fa.y) * a, vis = !fa.out
+      if (fa.out) {
+        let k = i0
+        while (k > 0 && c.frames[k]!.t[i as 0 | 1].out) k--
+        const last = c.frames[k]!.t[i as 0 | 1], n = fi - k
+        x = last.x + last.vx * n * 0.02
+        y = last.y + last.vy * n * 0.02
+        vis = n < 45
+      }
+      pos[i] = { x, y }
+      this.tops[i as 0 | 1].update(x, y, fa.spin, fa.wobble + (fa.out ? 0.6 : 0), fa.spirit, dt * 0.3, vis)
+    }
+    for (; c.fired <= i0; c.fired++) {
+      const cl = c.frames[c.fired]!.clash
+      if (cl) {
+        this.fx.clash(cl.x, cl.y, cl.energy, cl.energy > 1.5 ? BEASTS[this.specs![0].beastId].element : null)
+        this.stage.shake(Math.min(0.06, cl.energy * 0.02))
+      }
+    }
+    const lx = c.loser !== null ? pos[c.loser].x : (pos[0].x + pos[1].x) / 2, ly = c.loser !== null ? pos[c.loser].y : (pos[0].y + pos[1].y) / 2
+    const mx = (pos[0].x + pos[1].x) / 2, my = (pos[0].y + pos[1].y) / 2
+    this.stage.cinematic(true, mx * 0.35 + lx * 0.65, -(my * 0.35 + ly * 0.65))
+    if (p >= 1 && !c.impact) {
+      c.impact = true
+      this.stage.shake(0.12)
+      this.stage.punch(0.08)
+      this.fx.clash(lx, ly, 3, c.loser !== null && this.specs ? BEASTS[this.specs[(1 - c.loser) as 0 | 1].beastId].element : null)
+    }
+    if (c.impact) {
+      c.hold += ms
+      if (c.hold > 520) this.skipCine()
+    }
   }
 
   private draw(alpha: number, dt: number): void {
+    if (this.cine) {
+      this.drawCine(this.cine, dt)
+      this.fx.update(dt * 0.35, this.stage.camera)
+      this.stage.render(dt)
+      return
+    }
     const b = this.battle
     const scaled = dt * (this.stepper.scale || 0.05)
     if (!b && this.tops) for (const t of this.tops) t.group.visible = false

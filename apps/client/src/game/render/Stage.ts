@@ -106,19 +106,32 @@ export class Stage {
     this.sweep = 1
   }
 
+  private cineAmt = 0
+  private cineGoal = 0
+  private cineYaw = 0
+  private cineFocus = new Vector3()
+
+  cinematic(on: boolean, x = 0, z = 0): void {
+    this.cineGoal = on ? 1 : 0
+    if (on) this.cineFocus.set(x, 0, z)
+  }
+
   render(dt: number): void {
     this.clock += dt
     this.shakeAmp *= Math.exp(-dt * 9)
     this.punchAmt *= Math.exp(-dt * 7)
     this.sweep = Math.max(0, this.sweep - dt / 1.6)
-    const k = 1 - Math.exp(-dt * 3)
-    this.focus.lerp(this.focusGoal, k)
+    this.cineAmt += (this.cineGoal - this.cineAmt) * (1 - Math.exp(-dt * (this.cineGoal ? 5 : 3)))
+    const ca = this.cineAmt
+    this.cineYaw = ca > 0.01 ? this.cineYaw + dt * 0.3 : 0
+    const k = 1 - Math.exp(-dt * (3 + ca * 14))
+    this.focus.lerp(ca > 0.01 ? this.tmp.copy(this.focusGoal).lerp(this.cineFocus, ca) : this.focusGoal, k)
     this.push += (this.pushGoal - this.push) * (1 - Math.exp(-dt * 4))
     const e = this.sweep * this.sweep * (3 - 2 * this.sweep)
-    const yaw = Math.sin(this.clock * 0.21) * 0.07 + e * 0.9
+    const yaw = Math.sin(this.clock * 0.21) * 0.07 + e * 0.9 + ca * (0.45 + this.cineYaw)
     const c = Math.cos(yaw), sn = Math.sin(yaw)
-    const z = this.zoom * this.push * (1 - this.punchAmt) * (1 + e * 0.35)
-    this.tmp.set(this.base.x * c + this.base.z * sn, this.base.y * (1 + e * 0.25), -this.base.x * sn + this.base.z * c).multiplyScalar(z)
+    const z = this.zoom * this.push * (1 - this.punchAmt) * (1 + e * 0.35) * (1 - 0.58 * ca)
+    this.tmp.set(this.base.x * c + this.base.z * sn, this.base.y * (1 + e * 0.25) * (1 - 0.42 * ca), -this.base.x * sn + this.base.z * c).multiplyScalar(z)
     const s = this.shakeAmp
     this.camera.position.copy(this.tmp).add(this.focus)
     this.camera.position.x += (Math.random() - 0.5) * s

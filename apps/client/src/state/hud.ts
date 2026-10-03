@@ -22,6 +22,7 @@ export interface HudState {
   safetyPause: boolean
   notice: string | null
   announcer: { id: string; text: string; face: 'hyped' | 'laughing' | 'pointing' | 'serious' | 'shocked' | 'thumbs-up' } | null
+  cine: { skip: () => void } | null
   set: (p: Partial<HudState>) => void
 }
 
@@ -41,5 +42,6 @@ export const useHud = create<HudState>(set => ({
   safetyPause: false,
   notice: null,
   announcer: null,
+  cine: null,
   set: p => set(p),
 }))

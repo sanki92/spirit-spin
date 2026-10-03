@@ -29,7 +29,7 @@ export function BattleHud({ names, beasts, onSpirit, onSwipeZone, onStick, spect
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
 }) {
-  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer })))
+  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine })))
   const ready = useHud(s => s.gauge[0] >= 1 && s.phase === 'battle')
   return (
     <div className="hud">
@@ -57,6 +57,15 @@ export function BattleHud({ names, beasts, onSpirit, onSwipeZone, onStick, spect
         </div>
       )}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
+      {h.cine && (
+        <button className="cine" onClick={h.cine.skip} aria-label="Skip finish replay">
+          <i className="cine-bar top" />
+          <i className="cine-bar bottom" />
+          {hasAsset('vfx/speedlines') && <img className="cine-lines" src={assetUrl('vfx/speedlines')} alt="" draggable={false} />}
+          <span className="cine-tag">Final blow</span>
+          <span className="cine-skip">Tap to skip</span>
+        </button>
+      )}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (
         <div key={h.announcer.id} className="announcer" aria-live="polite">

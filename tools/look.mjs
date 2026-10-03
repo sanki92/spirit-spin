@@ -25,6 +25,7 @@ for (const step of steps) {
   else if (kind === 'click') await page.getByRole(arg.split('=')[0], { name: new RegExp(arg.split('=')[1], 'i') }).first().click()
   else if (kind === 'text') await page.getByText(new RegExp(arg, 'i')).first().click()
   else if (kind === 'wait') await page.waitForTimeout(Number(arg))
+  else if (kind === 'until') await page.waitForFunction(arg, null, { timeout: 180000, polling: 50 })
   else if (kind === 'drag') { const [x1, y1, x2, y2] = arg.split(',').map(Number); await page.mouse.move(x1, y1); await page.mouse.down(); await page.mouse.move(x2, y2, { steps: 12 }); await page.mouse.up() }
   else if (kind === 'shot') { await page.screenshot({ path: `${out}-${arg || ++n}.png`, fullPage: false }); console.log('shot', `${out}-${arg || n}.png`) }
   else if (kind === 'full') { await page.screenshot({ path: `${out}-${arg || ++n}.png`, fullPage: true }); console.log('shot', `${out}-${arg || n}.png`) }
