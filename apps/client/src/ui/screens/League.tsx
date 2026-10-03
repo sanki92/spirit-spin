@@ -73,6 +73,7 @@ export function Ranked() {
     <Screen className="ranked" bg="backgrounds/arena">
       <TopBar title="Ranked" />
       <section className="rank-card">
+        <Img id="ui/icons/ranked" className="rank-icon" />
         <span className="rank-label">{pool === 'motion' ? 'Motion league' : 'Swipe league'}</span>
         <strong className="rank-rating">{rating ?? '—'}</strong>
         <span className="rank-record">{info ? `${info.won} wins · ${info.played - info.won} losses` : offline ? 'Offline' : 'Loading…'}</span>
@@ -178,7 +179,7 @@ export function Cups({ join }: { join?: string | undefined }) {
       {error && <p className="form-error" role="alert">{error}</p>}
       <section className="friend-list">
         <h2>Your tournaments</h2>
-        {list === null ? <p className="fine">Loading…</p> : list.length === 0 ? <p className="fine">None yet. Host one and send the code to your friends.</p> : list.map(c => (
+        {list === null ? <p className="fine">Loading…</p> : list.length === 0 ? <div className="empty-state"><Img id="ui/icons/cups" /><p>No tournaments yet. Host one above and send the code to your friends.</p></div> : list.map(c => (
           <button key={c.id} className="friend cup-row" onClick={() => nav.push({ k: 'cup', id: c.id })}>
             <span className="friend-initial" aria-hidden>{c.name.slice(0, 1).toUpperCase()}</span>
             <div><strong>{c.name}</strong><span>{c.status === 'running' ? `Round ${c.round} of ${c.roundsTotal}` : STATUS[c.status]}</span></div>

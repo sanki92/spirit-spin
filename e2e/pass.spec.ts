@@ -17,7 +17,7 @@ test('spirit pass: unlock premium with the dev checkout, claim rewards, equip th
   })
   await page.waitForTimeout(2600)
   await page.getByRole('button', { name: 'Profile' }).click()
-  await expect(page.locator('.profile-card')).toBeVisible()
+  await expect(page.locator('.p2-card')).toBeVisible()
   await page.screenshot({ path: 'e2e/out/profile.png', fullPage: true })
   await page.getByRole('button', { name: /spirit pass rewards/i }).click()
   await expect(page.locator('.pass-tier')).toContainText('Tier 10')

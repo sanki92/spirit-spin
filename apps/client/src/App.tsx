@@ -34,10 +34,11 @@ export function App() {
   useEffect(() => {
     rt.sound.muted = !settings.sound
     setHaptics(settings.haptics)
-    document.documentElement.classList.toggle('reduce-motion', settings.reducedMotion)
+    document.documentElement.classList.toggle('reduce-motion', settings.reducedMotion || (import.meta.env.DEV && new URLSearchParams(location.search).has('still')))
   }, [settings, rt])
   useEffect(() => {
     if (route.k !== 'splash' && route.k !== 'age' && route.k !== 'ready' && !rt.ready) nav.reset({ k: 'ready' })
+    if (import.meta.env.DEV && route.k === 'splash' && new URLSearchParams(location.search).has('screen')) nav.reset({ k: 'ready' })
   }, [route.k, rt, nav])
   useEffect(() => {
     if (route.k !== 'home') return
@@ -48,6 +49,14 @@ export function App() {
   const onReady = useCallback(() => {
     const s = useSave.getState()
     if (new URLSearchParams(location.search).has('stadium')) return nav.reset({ k: 'stadium' })
+    const devScreen = import.meta.env.DEV ? new URLSearchParams(location.search).get('screen') : null
+    if (devScreen) {
+      nav.reset({ k: 'home' })
+      if (devScreen.startsWith('result')) { void import('./dev/demo').then(m => nav.push({ k: 'result', ...m.demoResult(devScreen === 'result-win') })); return }
+      const r = devScreen.startsWith('{') ? JSON.parse(devScreen) as Route : ({ k: devScreen } as Route)
+      if (r.k !== 'home') nav.push(r)
+      return
+    }
     if (!s.starter) nav.reset({ k: 'starter' })
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
     else {

@@ -6,7 +6,7 @@ import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
-import { Screen, Slash, TopBar } from '../kit'
+import { Img, Screen, Slash, TopBar } from '../kit'
 
 type Phase = { k: 'idle' } | { k: 'connecting' } | { k: 'hosting'; code: string } | { k: 'joining' } | { k: 'waiting'; code: string } | { k: 'error'; text: string }
 
@@ -106,7 +106,7 @@ export function Friends({ join }: { join?: string | undefined }) {
       ) : (
         <>
           <section className="setting friends-block">
-            <div><strong>Host a battle</strong><span>Get a code, a link and a QR to share.</span></div>
+            <div className="card-head"><Img id="ui/icons/live" className="card-icon" /><span><strong>Host a battle</strong><span>Get a code, a link and a QR to share.</span></span></div>
             <Slash tone="gold" onClick={() => void host()} disabled={phase.k === 'connecting' || phase.k === 'joining'}>{phase.k === 'connecting' ? 'Opening…' : 'Create battle'}</Slash>
           </section>
           <form className="setting recover-form" onSubmit={e => { e.preventDefault(); void enter(code) }}>

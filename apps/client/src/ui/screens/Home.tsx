@@ -1,11 +1,11 @@
-import { BOSSES, COSMETICS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
+import { BOSSES, chapterOf, COSMETICS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
 import { useEffect, useMemo } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
-import { Bar, Coins, Img, Screen, Shards, Slash, TopBar } from '../kit'
+import { Coins, Img, Screen, Shards } from '../kit'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
@@ -37,63 +37,86 @@ export function Home() {
   }, [beastId, today, ai])
   const next = Math.min(TOWER_FLOORS, s.tower + 1)
   const floor = towerFloor(next)
+  const chapter = chapterOf(next)
   const art = beastArt(beastId, beast?.awakened)
+  const first = !s.onboarded.firstBattle
+  const quests = s.quests.list
+  const doneCount = quests.filter(q => s.quests.claimed.includes(q.id)).length
+  const play = () => (first ? nav.push({ k: 'battle', opponent: BOSSES.kaze.build, floor: null, boss: null, opponentName: 'Kaze' }) : nav.push({ k: 'tower' }))
+  const chapterDone = Math.max(0, Math.min(chapter.floors[1], s.tower) - chapter.floors[0] + 1)
   return (
-    <Screen className="home" bg="backgrounds/main-menu">
-      <header className="home-head">
-        <button className="profile" onClick={() => nav.push({ k: 'profile' })} aria-label="Profile">
+    <Screen className="home2" bg="backgrounds/main-menu">
+      <header className="h2-head">
+        <button className="h2-me" onClick={() => nav.push({ k: 'profile' })} aria-label="Open profile">
           <span className="framed-avatar">
             <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar-img" />
             <Img id={COSMETICS[s.cosmetics?.frame ?? 'frame-common']?.art ?? 'ui/card-frame-common'} className="avatar-frame" />
           </span>
-          <div>
+          <span className="h2-id">
             <strong>{s.name}</strong>
-            <span>Level {lvl} · {COSMETICS[s.cosmetics?.title ?? 'title-rookie']?.name}</span>
-            <Bar value={s.xp - xpForLevel(lvl)} max={xpForLevel(lvl + 1) - xpForLevel(lvl)} tone="gold" />
-          </div>
+            <span><b>Lv {lvl}</b> {COSMETICS[s.cosmetics?.title ?? 'title-rookie']?.name}</span>
+            <i className="h2-xp"><i style={{ transform: `scaleX(${Math.min(1, (s.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)))})` }} /></i>
+          </span>
         </button>
         <div className="wallet"><Shards /><Coins /></div>
       </header>
 
-      <section className="hero" style={{ ['--c' as string]: info.color }} onClick={() => nav.push({ k: 'journal' })}>
-        <Img id={`${art}/card-art`} className="hero-art" fallback={<Img id={`beasts/${beastId}/card-art`} className="hero-art" />} />
-        <div className="speech">
-          <Img id={`beasts/${beastId}/expressions/${sulky ? 'sulky' : ai?.mood ?? 'neutral'}`} className="speech-face" />
-          <p>{line}</p>
+      <section className="h2-hero" style={{ ['--c' as string]: info.color }}>
+        <button className="h2-hero-hit" onClick={() => nav.push({ k: 'journal' })} aria-label={`${info.name}, open journal`}>
+          <Img id={`${art}/card-art`} className="h2-art" fallback={<Img id={`beasts/${beastId}/card-art`} className="h2-art" />} />
+        </button>
+        <div className="h2-hero-info">
+          <span className="h2-kind">{info.title}</span>
+          <strong className="h2-name">{info.name}</strong>
+          {beast && <span className="h2-trust" aria-label={`Trust ${beast.trust} of 100`}><i style={{ transform: `scaleX(${beast.trust / 100})` }} /></span>}
+          <p className="h2-line">{line}</p>
         </div>
-        <div className="hero-name slant">{info.name}</div>
       </section>
 
-      <Slash tone="gold" className="play" onClick={() => (s.onboarded.firstBattle ? nav.push({ k: 'tower' }) : nav.push({ k: 'battle', opponent: BOSSES.kaze.build, floor: null, boss: null, opponentName: 'Kaze' }))}>
-        {!s.onboarded.firstBattle ? 'First battle · Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Tower cleared · Rematch' : `Tower floor ${next}${floor.boss ? ` · Boss ${BOSSES[floor.boss].name}` : ''}`}
-      </Slash>
+      <button className="h2-story" onClick={play}>
+        <span className="h2-story-face">
+          <Img id={first ? 'characters/bosses/kaze/confident' : floor.boss ? `characters/bosses/${floor.boss}/confident` : `characters/bosses/${chapter.boss}/confident`} />
+        </span>
+        <span className="h2-story-text">
+          <small>{first ? 'Your first battle' : s.tower >= TOWER_FLOORS ? 'Tower cleared' : `Chapter ${chapter.id} · ${chapter.title}`}</small>
+          <strong>{first ? 'Kaze challenges you' : s.tower >= TOWER_FLOORS ? 'Rematch any floor' : floor.boss ? `Boss: ${BOSSES[floor.boss].name}` : `Floor ${next}`}</strong>
+          {!first && s.tower < TOWER_FLOORS && <i className="h2-story-bar"><i style={{ transform: `scaleX(${chapterDone / (chapter.floors[1] - chapter.floors[0] + 1)})` }} /></i>}
+        </span>
+        <span className="h2-story-go">Battle</span>
+      </button>
 
-      {s.onboarded.firstBattle && (
-        <div className="compete">
-          <button onClick={() => nav.push({ k: 'friends' })}><strong>Live</strong><span>Battle a friend</span></button>
-          <button onClick={() => nav.push({ k: 'ranked' })}><strong>Ranked</strong><span>Climb the ladder</span></button>
-          <button onClick={() => nav.push({ k: 'cups' })}><strong>Cups</strong><span>Friend tournaments</span></button>
-        </div>
+      {!first && (
+        <nav className="h2-modes" aria-label="Play with others">
+          <button onClick={() => nav.push({ k: 'friends' })}><Img id="ui/icons/live" /><strong>Live</strong><span>With a friend</span></button>
+          <button onClick={() => nav.push({ k: 'ranked' })}><Img id="ui/icons/ranked" /><strong>Ranked</strong><span>Climb the ladder</span></button>
+          <button onClick={() => nav.push({ k: 'cups' })}><Img id="ui/icons/cups" /><strong>Cups</strong><span>Tournaments</span></button>
+        </nav>
       )}
 
-      <section className="quests">
-        {s.quests.list.map(q => {
-          const done = q.progress >= q.target, claimed = s.quests.claimed.includes(q.id)
-          return (
-            <div key={q.id} className={`quest ${done ? 'done' : ''}`}>
-              <span>{q.text}</span>
-              <Bar value={q.progress} max={q.target} tone={done ? 'gold' : 'cyan'} />
-              {done && !claimed ? <button className="claim" onClick={() => s.claimQuest(q.id)}>+{q.reward}</button> : <em>{claimed ? 'Claimed' : `${q.progress}/${q.target}`}</em>}
-            </div>
-          )
-        })}
-      </section>
+      {quests.length > 0 && (
+        <section className="h2-quests panel">
+          <h2 className="section-title"><Img id="ui/icons/quests" className="h2-q-icon" />Daily quests<small>{doneCount}/{quests.length} done</small></h2>
+          {quests.map(q => {
+            const done = q.progress >= q.target, claimed = s.quests.claimed.includes(q.id)
+            return (
+              <div key={q.id} className={`h2-quest ${claimed ? 'claimed' : done ? 'ready' : ''}`}>
+                <span className="h2-q-text">{q.text}</span>
+                <span className="h2-q-bar"><i style={{ transform: `scaleX(${Math.min(1, q.progress / q.target)})` }} /></span>
+                {claimed ? <em>Done</em> : done ? (
+                  <button className="h2-claim" onClick={() => s.claimQuest(q.id)}><Img id="ui/icon-coin" />{q.reward}</button>
+                ) : <em>{q.progress}/{q.target}</em>}
+              </div>
+            )
+          })}
+        </section>
+      )}
 
-      <nav className="dock">
-        <button onClick={() => nav.push({ k: 'garage' })}><Img id="parts/blade-fang" /><span>Garage</span></button>
-        <button onClick={() => nav.push({ k: 'collection' })}><Img id="ui/card-frame-epic" /><span>Collection</span></button>
-        <button onClick={() => nav.push({ k: 'shop' })}><Img id="ui/icon-coin" /><span>Shop</span></button>
-        <button onClick={() => nav.push({ k: 'journal' })}><Img id={`beasts/${beastId}/emblem`} /><span>Journal</span></button>
+      <nav className="h2-dock" aria-label="Main">
+        <button onClick={() => nav.push({ k: 'garage' })}><Img id="ui/icons/garage" /><span>Garage</span></button>
+        <button onClick={() => nav.push({ k: 'collection' })}><Img id="ui/icons/collection" /><span>Collection</span></button>
+        <button onClick={() => nav.push({ k: 'shop' })}><Img id="ui/icons/shop" /><span>Shop</span></button>
+        <button onClick={() => nav.push({ k: 'pass' })}><Img id="ui/icons/pass" /><span>Pass</span></button>
+        <button onClick={() => nav.push({ k: 'journal' })}><Img id="ui/icons/journal" /><span>Journal</span></button>
       </nav>
     </Screen>
   )

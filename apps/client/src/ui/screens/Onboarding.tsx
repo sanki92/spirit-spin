@@ -1,4 +1,4 @@
-import { assembleTop, STARTER_BEASTS, scoreRip, STARTER_BUILDS, type BeastId } from '@spirit/core'
+import { assembleTop, STARTER_BEASTS, TECHNIQUES, scoreRip, STARTER_BUILDS, type BeastId } from '@spirit/core'
 import { useEffect, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
@@ -57,8 +57,9 @@ export function StarterSelect() {
       <div className="starter-art" style={{ ['--c' as string]: info.color }}>
         <Img key={pick} id={`beasts/${pick}/card-art`} className="card-art pop" />
         <div className="starter-name">
-          <strong className="slant">{info.name}</strong>
           <span>{info.title} · {spec.type}</span>
+          <strong className="slant">{info.name}</strong>
+          <em><b>{TECHNIQUES[pick].technique.name}</b> {TECHNIQUES[pick].technique.text}</em>
         </div>
       </div>
       <div className="starter-stats">
@@ -70,7 +71,8 @@ export function StarterSelect() {
       <div className="starter-picks" role="radiogroup">
         {STARTER_BEASTS.map(id => (
           <button key={id} role="radio" aria-checked={id === pick} className={`emblem-pick ${id === pick ? 'on' : ''}`} onClick={() => setPick(id)} style={{ ['--c' as string]: BEASTS[id].color }}>
-            <Img id={`beasts/${id}/emblem`} alt={BEASTS[id].name} />
+            <Img id={`beasts/${id}/emblem`} alt="" eager />
+            <span>{BEASTS[id].name}</span>
           </button>
         ))}
       </div>
@@ -91,10 +93,10 @@ export function Safety() {
         <Img id="onboarding/safety-grip" className="grip-art" />
         <Img id="onboarding/no-throw" className="nothrow-art" />
       </div>
-      <ol className="rules">
-        <li>Hold your phone with both hands, screen facing you.</li>
-        <li>On LAUNCH, pull it sharply down toward you, then stop.</li>
-        <li>Never let go and never throw. Timing beats strength.</li>
+      <ol className="rules panel">
+        <li><b>Grip</b> Hold your phone with both hands, screen facing you.</li>
+        <li><b>Rip</b> On LAUNCH, pull it sharply down toward you, then stop.</li>
+        <li><b>Safe</b> Never let go and never throw. Timing beats strength.</li>
       </ol>
       <Slash onClick={() => { mark('safety'); nav.replace(rt.sensors ? { k: 'calibrate' } : { k: 'home' }) }}>Got it</Slash>
     </Screen>

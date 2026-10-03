@@ -1,4 +1,5 @@
-import { BLADES, COSMETICS, DISCS, PASS, PASS_TIERS, passTier, SKUS, TIPS, type PassReward } from '@spirit/core'
+import { BLADES, COSMETICS, DISCS, levelForXp, PASS, PASS_TIERS, passTier, SKUS, TIPS, xpForLevel, type PassReward } from '@spirit/core'
+import { BEASTS } from '../../game/beasts'
 import { useEffect, useState } from 'react'
 import { useNav } from '../../state/nav'
 import { ownsCosmetic, useSave } from '../../state/save'
@@ -43,6 +44,7 @@ export function Pass() {
     <Screen className="pass" bg="backgrounds/journal">
       <TopBar title="Spirit Pass" />
       <section className="pass-head">
+        <Img id="ui/icons/pass" className="pass-icon" />
         <span className="rank-label">{PASS.name}</span>
         <strong className="pass-tier">Tier {tier}<small>/{PASS.tiers}</small></strong>
         {tier < PASS.tiers && <Bar value={xp % PASS.xpPerTier} max={PASS.xpPerTier} tone="gold" />}
@@ -83,66 +85,90 @@ export function Pass() {
   )
 }
 
+type Kind = 'avatar' | 'frame' | 'title' | 'launcher' | 'stadium'
+const KINDS: { k: Kind; label: string }[] = [{ k: 'avatar', label: 'Avatar' }, { k: 'frame', label: 'Frame' }, { k: 'title', label: 'Title' }, { k: 'launcher', label: 'Launcher' }, { k: 'stadium', label: 'Stadium' }]
+
+function unlockHint(id: string): string {
+  if (id === 'title-climber') return 'Reach Tower floor 10'
+  for (const t of PASS_TIERS) {
+    if ('cosmetic' in t.free && t.free.cosmetic === id) return `Pass tier ${t.tier}`
+    if ('cosmetic' in t.premium && t.premium.cosmetic === id) return `Premium pass tier ${t.tier}`
+  }
+  if (Object.values(SKUS).some(k => k.grants.includes(id))) return 'In the Shop'
+  if (id.startsWith('launcher-')) return 'Pick this beast as your starter'
+  return 'Coming soon'
+}
+
 export function Profile() {
   const nav = useNav()
   const s = useSave()
   const [name, setName] = useState(s.name)
+  const [editing, setEditing] = useState(false)
+  const [tab, setTab] = useState<Kind>('avatar')
   useEffect(() => { void refreshEntitlements() }, [])
   const cos = s.cosmetics ?? { frame: 'frame-common', title: 'title-rookie', launcher: null, stadium: 'stadium-classic' }
   const owned = (id: string) => ownsCosmetic(s, id)
-  const list = (kind: 'frame' | 'title' | 'launcher' | 'stadium' | 'avatar') => Object.values(COSMETICS).filter(c => c.kind === kind)
   const launcher = cos.launcher ?? (s.starter ? `launcher-${s.starter}` : null)
-  const pick = (kind: 'frame' | 'title' | 'launcher' | 'stadium', id: string) => s.setCosmetic(kind, id)
+  const selected: Record<Kind, string> = { avatar: `avatar-${s.avatar + 1}`, frame: cos.frame, title: cos.title, launcher: launcher ?? '', stadium: cos.stadium }
+  const items = Object.values(COSMETICS).filter(c => c.kind === tab)
+  const pick = (id: string) => (tab === 'avatar' ? s.setAvatar(Number(id.split('-')[1]) - 1) : s.setCosmetic(tab, id))
+  const beastId = s.loadout?.beastId ?? s.starter ?? 'voltfang'
+  const lvl = levelForXp(s.xp)
+  const st = s.stats
+  const rate = st.battles ? Math.round((st.wins / st.battles) * 100) : 0
+  const commit = () => { s.setName(name); setName(useSave.getState().name); setEditing(false) }
+  const tier = passTier(s.xp - Math.max(0, s.pass?.baseXp ?? 0))
   return (
-    <Screen className="profile-screen">
-      <header className="topbar">
-        <button className="icon-btn" onClick={nav.back} aria-label="Back">‹</button>
-        <h1 className="slant">Profile</h1>
-        <button className="icon-btn gear" onClick={() => nav.push({ k: 'settings' })} aria-label="Settings">⚙</button>
-      </header>
-      <section className="profile-card">
-        <div className="framed-avatar large">
+    <Screen className="profile2">
+      <TopBar title="Profile" right={<button className="icon-btn icon-img" onClick={() => nav.push({ k: 'settings' })} aria-label="Settings"><Img id="ui/icons/settings" /></button>} />
+      <section className="p2-card" style={{ ['--c' as string]: BEASTS[beastId].color }}>
+        <Img id={`beasts/${beastId}/card-art`} className="p2-bg" />
+        <div className="framed-avatar p2-avatar">
           <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar-img" />
           <Img id={COSMETICS[cos.frame]?.art ?? 'ui/card-frame-common'} className="avatar-frame" />
         </div>
-        <form className="name-form" onSubmit={e => { e.preventDefault(); s.setName(name); setName(useSave.getState().name) }}>
-          <input value={name} onChange={e => setName(e.target.value.slice(0, 16))} aria-label="Spinner name" maxLength={16} onBlur={() => { s.setName(name); setName(useSave.getState().name) }} />
-        </form>
-        <span className="profile-title">{COSMETICS[cos.title]?.name}</span>
-      </section>
-      <Picker title="Avatar" items={list('avatar')} selected={`avatar-${s.avatar + 1}`} owned={owned} onPick={id => s.setAvatar(Number(id.split('-')[1]) - 1)} />
-      <Picker title="Frame" items={list('frame')} selected={cos.frame} owned={owned} onPick={id => pick('frame', id)} />
-      <Picker title="Launcher" items={list('launcher')} selected={launcher ?? ''} owned={owned} onPick={id => pick('launcher', id)} />
-      <Picker title="Stadium" items={list('stadium')} selected={cos.stadium} owned={owned} onPick={id => pick('stadium', id)} />
-      <section className="picker">
-        <h2>Title</h2>
-        <div className="title-list">
-          {list('title').map(c => (
-            <button key={c.id} className={`title-chip ${cos.title === c.id ? 'on' : ''}`} disabled={!owned(c.id)} onClick={() => pick('title', c.id)} aria-pressed={cos.title === c.id}>{owned(c.id) ? c.name : `Locked · ${c.name}`}</button>
-          ))}
+        <div className="p2-id">
+          {editing ? (
+            <form onSubmit={e => { e.preventDefault(); commit() }}>
+              <input autoFocus value={name} onChange={e => setName(e.target.value.slice(0, 16))} onBlur={commit} aria-label="Spinner name" maxLength={16} />
+            </form>
+          ) : (
+            <button className="p2-name" onClick={() => setEditing(true)} aria-label={`Name ${s.name}. Tap to change`}>{s.name}<span aria-hidden="true">Edit</span></button>
+          )}
+          <span className="p2-title">{COSMETICS[cos.title]?.name}</span>
+          <span className="p2-level"><b>Level {lvl}</b><i><i style={{ transform: `scaleX(${Math.min(1, (s.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)))})` }} /></i></span>
         </div>
       </section>
-      <Slash tone="ghost" onClick={() => nav.push({ k: 'pass' })}>Spirit Pass rewards</Slash>
-    </Screen>
-  )
-}
-
-function Picker({ title, items, selected, owned, onPick }: { title: string; items: { id: string; name: string; art: string | null }[]; selected: string; owned: (id: string) => boolean; onPick: (id: string) => void }) {
-  return (
-    <section className="picker">
-      <h2>{title}</h2>
-      <div className="picker-row" role="radiogroup" aria-label={title}>
+      <dl className="p2-stats">
+        <div><dt>Battles</dt><dd>{st.battles}</dd></div>
+        <div><dt>Wins</dt><dd>{st.wins}</dd></div>
+        <div><dt>Win rate</dt><dd>{rate}%</dd></div>
+        <div><dt>Best rip</dt><dd>{st.bestRpm.toLocaleString()}</dd></div>
+        <div><dt>Tower</dt><dd>{s.tower}<small>/50</small></dd></div>
+        <div><dt>Beasts</dt><dd>{Object.keys(s.beasts).length}<small>/6</small></dd></div>
+      </dl>
+      <h2 className="section-title">Your style</h2>
+      <div className="p2-tabs" role="tablist" aria-label="Style">
+        {KINDS.map(k => <button key={k.k} role="tab" aria-selected={tab === k.k} className={tab === k.k ? 'on' : ''} onClick={() => setTab(k.k)}>{k.label}</button>)}
+      </div>
+      <div className={`p2-grid k-${tab}`} role="radiogroup" aria-label={KINDS.find(k => k.k === tab)!.label}>
         {items.map(c => {
-          const have = owned(c.id)
+          const have = owned(c.id), on = selected[tab] === c.id
           return (
-            <button key={c.id} role="radio" aria-checked={selected === c.id} disabled={!have} className={`picker-item ${selected === c.id ? 'on' : ''} ${have ? '' : 'locked'}`} onClick={() => onPick(c.id)}>
-              {c.art && <Img id={c.art} eager />}
-              <span>{have ? c.name : 'Locked'}</span>
+            <button key={c.id} role="radio" aria-checked={on} disabled={!have} className={`p2-item ${on ? 'on' : ''} ${have ? '' : 'locked'}`} onClick={() => pick(c.id)}>
+              {c.art ? <Img id={c.art} /> : <span className="p2-title-art">{c.name}</span>}
+              <strong>{c.name}</strong>
+              <small>{on ? 'Equipped' : have ? 'Tap to equip' : unlockHint(c.id)}</small>
             </button>
           )
         })}
       </div>
-    </section>
+      <button className="p2-pass" onClick={() => nav.push({ k: 'pass' })} aria-label="Open Spirit Pass rewards">
+        <Img id="ui/icons/pass" />
+        <span><strong>Spirit Pass</strong><small>Tier {tier} of {PASS.tiers} · every battle earns XP</small></span>
+        <em>Open</em>
+      </button>
+    </Screen>
   )
 }
 

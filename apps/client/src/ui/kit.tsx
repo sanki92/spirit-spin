@@ -1,11 +1,13 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { assetUrl, hasAsset } from '../assets/assets'
 import { useNav } from '../state/nav'
 import { useSave } from '../state/save'
 
+const EAGER = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('still')
+
 export function Img({ id, alt = '', className, fallback, eager = false }: { id: string; alt?: string; className?: string; fallback?: ReactNode; eager?: boolean }) {
   if (!hasAsset(id)) return <>{fallback ?? null}</>
-  return <img className={className} src={assetUrl(id)} alt={alt} draggable={false} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+  return <img className={className} src={assetUrl(id)} alt={alt} draggable={false} loading={eager || EAGER ? 'eager' : 'lazy'} decoding="async" />
 }
 
 export function Screen({ children, bg, className = '' }: { children: ReactNode; bg?: string; className?: string }) {
@@ -80,4 +82,22 @@ export function Stat({ name, value }: { name: string; value: number }) {
       <div className="pips10">{Array.from({ length: 10 }, (_, i) => <i key={i} className={i < value ? 'on' : ''} />)}</div>
     </div>
   )
+}
+
+export function CountUp({ to, ms = 900 }: { to: number; ms?: number }) {
+  const still = typeof document !== 'undefined' && (document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [v, setV] = useState(still ? to : 0)
+  useEffect(() => {
+    if (still) return setV(to)
+    let raf = 0
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / ms)
+      setV(Math.round(to * (1 - (1 - p) ** 3)))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [to, ms, still])
+  return <>{v.toLocaleString()}</>
 }

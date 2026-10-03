@@ -1,49 +1,36 @@
-import { applyNudges, awakeningReady, moodAfter, type BattleSummary, type BeastId, type Change, type Mood, type Reply } from '@spirit/core'
+import { applyNudges, awakeningReady, levelForXp, moodAfter, xpForLevel, type BattleSummary, type BeastId, type Change, type FinishKind, type Mood } from '@spirit/core'
 import { useEffect, useState } from 'react'
 import { spiritMoment, type AiLine } from '../../state/spiritAi'
 import type { MatchResult } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
-import { lineFor, LINES, REPLIES_LOSS, REPLIES_WIN, REPLY_LABEL } from '../../game/lines'
+import { lineFor } from '../../game/lines'
 import { useNav, type Route } from '../../state/nav'
 import { shareCard } from '../share'
 import { todayKey, useSave } from '../../state/save'
 import type { Settlement } from '../../state/settle'
-import { Img, Screen, Slash } from '../kit'
+import { CountUp, Img, Screen } from '../kit'
 import { beastArt } from './Home'
 import { log } from '../../telemetry'
 
 const pending = new WeakMap<object, Promise<AiLine | null>>()
 const TRAIT_LABEL: Record<string, string> = { trust: 'Trust', respect: 'Respect', courage: 'Courage', pride: 'Pride', curiosity: 'Curiosity', calm: 'Calm' }
+const FINISH: Record<FinishKind, string> = { spin: 'Spin', ringout: 'Ring out', shatter: 'Shatter', spirit: 'Spirit', draw: 'Draw' }
 
 export function Result({ result, settlement, opponentName, then }: { result: MatchResult; settlement: Settlement; opponentName: string; then?: Route | undefined }) {
   const nav = useNav()
   const save = useSave()
   const won = result.winner === 0
   const beastId = (save.loadout?.beastId ?? 'voltfang') as BeastId
-  const recorded = { current: settlement }
+  const info = BEASTS[beastId]
   const beast = useSave(s => s.beasts[beastId])
-  const [reply, setReply] = useState<Reply | null>(null)
   const [changes, setChanges] = useState<Change[]>(settlement.changes)
   const mood = beast ? moodAfter({ won, comeback: result.comeback, finishes: [], perfectRips: 0, overspins: 0, spiritCalls: 0, aggression: 0, boss: null, opponent: '' }, beast) : 'neutral'
   const fallback = () => lineFor(beastId, won && result.comeback ? 'comeback' : won ? 'win' : 'loss')
   const [line, setLine] = useState<string | null>(() => (useSave.getState().beasts[beastId] ? null : fallback()))
   const [aiMood, setAiMood] = useState<Mood | null>(null)
-  const [replyLine, setReplyLine] = useState<string | null>(null)
+  const [aiWritten, setAiWritten] = useState(false)
   const summary: BattleSummary = { won, comeback: result.comeback, finishes: result.finishes, perfectRips: result.perfectRips, overspins: result.overspins, spiritCalls: result.spiritCalls, aggression: result.aggression, boss: null, opponent: opponentName }
-  const applyAi = (ai: AiLine) => {
-    const b = useSave.getState().beasts[beastId]
-    if (!b) return
-    let next = b
-    const extra: Change[] = []
-    if (ai.nudge.trait !== 'none' && ai.nudge.delta !== 0) {
-      const r = applyNudges(next, { [ai.nudge.trait]: ai.nudge.delta }, 'Your beast noticed how you fight', todayKey())
-      next = r.beast
-      extra.push(...r.changes)
-    }
-    if (ai.memory) next = { ...next, memories: [{ at: todayKey(), text: ai.memory.text, importance: ai.memory.importance, tags: ['ai'] }, ...next.memories].slice(0, 50) }
-    useSave.getState().setBeast(next)
-    if (extra.length) setChanges(c => [...c, ...extra])
-  }
+
   useEffect(() => {
     const b = useSave.getState().beasts[beastId]
     if (!b) return
@@ -51,23 +38,30 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
     if (!p) {
       p = spiritMoment('post', b, summary, null)
       pending.set(result, p)
-      void p.then(ai => ai && applyAi(ai))
+      void p.then(ai => {
+        const cur = useSave.getState().beasts[beastId]
+        if (!ai || !cur) return
+        let next = cur
+        const extra: Change[] = []
+        if (ai.nudge.trait !== 'none' && ai.nudge.delta !== 0) {
+          const r = applyNudges(next, { [ai.nudge.trait]: ai.nudge.delta }, 'Your beast noticed how you fight', todayKey())
+          next = r.beast
+          extra.push(...r.changes)
+        }
+        if (ai.memory) next = { ...next, memories: [{ at: todayKey(), text: ai.memory.text, importance: ai.memory.importance, tags: ['ai'] }, ...next.memories].slice(0, 50) }
+        useSave.getState().setBeast(next)
+        if (extra.length) setChanges(c => [...c, ...extra])
+      })
     }
     let live = true
     void p.then(ai => {
       if (!live) return
       setLine(ai?.line ?? fallback())
-      if (ai) setAiMood(ai.mood)
+      if (ai) { setAiMood(ai.mood); setAiWritten(true) }
     })
     return () => { live = false }
   }, [])
-  const choices = won ? REPLIES_WIN : REPLIES_LOSS
-  const answer = (r: Reply) => {
-    setReply(r)
-    setChanges(c => [...c, ...save.reply(r)])
-    const b = useSave.getState().beasts[beastId]
-    if (b) void spiritMoment('reply', b, summary, r).then(ai => { if (ai) { setReplyLine(ai.line); setAiMood(ai.mood); applyAi(ai) } })
-  }
+
   const [sharing, setSharing] = useState(false)
   const share = async () => {
     setSharing(true)
@@ -76,8 +70,8 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
       won,
       score: `${result.match.scores[0]} – ${result.match.scores[1]} vs ${opponentName}`,
       beastArt: beastArt(beastId, b?.awakened),
-      color: BEASTS[beastId].color,
-      lines: [`Best rip ${result.bestRpm.toLocaleString()} RPM`, `${BEASTS[beastId].name} and me · Spirit Spin`],
+      color: info.color,
+      lines: [`Best rip ${result.bestRpm.toLocaleString()} RPM`, `${info.name} and me · Spirit Spin`],
     })
     log('share.card', { how })
     setSharing(false)
@@ -90,44 +84,88 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
       if (then) nav.push(then)
     }
   }
+
+  const st = settlement
+  const lvl = levelForXp(save.xp)
+  const lvlBase = xpForLevel(lvl), lvlNext = xpForLevel(lvl + 1)
+  const leveled = levelForXp(save.xp - st.xp) < lvl
+  const face = aiMood ?? mood
+  const [me, them] = result.match.scores
+
   return (
-    <Screen className="result" bg="backgrounds/share">
-      <Img id={won ? 'ui/banner-victory' : 'ui/banner-defeat'} className="result-banner pop" fallback={<h1 className="slant">{won ? 'Victory' : 'Defeat'}</h1>} />
-      <p className="score">{result.match.scores[0]} – {result.match.scores[1]} vs {opponentName}</p>
-      <div className="rewards">
-        <span>+{recorded.current.coins} coins</span>
-        <span>+{recorded.current.xp} XP</span>
-        {recorded.current.shards > 0 && <span className="shard-chip"><Img id="ui/icon-spirit-shard" className="chip-icon" />+{recorded.current.shards} Spirit Shards</span>}
-        <span>Best rip {result.bestRpm.toLocaleString()} RPM</span>
-        {recorded.current.part && <span className="gold">New part: {recorded.current.part}</span>}
-        {result.verdict?.rating !== undefined && <span className="gold">Rating {result.verdict.rating} ({(result.verdict.delta ?? 0) >= 0 ? '+' : ''}{result.verdict.delta})</span>}
-        {result.verdict === null && <span className="warn-chip">Not verified · did not count</span>}
-      </div>
-      {recorded.current.unlocked && (
-        <div className="unlock pop" style={{ ['--c' as string]: BEASTS[recorded.current.unlocked].color }}>
-          <Img id={`beasts/${recorded.current.unlocked}/emblem`} className="unlock-emblem" />
-          <strong>{BEASTS[recorded.current.unlocked].name} wants to join you</strong>
+    <Screen className={`result2 ${won ? 'won' : 'lost'}`} bg="backgrounds/share">
+      <div className="r2-glow" style={{ ['--c' as string]: info.color }} aria-hidden="true" />
+      <header className="r2-head">
+        <Img id={won ? 'ui/banner-victory' : 'ui/banner-defeat'} className="r2-banner" alt={won ? 'Victory' : 'Defeat'} fallback={<h1 className="slant">{won ? 'Victory' : 'Defeat'}</h1>} />
+        <div className="r2-score" aria-label={`${me} to ${them}`}>
+          <b className="mine">{me}</b><i>–</i><b>{them}</b>
         </div>
+        <p className="r2-vs">vs {opponentName}{result.comeback && won ? ' · Comeback!' : ''}</p>
+        <ol className="r2-rounds" aria-label="Rounds">
+          {result.match.history.map((h, i) => (
+            <li key={i} className={h.winner === 0 ? 'w' : h.winner === 1 ? 'l' : 'd'}>
+              <span>R{i + 1}</span>{FINISH[h.finish]}
+            </li>
+          ))}
+        </ol>
+      </header>
+
+      <section className="r2-rewards" aria-label="Rewards">
+        <div className="r2-tile">
+          <Img id="ui/icon-coin" />
+          <strong>+<CountUp to={st.coins} /></strong>
+          <span>Coins</span>
+        </div>
+        <div className="r2-tile xp">
+          <em>Lv {lvl}</em>
+          <strong>+<CountUp to={st.xp} /></strong>
+          <span>{leveled ? 'Level up!' : 'XP'}</span>
+          <div className="r2-xpbar"><i style={{ transform: `scaleX(${Math.min(1, (save.xp - lvlBase) / Math.max(1, lvlNext - lvlBase))})` }} /></div>
+        </div>
+        <div className={`r2-tile shards ${st.shards ? '' : 'none'}`}>
+          <Img id="ui/icon-spirit-shard" />
+          <strong>+<CountUp to={st.shards} /></strong>
+          <span>Shards</span>
+        </div>
+      </section>
+
+      <p className="r2-stats">
+        <span>Best rip <b>{result.bestRpm.toLocaleString()}</b> RPM</span>
+        {result.perfectRips > 0 && <span><b>{result.perfectRips}</b> perfect</span>}
+        {result.spiritCalls > 0 && <span><b>{result.spiritCalls}</b> spirit calls</span>}
+        {result.verdict?.rating !== undefined && <span>Rating <b>{result.verdict.rating}</b> ({(result.verdict.delta ?? 0) >= 0 ? '+' : ''}{result.verdict.delta})</span>}
+        {result.verdict === null && <span className="warn">Not verified, did not count</span>}
+      </p>
+
+      {!won && <p className="r2-tip"><b>Tip</b>{result.overspins > 0 ? 'Overspin cost you power. Pull a little softer and keep it straight.' : result.perfectRips === 0 ? 'A fast, straight pull toward you lands PERFECT rips.' : result.spiritCalls === 0 ? 'Shout or tap Spirit when the gauge glows to fire your technique.' : 'Tilt to steer: dodge big hits, then strike from the side.'}</p>}
+
+      {(st.part || st.unlocked) && (
+        <section className="r2-unlock" style={{ ['--c' as string]: st.unlocked ? BEASTS[st.unlocked].color : 'var(--gold)' }}>
+          {st.unlocked ? <Img id={`beasts/${st.unlocked}/emblem`} /> : <span className="r2-new">New</span>}
+          <div>
+            <strong>{st.unlocked ? `${BEASTS[st.unlocked].name} joins your team` : `New part: ${st.part}`}</strong>
+            <span>{st.unlocked ? 'Equip it in the Garage, Spirit tab.' : 'It is in your Garage now.'}</span>
+          </div>
+        </section>
       )}
-      <section className="moment" style={{ ['--c' as string]: BEASTS[beastId].color }}>
-        <Img id={`beasts/${beastId}/expressions/${aiMood ?? (reply ? (won ? 'joyful' : 'neutral') : mood)}`} className="moment-face" />
-        <div className="moment-talk">
-          <p className="moment-line" aria-live="polite">{reply ? (replyLine ?? LINES[beastId].reply[reply]) : line ?? <span className="typing">…</span>}{(reply ? replyLine : aiMood) && <span className="ai-tag" title="Spirit voice written by AI">✦</span>}</p>
-          {!reply && (
-            <div className="replies">
-              {choices.map(c => <button key={c} onClick={() => answer(c)}>{REPLY_LABEL[c]}</button>)}
-            </div>
+
+      <section className="r2-moment" style={{ ['--c' as string]: info.color }}>
+        <Img id={`${beastArt(beastId, beast?.awakened)}/expressions/${face}`} className="r2-face" fallback={<Img id={`beasts/${beastId}/expressions/${face}`} className="r2-face" />} />
+        <div className="r2-bubble">
+          <strong>{info.name}</strong>
+          <p aria-live="polite">{line ?? <span className="typing">…</span>}</p>
+          {aiWritten && <span className="ai-tag" title="Spirit voice written by AI">AI voice</span>}
+          {changes.length > 0 && (
+            <ul className="r2-changes">
+              {changes.slice(-3).map((c, i) => <li key={i} className={c.delta > 0 ? 'up' : 'down'}>{TRAIT_LABEL[c.trait]} {c.delta > 0 ? '+' : ''}{c.delta}</li>)}
+            </ul>
           )}
         </div>
       </section>
-      {changes.length > 0 && (
-        <ul className="changes">
-          {changes.slice(-4).map((c, i) => <li key={i}><b>{TRAIT_LABEL[c.trait]} {c.delta > 0 ? '+' : ''}{c.delta}</b> {c.reason}</li>)}
-        </ul>
-      )}
-      <div className="result-actions">
-        <button className="share-btn" onClick={() => void share()} disabled={sharing}>{sharing ? 'Making card…' : 'Share'}</button>
-        <Slash tone={reply ? 'gold' : 'ghost'} onClick={next}>{reply ? 'Continue' : 'Skip'}</Slash>
+
+      <div className="r2-actions">
+        <button className="r2-share" onClick={() => void share()} disabled={sharing} aria-label="Share result card">{sharing ? '…' : 'Share'}</button>
+        <button className="cta gold" onClick={next}><span>Continue</span></button>
       </div>
     </Screen>
   )

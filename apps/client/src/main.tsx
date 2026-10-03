@@ -8,6 +8,7 @@ import { useSave } from './state/save'
 import { installTelemetry, log } from './telemetry'
 import './styles.css'
 import './screens.css'
+import './v2.css'
 
 installTelemetry()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })

@@ -1579,6 +1579,66 @@
   "w": 615,
   "h": 768
  },
+ "ui/icons/collection": {
+  "url": "/assets/ui/icons/collection.webp",
+  "w": 726,
+  "h": 768
+ },
+ "ui/icons/cups": {
+  "url": "/assets/ui/icons/cups.webp",
+  "w": 678,
+  "h": 768
+ },
+ "ui/icons/garage": {
+  "url": "/assets/ui/icons/garage.webp",
+  "w": 751,
+  "h": 768
+ },
+ "ui/icons/journal": {
+  "url": "/assets/ui/icons/journal.webp",
+  "w": 701,
+  "h": 768
+ },
+ "ui/icons/live": {
+  "url": "/assets/ui/icons/live.webp",
+  "w": 768,
+  "h": 675
+ },
+ "ui/icons/pass": {
+  "url": "/assets/ui/icons/pass.webp",
+  "w": 768,
+  "h": 696
+ },
+ "ui/icons/quests": {
+  "url": "/assets/ui/icons/quests.webp",
+  "w": 768,
+  "h": 663
+ },
+ "ui/icons/ranked": {
+  "url": "/assets/ui/icons/ranked.webp",
+  "w": 654,
+  "h": 768
+ },
+ "ui/icons/settings": {
+  "url": "/assets/ui/icons/settings.webp",
+  "w": 702,
+  "h": 768
+ },
+ "ui/icons/shop": {
+  "url": "/assets/ui/icons/shop.webp",
+  "w": 582,
+  "h": 768
+ },
+ "ui/icons/tower": {
+  "url": "/assets/ui/icons/tower.webp",
+  "w": 534,
+  "h": 768
+ },
+ "ui/icons/trophy": {
+  "url": "/assets/ui/icons/trophy.webp",
+  "w": 574,
+  "h": 768
+ },
  "ui/logo": {
   "url": "/assets/ui/logo.webp",
   "w": 768,
