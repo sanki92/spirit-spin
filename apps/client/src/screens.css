@@ -337,7 +337,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .deck-editor { display: grid; gap: 10px; }
 .part-row { display: grid; gap: 4px; }
 .part-row-label { font-size: 13px; color: var(--muted); }
-.part-row-items { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; touch-action: pan-x; }
+.part-row-items { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; touch-action: pan-x pan-y; }
 .part-row-items::-webkit-scrollbar { display: none; }
 .part-chip { flex: none; display: grid; justify-items: center; gap: 2px; width: 84px; padding: 6px; border: 2px solid transparent; border-radius: 12px; background: var(--steel); color: var(--chrome); font-size: 12px; cursor: pointer; }
 .part-chip img { width: 48px; height: 48px; object-fit: contain; }
@@ -383,7 +383,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .name-form input:focus { border-color: var(--cyan); outline: none; }
 .profile-title { color: var(--gold); font-weight: 700; }
 .picker h2 { margin: 4px 0 6px; font-size: 20px; color: var(--chrome); }
-.picker-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; padding-bottom: 2px; }
+.picker-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x pan-y; padding-bottom: 2px; }
 .picker-row::-webkit-scrollbar { display: none; }
 .picker-item { flex: none; display: grid; justify-items: center; gap: 4px; width: 96px; padding: 8px 6px; border: 2px solid transparent; border-radius: 12px; background: var(--steel); color: var(--chrome); font-size: 12px; cursor: pointer; }
 .picker-item img { width: 64px; height: 64px; object-fit: contain; }

@@ -100,7 +100,8 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
       wildcard: false,
       setHeaders: (res, path) => {
         if (/[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(path)) res.header('cache-control', 'public, max-age=31536000, immutable')
-        else if (/\.(webp|png|mp3|woff2?)$/.test(path)) res.header('cache-control', 'public, max-age=604800')
+        else if (/\.webp$/.test(path)) res.header('cache-control', 'public, max-age=31536000, immutable')
+        else if (/\.(png|mp3|woff2?)$/.test(path)) res.header('cache-control', 'public, max-age=604800')
         else res.header('cache-control', 'no-cache')
       },
     })

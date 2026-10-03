@@ -1,1726 +1,1726 @@
 {
  "backgrounds/arena": {
-  "url": "/assets/backgrounds/arena.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/backgrounds/arena.webp?v=9270d052",
+  "w": 1080,
+  "h": 720
  },
  "backgrounds/garage": {
-  "url": "/assets/backgrounds/garage.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/garage.webp?v=c7250d12",
+  "w": 720,
+  "h": 1080
  },
  "backgrounds/journal": {
-  "url": "/assets/backgrounds/journal.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/journal.webp?v=11b70d81",
+  "w": 720,
+  "h": 1080
  },
  "backgrounds/main-menu": {
-  "url": "/assets/backgrounds/main-menu.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/main-menu.webp?v=3eb81759",
+  "w": 720,
+  "h": 1080
  },
  "backgrounds/rip-screen": {
-  "url": "/assets/backgrounds/rip-screen.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/rip-screen.webp?v=b618b470",
+  "w": 720,
+  "h": 1080
  },
  "backgrounds/share": {
-  "url": "/assets/backgrounds/share.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/share.webp?v=d318bbce",
+  "w": 720,
+  "h": 1080
  },
  "backgrounds/tower": {
-  "url": "/assets/backgrounds/tower.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/backgrounds/tower.webp?v=005aefb2",
+  "w": 720,
+  "h": 1080
  },
  "beasts/aegiron/awakened-sage/card-art": {
-  "url": "/assets/beasts/aegiron/awakened-sage/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/aegiron/awakened-sage/card-art.webp?v=2c5d0ddf",
+  "w": 683,
+  "h": 1024
  },
  "beasts/aegiron/awakened-sage/cutin": {
-  "url": "/assets/beasts/aegiron/awakened-sage/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/aegiron/awakened-sage/cutin.webp?v=feeb406d",
+  "w": 1024,
+  "h": 683
  },
  "beasts/aegiron/awakened-sage/emblem": {
-  "url": "/assets/beasts/aegiron/awakened-sage/emblem.webp",
-  "w": 757,
-  "h": 870
+  "url": "/assets/beasts/aegiron/awakened-sage/emblem.webp?v=0962877a",
+  "w": 223,
+  "h": 256
  },
  "beasts/aegiron/awakened-sage/expressions/furious": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/furious.webp",
-  "w": 414,
-  "h": 426
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/furious.webp?v=38182ce8",
+  "w": 311,
+  "h": 320
  },
  "beasts/aegiron/awakened-sage/expressions/joyful": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/joyful.webp",
-  "w": 388,
-  "h": 390
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/joyful.webp?v=e7374123",
+  "w": 318,
+  "h": 320
  },
  "beasts/aegiron/awakened-sage/expressions/neutral": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/neutral.webp",
-  "w": 441,
-  "h": 435
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/neutral.webp?v=168da234",
+  "w": 320,
+  "h": 316
  },
  "beasts/aegiron/awakened-sage/expressions/proud": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/proud.webp",
-  "w": 423,
-  "h": 434
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/proud.webp?v=e9f3f4ac",
+  "w": 312,
+  "h": 320
  },
  "beasts/aegiron/awakened-sage/expressions/sad": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/sad.webp",
-  "w": 419,
-  "h": 398
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/sad.webp?v=6bd3535c",
+  "w": 320,
+  "h": 304
  },
  "beasts/aegiron/awakened-sage/expressions/sulky": {
-  "url": "/assets/beasts/aegiron/awakened-sage/expressions/sulky.webp",
-  "w": 400,
-  "h": 385
+  "url": "/assets/beasts/aegiron/awakened-sage/expressions/sulky.webp?v=90686573",
+  "w": 320,
+  "h": 308
  },
  "beasts/aegiron/awakened-sage/summon": {
-  "url": "/assets/beasts/aegiron/awakened-sage/summon.webp",
-  "w": 700,
-  "h": 1024
+  "url": "/assets/beasts/aegiron/awakened-sage/summon.webp?v=4aabb1c7",
+  "w": 615,
+  "h": 900
  },
  "beasts/aegiron/awakened-titan/card-art": {
-  "url": "/assets/beasts/aegiron/awakened-titan/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/aegiron/awakened-titan/card-art.webp?v=02318280",
+  "w": 683,
+  "h": 1024
  },
  "beasts/aegiron/awakened-titan/cutin": {
-  "url": "/assets/beasts/aegiron/awakened-titan/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/aegiron/awakened-titan/cutin.webp?v=41185ee3",
+  "w": 1024,
+  "h": 683
  },
  "beasts/aegiron/awakened-titan/emblem": {
-  "url": "/assets/beasts/aegiron/awakened-titan/emblem.webp",
-  "w": 758,
-  "h": 953
+  "url": "/assets/beasts/aegiron/awakened-titan/emblem.webp?v=9583e040",
+  "w": 204,
+  "h": 256
  },
  "beasts/aegiron/awakened-titan/expressions/furious": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/furious.webp",
-  "w": 368,
-  "h": 511
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/furious.webp?v=e10f3576",
+  "w": 230,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/expressions/joyful": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/joyful.webp",
-  "w": 416,
-  "h": 510
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/joyful.webp?v=3ab52ce2",
+  "w": 261,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/expressions/neutral": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/neutral.webp",
-  "w": 500,
-  "h": 511
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/neutral.webp?v=71bf4c2c",
+  "w": 313,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/expressions/proud": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/proud.webp",
-  "w": 393,
-  "h": 501
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/proud.webp?v=58987e6a",
+  "w": 251,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/expressions/sad": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/sad.webp",
-  "w": 311,
-  "h": 472
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/sad.webp?v=a64af0d1",
+  "w": 211,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/expressions/sulky": {
-  "url": "/assets/beasts/aegiron/awakened-titan/expressions/sulky.webp",
-  "w": 380,
-  "h": 476
+  "url": "/assets/beasts/aegiron/awakened-titan/expressions/sulky.webp?v=c0a0b4dd",
+  "w": 255,
+  "h": 320
  },
  "beasts/aegiron/awakened-titan/summon": {
-  "url": "/assets/beasts/aegiron/awakened-titan/summon.webp",
-  "w": 707,
-  "h": 1024
+  "url": "/assets/beasts/aegiron/awakened-titan/summon.webp?v=b20ae090",
+  "w": 621,
+  "h": 900
  },
  "beasts/aegiron/card-art": {
-  "url": "/assets/beasts/aegiron/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/aegiron/card-art.webp?v=deef87bd",
+  "w": 683,
+  "h": 1024
  },
  "beasts/aegiron/cutin": {
-  "url": "/assets/beasts/aegiron/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/aegiron/cutin.webp?v=a79c87b8",
+  "w": 1024,
+  "h": 683
  },
  "beasts/aegiron/emblem": {
-  "url": "/assets/beasts/aegiron/emblem.webp",
-  "w": 749,
-  "h": 839
+  "url": "/assets/beasts/aegiron/emblem.webp?v=398fb758",
+  "w": 229,
+  "h": 256
  },
  "beasts/aegiron/expressions/furious": {
-  "url": "/assets/beasts/aegiron/expressions/furious.webp",
-  "w": 436,
-  "h": 433
+  "url": "/assets/beasts/aegiron/expressions/furious.webp?v=b39402fd",
+  "w": 320,
+  "h": 320
  },
  "beasts/aegiron/expressions/joyful": {
-  "url": "/assets/beasts/aegiron/expressions/joyful.webp",
-  "w": 473,
-  "h": 397
+  "url": "/assets/beasts/aegiron/expressions/joyful.webp?v=7d9d74bd",
+  "w": 320,
+  "h": 280
  },
  "beasts/aegiron/expressions/neutral": {
-  "url": "/assets/beasts/aegiron/expressions/neutral.webp",
-  "w": 451,
-  "h": 434
+  "url": "/assets/beasts/aegiron/expressions/neutral.webp?v=e5483563",
+  "w": 318,
+  "h": 320
  },
  "beasts/aegiron/expressions/proud": {
-  "url": "/assets/beasts/aegiron/expressions/proud.webp",
-  "w": 420,
-  "h": 425
+  "url": "/assets/beasts/aegiron/expressions/proud.webp?v=d873edfc",
+  "w": 302,
+  "h": 320
  },
  "beasts/aegiron/expressions/sad": {
-  "url": "/assets/beasts/aegiron/expressions/sad.webp",
-  "w": 407,
-  "h": 399
+  "url": "/assets/beasts/aegiron/expressions/sad.webp?v=c6a07956",
+  "w": 320,
+  "h": 314
  },
  "beasts/aegiron/expressions/sulky": {
-  "url": "/assets/beasts/aegiron/expressions/sulky.webp",
-  "w": 431,
-  "h": 401
+  "url": "/assets/beasts/aegiron/expressions/sulky.webp?v=db4df8c4",
+  "w": 320,
+  "h": 305
  },
  "beasts/aegiron/summon": {
-  "url": "/assets/beasts/aegiron/summon.webp",
-  "w": 724,
-  "h": 1024
+  "url": "/assets/beasts/aegiron/summon.webp?v=d7fddaa2",
+  "w": 636,
+  "h": 900
  },
  "beasts/agnyx/awakened-inferno/card-art": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/agnyx/awakened-inferno/card-art.webp?v=3d66cde0",
+  "w": 683,
+  "h": 1024
  },
  "beasts/agnyx/awakened-inferno/cutin": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/agnyx/awakened-inferno/cutin.webp?v=aaa2a5d9",
+  "w": 1024,
+  "h": 683
  },
  "beasts/agnyx/awakened-inferno/emblem": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/emblem.webp",
-  "w": 849,
-  "h": 902
+  "url": "/assets/beasts/agnyx/awakened-inferno/emblem.webp?v=65a227a8",
+  "w": 241,
+  "h": 256
  },
  "beasts/agnyx/awakened-inferno/expressions/furious": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/furious.webp",
-  "w": 361,
-  "h": 449
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/furious.webp?v=e3227719",
+  "w": 257,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/expressions/joyful": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/joyful.webp",
-  "w": 352,
-  "h": 420
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/joyful.webp?v=6ef4d2a6",
+  "w": 268,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/expressions/neutral": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/neutral.webp",
-  "w": 344,
-  "h": 446
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/neutral.webp?v=1e67407f",
+  "w": 247,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/expressions/proud": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/proud.webp",
-  "w": 375,
-  "h": 451
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/proud.webp?v=852c0bd3",
+  "w": 266,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/expressions/sad": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sad.webp",
-  "w": 336,
-  "h": 424
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sad.webp?v=a9e41a80",
+  "w": 254,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/expressions/sulky": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sulky.webp",
-  "w": 357,
-  "h": 423
+  "url": "/assets/beasts/agnyx/awakened-inferno/expressions/sulky.webp?v=0072fd44",
+  "w": 270,
+  "h": 320
  },
  "beasts/agnyx/awakened-inferno/summon": {
-  "url": "/assets/beasts/agnyx/awakened-inferno/summon.webp",
-  "w": 687,
-  "h": 1024
+  "url": "/assets/beasts/agnyx/awakened-inferno/summon.webp?v=80cb018c",
+  "w": 604,
+  "h": 900
  },
  "beasts/agnyx/awakened-solar/card-art": {
-  "url": "/assets/beasts/agnyx/awakened-solar/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/agnyx/awakened-solar/card-art.webp?v=34d40860",
+  "w": 683,
+  "h": 1024
  },
  "beasts/agnyx/awakened-solar/cutin": {
-  "url": "/assets/beasts/agnyx/awakened-solar/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/agnyx/awakened-solar/cutin.webp?v=de1aa02b",
+  "w": 1024,
+  "h": 683
  },
  "beasts/agnyx/awakened-solar/emblem": {
-  "url": "/assets/beasts/agnyx/awakened-solar/emblem.webp",
-  "w": 896,
-  "h": 982
+  "url": "/assets/beasts/agnyx/awakened-solar/emblem.webp?v=02b5970f",
+  "w": 234,
+  "h": 256
  },
  "beasts/agnyx/awakened-solar/expressions/furious": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/furious.webp",
-  "w": 348,
-  "h": 478
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/furious.webp?v=507bf8d4",
+  "w": 233,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/expressions/joyful": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/joyful.webp",
-  "w": 329,
-  "h": 457
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/joyful.webp?v=2c96c497",
+  "w": 230,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/expressions/neutral": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/neutral.webp",
-  "w": 330,
-  "h": 483
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/neutral.webp?v=a25e41cc",
+  "w": 219,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/expressions/proud": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/proud.webp",
-  "w": 347,
-  "h": 485
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/proud.webp?v=42793a3a",
+  "w": 229,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/expressions/sad": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/sad.webp",
-  "w": 317,
-  "h": 459
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/sad.webp?v=a62f4808",
+  "w": 221,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/expressions/sulky": {
-  "url": "/assets/beasts/agnyx/awakened-solar/expressions/sulky.webp",
-  "w": 344,
-  "h": 441
+  "url": "/assets/beasts/agnyx/awakened-solar/expressions/sulky.webp?v=8f34b4d0",
+  "w": 250,
+  "h": 320
  },
  "beasts/agnyx/awakened-solar/summon": {
-  "url": "/assets/beasts/agnyx/awakened-solar/summon.webp",
-  "w": 698,
-  "h": 1024
+  "url": "/assets/beasts/agnyx/awakened-solar/summon.webp?v=b06dd8db",
+  "w": 614,
+  "h": 900
  },
  "beasts/agnyx/card-art": {
-  "url": "/assets/beasts/agnyx/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/agnyx/card-art.webp?v=dd79303f",
+  "w": 683,
+  "h": 1024
  },
  "beasts/agnyx/cutin": {
-  "url": "/assets/beasts/agnyx/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/agnyx/cutin.webp?v=fb5c8ac7",
+  "w": 1024,
+  "h": 683
  },
  "beasts/agnyx/emblem": {
-  "url": "/assets/beasts/agnyx/emblem.webp",
-  "w": 786,
-  "h": 885
+  "url": "/assets/beasts/agnyx/emblem.webp?v=7c9a0cca",
+  "w": 227,
+  "h": 256
  },
  "beasts/agnyx/expressions/furious": {
-  "url": "/assets/beasts/agnyx/expressions/furious.webp",
-  "w": 458,
-  "h": 475
+  "url": "/assets/beasts/agnyx/expressions/furious.webp?v=f1574446",
+  "w": 309,
+  "h": 320
  },
  "beasts/agnyx/expressions/joyful": {
-  "url": "/assets/beasts/agnyx/expressions/joyful.webp",
-  "w": 433,
-  "h": 474
+  "url": "/assets/beasts/agnyx/expressions/joyful.webp?v=fe7bd78a",
+  "w": 294,
+  "h": 320
  },
  "beasts/agnyx/expressions/neutral": {
-  "url": "/assets/beasts/agnyx/expressions/neutral.webp",
-  "w": 416,
-  "h": 474
+  "url": "/assets/beasts/agnyx/expressions/neutral.webp?v=fd7e2f3d",
+  "w": 267,
+  "h": 320
  },
  "beasts/agnyx/expressions/proud": {
-  "url": "/assets/beasts/agnyx/expressions/proud.webp",
-  "w": 405,
-  "h": 466
+  "url": "/assets/beasts/agnyx/expressions/proud.webp?v=b75c5f05",
+  "w": 271,
+  "h": 320
  },
  "beasts/agnyx/expressions/sad": {
-  "url": "/assets/beasts/agnyx/expressions/sad.webp",
-  "w": 396,
-  "h": 450
+  "url": "/assets/beasts/agnyx/expressions/sad.webp?v=7d0cc354",
+  "w": 282,
+  "h": 320
  },
  "beasts/agnyx/expressions/sulky": {
-  "url": "/assets/beasts/agnyx/expressions/sulky.webp",
-  "w": 345,
-  "h": 463
+  "url": "/assets/beasts/agnyx/expressions/sulky.webp?v=fdc0d102",
+  "w": 235,
+  "h": 320
  },
  "beasts/agnyx/summon": {
-  "url": "/assets/beasts/agnyx/summon.webp",
-  "w": 688,
-  "h": 1024
+  "url": "/assets/beasts/agnyx/summon.webp?v=315dbfb9",
+  "w": 605,
+  "h": 900
  },
  "beasts/nagara/awakened-eclipse/card-art": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/nagara/awakened-eclipse/card-art.webp?v=8c3fbb5e",
+  "w": 683,
+  "h": 1024
  },
  "beasts/nagara/awakened-eclipse/cutin": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/nagara/awakened-eclipse/cutin.webp?v=e0bc1fcc",
+  "w": 1024,
+  "h": 683
  },
  "beasts/nagara/awakened-eclipse/emblem": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/emblem.webp",
-  "w": 820,
-  "h": 853
+  "url": "/assets/beasts/nagara/awakened-eclipse/emblem.webp?v=a2ff8f79",
+  "w": 246,
+  "h": 256
  },
  "beasts/nagara/awakened-eclipse/expressions/furious": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/furious.webp",
-  "w": 363,
-  "h": 485
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/furious.webp?v=20ab90da",
+  "w": 240,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/expressions/joyful": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/joyful.webp",
-  "w": 328,
-  "h": 450
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/joyful.webp?v=034aa865",
+  "w": 233,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/expressions/neutral": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/neutral.webp",
-  "w": 356,
-  "h": 487
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/neutral.webp?v=616cc2cd",
+  "w": 234,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/expressions/proud": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/proud.webp",
-  "w": 336,
-  "h": 494
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/proud.webp?v=2ade5f71",
+  "w": 218,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/expressions/sad": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/sad.webp",
-  "w": 312,
-  "h": 444
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/sad.webp?v=ffb3c756",
+  "w": 225,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/expressions/sulky": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/sulky.webp",
-  "w": 349,
-  "h": 447
+  "url": "/assets/beasts/nagara/awakened-eclipse/expressions/sulky.webp?v=14ab900e",
+  "w": 250,
+  "h": 320
  },
  "beasts/nagara/awakened-eclipse/summon": {
-  "url": "/assets/beasts/nagara/awakened-eclipse/summon.webp",
-  "w": 705,
-  "h": 1024
+  "url": "/assets/beasts/nagara/awakened-eclipse/summon.webp?v=fb2d3688",
+  "w": 620,
+  "h": 900
  },
  "beasts/nagara/awakened-tide/card-art": {
-  "url": "/assets/beasts/nagara/awakened-tide/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/nagara/awakened-tide/card-art.webp?v=43fa1504",
+  "w": 683,
+  "h": 1024
  },
  "beasts/nagara/awakened-tide/cutin": {
-  "url": "/assets/beasts/nagara/awakened-tide/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/nagara/awakened-tide/cutin.webp?v=35386573",
+  "w": 1024,
+  "h": 683
  },
  "beasts/nagara/awakened-tide/emblem": {
-  "url": "/assets/beasts/nagara/awakened-tide/emblem.webp",
-  "w": 812,
-  "h": 893
+  "url": "/assets/beasts/nagara/awakened-tide/emblem.webp?v=494b6a3a",
+  "w": 233,
+  "h": 256
  },
  "beasts/nagara/awakened-tide/expressions/furious": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/furious.webp",
-  "w": 414,
-  "h": 469
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/furious.webp?v=0b30e803",
+  "w": 282,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/expressions/joyful": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/joyful.webp",
-  "w": 408,
-  "h": 461
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/joyful.webp?v=765b08ef",
+  "w": 283,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/expressions/neutral": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/neutral.webp",
-  "w": 416,
-  "h": 470
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/neutral.webp?v=bf823094",
+  "w": 283,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/expressions/proud": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/proud.webp",
-  "w": 387,
-  "h": 472
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/proud.webp?v=850f2cf3",
+  "w": 262,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/expressions/sad": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/sad.webp",
-  "w": 398,
-  "h": 463
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/sad.webp?v=da7a6509",
+  "w": 275,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/expressions/sulky": {
-  "url": "/assets/beasts/nagara/awakened-tide/expressions/sulky.webp",
-  "w": 412,
-  "h": 455
+  "url": "/assets/beasts/nagara/awakened-tide/expressions/sulky.webp?v=1964ac26",
+  "w": 290,
+  "h": 320
  },
  "beasts/nagara/awakened-tide/summon": {
-  "url": "/assets/beasts/nagara/awakened-tide/summon.webp",
-  "w": 699,
-  "h": 1024
+  "url": "/assets/beasts/nagara/awakened-tide/summon.webp?v=94c36dca",
+  "w": 615,
+  "h": 900
  },
  "beasts/nagara/card-art": {
-  "url": "/assets/beasts/nagara/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/nagara/card-art.webp?v=5f2947e6",
+  "w": 683,
+  "h": 1024
  },
  "beasts/nagara/cutin": {
-  "url": "/assets/beasts/nagara/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/nagara/cutin.webp?v=8de512b9",
+  "w": 1024,
+  "h": 683
  },
  "beasts/nagara/emblem": {
-  "url": "/assets/beasts/nagara/emblem.webp",
-  "w": 813,
-  "h": 892
+  "url": "/assets/beasts/nagara/emblem.webp?v=d79151ad",
+  "w": 233,
+  "h": 256
  },
  "beasts/nagara/expressions/furious": {
-  "url": "/assets/beasts/nagara/expressions/furious.webp",
-  "w": 345,
-  "h": 501
+  "url": "/assets/beasts/nagara/expressions/furious.webp?v=540d1ab6",
+  "w": 223,
+  "h": 320
  },
  "beasts/nagara/expressions/joyful": {
-  "url": "/assets/beasts/nagara/expressions/joyful.webp",
-  "w": 334,
-  "h": 512
+  "url": "/assets/beasts/nagara/expressions/joyful.webp?v=75930fa5",
+  "w": 204,
+  "h": 320
  },
  "beasts/nagara/expressions/neutral": {
-  "url": "/assets/beasts/nagara/expressions/neutral.webp",
-  "w": 420,
-  "h": 507
+  "url": "/assets/beasts/nagara/expressions/neutral.webp?v=8e4092c4",
+  "w": 225,
+  "h": 320
  },
  "beasts/nagara/expressions/proud": {
-  "url": "/assets/beasts/nagara/expressions/proud.webp",
-  "w": 339,
-  "h": 496
+  "url": "/assets/beasts/nagara/expressions/proud.webp?v=6c8b521e",
+  "w": 216,
+  "h": 320
  },
  "beasts/nagara/expressions/sad": {
-  "url": "/assets/beasts/nagara/expressions/sad.webp",
-  "w": 419,
-  "h": 512
+  "url": "/assets/beasts/nagara/expressions/sad.webp?v=fe6a88d2",
+  "w": 198,
+  "h": 320
  },
  "beasts/nagara/expressions/sulky": {
-  "url": "/assets/beasts/nagara/expressions/sulky.webp",
-  "w": 423,
-  "h": 510
+  "url": "/assets/beasts/nagara/expressions/sulky.webp?v=20586fb1",
+  "w": 215,
+  "h": 320
  },
  "beasts/nagara/summon": {
-  "url": "/assets/beasts/nagara/summon.webp",
-  "w": 711,
-  "h": 1024
+  "url": "/assets/beasts/nagara/summon.webp?v=cbb3c6e1",
+  "w": 625,
+  "h": 900
  },
  "beasts/umbrax/awakened-nightfang/card-art": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/umbrax/awakened-nightfang/card-art.webp?v=178a64b9",
+  "w": 683,
+  "h": 1024
  },
  "beasts/umbrax/awakened-nightfang/cutin": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/umbrax/awakened-nightfang/cutin.webp?v=b7657346",
+  "w": 1024,
+  "h": 683
  },
  "beasts/umbrax/awakened-nightfang/emblem": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/emblem.webp",
-  "w": 899,
-  "h": 910
+  "url": "/assets/beasts/umbrax/awakened-nightfang/emblem.webp?v=8a105d35",
+  "w": 253,
+  "h": 256
  },
  "beasts/umbrax/awakened-nightfang/expressions/furious": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/furious.webp",
-  "w": 477,
-  "h": 503
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/furious.webp?v=6f23fbea",
+  "w": 303,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/expressions/joyful": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/joyful.webp",
-  "w": 401,
-  "h": 493
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/joyful.webp?v=9e88e752",
+  "w": 260,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/expressions/neutral": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/neutral.webp",
-  "w": 504,
-  "h": 511
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/neutral.webp?v=4d49db24",
+  "w": 316,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/expressions/proud": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/proud.webp",
-  "w": 376,
-  "h": 493
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/proud.webp?v=0be0117b",
+  "w": 244,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/expressions/sad": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/sad.webp",
-  "w": 500,
-  "h": 508
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/sad.webp?v=b7ea5476",
+  "w": 315,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/expressions/sulky": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/sulky.webp",
-  "w": 368,
-  "h": 492
+  "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/sulky.webp?v=ce6b181f",
+  "w": 239,
+  "h": 320
  },
  "beasts/umbrax/awakened-nightfang/summon": {
-  "url": "/assets/beasts/umbrax/awakened-nightfang/summon.webp",
-  "w": 698,
-  "h": 1024
+  "url": "/assets/beasts/umbrax/awakened-nightfang/summon.webp?v=c6b24c85",
+  "w": 613,
+  "h": 900
  },
  "beasts/umbrax/awakened-sovereign/card-art": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/umbrax/awakened-sovereign/card-art.webp?v=d13be1a9",
+  "w": 683,
+  "h": 1024
  },
  "beasts/umbrax/awakened-sovereign/cutin": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/umbrax/awakened-sovereign/cutin.webp?v=514fbdb8",
+  "w": 1024,
+  "h": 683
  },
  "beasts/umbrax/awakened-sovereign/emblem": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/emblem.webp",
-  "w": 856,
-  "h": 905
+  "url": "/assets/beasts/umbrax/awakened-sovereign/emblem.webp?v=20d0a5ab",
+  "w": 242,
+  "h": 256
  },
  "beasts/umbrax/awakened-sovereign/expressions/furious": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/furious.webp",
-  "w": 512,
-  "h": 511
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/furious.webp?v=3c6b5534",
+  "w": 320,
+  "h": 319
  },
  "beasts/umbrax/awakened-sovereign/expressions/joyful": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/joyful.webp",
-  "w": 512,
-  "h": 509
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/joyful.webp?v=bdf53fbe",
+  "w": 320,
+  "h": 318
  },
  "beasts/umbrax/awakened-sovereign/expressions/neutral": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/neutral.webp",
-  "w": 512,
-  "h": 505
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/neutral.webp?v=9d18c57a",
+  "w": 320,
+  "h": 316
  },
  "beasts/umbrax/awakened-sovereign/expressions/proud": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/proud.webp",
-  "w": 507,
-  "h": 504
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/proud.webp?v=c76d23dc",
+  "w": 320,
+  "h": 318
  },
  "beasts/umbrax/awakened-sovereign/expressions/sad": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/sad.webp",
-  "w": 512,
-  "h": 510
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/sad.webp?v=c60a9a76",
+  "w": 320,
+  "h": 319
  },
  "beasts/umbrax/awakened-sovereign/expressions/sulky": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/sulky.webp",
-  "w": 495,
-  "h": 496
+  "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/sulky.webp?v=3bf47da8",
+  "w": 319,
+  "h": 320
  },
  "beasts/umbrax/awakened-sovereign/summon": {
-  "url": "/assets/beasts/umbrax/awakened-sovereign/summon.webp",
-  "w": 698,
-  "h": 1024
+  "url": "/assets/beasts/umbrax/awakened-sovereign/summon.webp?v=a2dd3172",
+  "w": 613,
+  "h": 900
  },
  "beasts/umbrax/card-art": {
-  "url": "/assets/beasts/umbrax/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/umbrax/card-art.webp?v=b50bc083",
+  "w": 683,
+  "h": 1024
  },
  "beasts/umbrax/cutin": {
-  "url": "/assets/beasts/umbrax/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/umbrax/cutin.webp?v=57c99691",
+  "w": 1024,
+  "h": 683
  },
  "beasts/umbrax/emblem": {
-  "url": "/assets/beasts/umbrax/emblem.webp",
-  "w": 766,
-  "h": 872
+  "url": "/assets/beasts/umbrax/emblem.webp?v=74a5ebcf",
+  "w": 225,
+  "h": 256
  },
  "beasts/umbrax/expressions/furious": {
-  "url": "/assets/beasts/umbrax/expressions/furious.webp",
-  "w": 347,
-  "h": 480
+  "url": "/assets/beasts/umbrax/expressions/furious.webp?v=b992030f",
+  "w": 231,
+  "h": 320
  },
  "beasts/umbrax/expressions/joyful": {
-  "url": "/assets/beasts/umbrax/expressions/joyful.webp",
-  "w": 329,
-  "h": 497
+  "url": "/assets/beasts/umbrax/expressions/joyful.webp?v=0c914846",
+  "w": 212,
+  "h": 320
  },
  "beasts/umbrax/expressions/neutral": {
-  "url": "/assets/beasts/umbrax/expressions/neutral.webp",
-  "w": 484,
-  "h": 512
+  "url": "/assets/beasts/umbrax/expressions/neutral.webp?v=9c541737",
+  "w": 302,
+  "h": 320
  },
  "beasts/umbrax/expressions/proud": {
-  "url": "/assets/beasts/umbrax/expressions/proud.webp",
-  "w": 506,
-  "h": 512
+  "url": "/assets/beasts/umbrax/expressions/proud.webp?v=c2cab0d6",
+  "w": 316,
+  "h": 320
  },
  "beasts/umbrax/expressions/sad": {
-  "url": "/assets/beasts/umbrax/expressions/sad.webp",
-  "w": 340,
-  "h": 472
+  "url": "/assets/beasts/umbrax/expressions/sad.webp?v=49de4bc4",
+  "w": 231,
+  "h": 320
  },
  "beasts/umbrax/expressions/sulky": {
-  "url": "/assets/beasts/umbrax/expressions/sulky.webp",
-  "w": 346,
-  "h": 496
+  "url": "/assets/beasts/umbrax/expressions/sulky.webp?v=551deb22",
+  "w": 223,
+  "h": 320
  },
  "beasts/umbrax/summon": {
-  "url": "/assets/beasts/umbrax/summon.webp",
-  "w": 707,
-  "h": 1024
+  "url": "/assets/beasts/umbrax/summon.webp?v=1db4b3f0",
+  "w": 622,
+  "h": 900
  },
  "beasts/voltfang/awakened-phantom/card-art": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/voltfang/awakened-phantom/card-art.webp?v=20911759",
+  "w": 683,
+  "h": 1024
  },
  "beasts/voltfang/awakened-phantom/cutin": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/voltfang/awakened-phantom/cutin.webp?v=0662c3e4",
+  "w": 1024,
+  "h": 683
  },
  "beasts/voltfang/awakened-phantom/emblem": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/emblem.webp",
-  "w": 816,
-  "h": 886
+  "url": "/assets/beasts/voltfang/awakened-phantom/emblem.webp?v=d759725c",
+  "w": 236,
+  "h": 256
  },
  "beasts/voltfang/awakened-phantom/expressions/furious": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/furious.webp",
-  "w": 348,
-  "h": 445
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/furious.webp?v=9b9869a9",
+  "w": 250,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/expressions/joyful": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/joyful.webp",
-  "w": 353,
-  "h": 455
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/joyful.webp?v=d99c3b55",
+  "w": 248,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/expressions/neutral": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/neutral.webp",
-  "w": 368,
-  "h": 467
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/neutral.webp?v=13083d79",
+  "w": 252,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/expressions/proud": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/proud.webp",
-  "w": 375,
-  "h": 459
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/proud.webp?v=597db7a1",
+  "w": 261,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/expressions/sad": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sad.webp",
-  "w": 369,
-  "h": 467
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sad.webp?v=ee72c6cd",
+  "w": 253,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/expressions/sulky": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sulky.webp",
-  "w": 386,
-  "h": 407
+  "url": "/assets/beasts/voltfang/awakened-phantom/expressions/sulky.webp?v=65f59a35",
+  "w": 303,
+  "h": 320
  },
  "beasts/voltfang/awakened-phantom/summon": {
-  "url": "/assets/beasts/voltfang/awakened-phantom/summon.webp",
-  "w": 692,
-  "h": 1024
+  "url": "/assets/beasts/voltfang/awakened-phantom/summon.webp?v=9254dca6",
+  "w": 608,
+  "h": 900
  },
  "beasts/voltfang/awakened-storm/card-art": {
-  "url": "/assets/beasts/voltfang/awakened-storm/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/voltfang/awakened-storm/card-art.webp?v=35c597cf",
+  "w": 683,
+  "h": 1024
  },
  "beasts/voltfang/awakened-storm/cutin": {
-  "url": "/assets/beasts/voltfang/awakened-storm/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/voltfang/awakened-storm/cutin.webp?v=bfeb7627",
+  "w": 1024,
+  "h": 683
  },
  "beasts/voltfang/awakened-storm/emblem": {
-  "url": "/assets/beasts/voltfang/awakened-storm/emblem.webp",
-  "w": 792,
-  "h": 829
+  "url": "/assets/beasts/voltfang/awakened-storm/emblem.webp?v=331ae92d",
+  "w": 245,
+  "h": 256
  },
  "beasts/voltfang/awakened-storm/expressions/furious": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/furious.webp",
-  "w": 418,
-  "h": 481
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/furious.webp?v=37626cfd",
+  "w": 278,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/expressions/joyful": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/joyful.webp",
-  "w": 384,
-  "h": 441
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/joyful.webp?v=293e2b35",
+  "w": 279,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/expressions/neutral": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/neutral.webp",
-  "w": 353,
-  "h": 475
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/neutral.webp?v=e9cc2869",
+  "w": 238,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/expressions/proud": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/proud.webp",
-  "w": 380,
-  "h": 470
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/proud.webp?v=3539bb2e",
+  "w": 259,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/expressions/sad": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/sad.webp",
-  "w": 362,
-  "h": 454
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/sad.webp?v=694c5d2b",
+  "w": 255,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/expressions/sulky": {
-  "url": "/assets/beasts/voltfang/awakened-storm/expressions/sulky.webp",
-  "w": 376,
-  "h": 441
+  "url": "/assets/beasts/voltfang/awakened-storm/expressions/sulky.webp?v=c45fe89b",
+  "w": 273,
+  "h": 320
  },
  "beasts/voltfang/awakened-storm/summon": {
-  "url": "/assets/beasts/voltfang/awakened-storm/summon.webp",
-  "w": 694,
-  "h": 1024
+  "url": "/assets/beasts/voltfang/awakened-storm/summon.webp?v=2f1500eb",
+  "w": 610,
+  "h": 900
  },
  "beasts/voltfang/card-art": {
-  "url": "/assets/beasts/voltfang/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/voltfang/card-art.webp?v=e84a398e",
+  "w": 683,
+  "h": 1024
  },
  "beasts/voltfang/cutin": {
-  "url": "/assets/beasts/voltfang/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/voltfang/cutin.webp?v=7144117b",
+  "w": 1024,
+  "h": 683
  },
  "beasts/voltfang/emblem": {
-  "url": "/assets/beasts/voltfang/emblem.webp",
-  "w": 832,
-  "h": 893
+  "url": "/assets/beasts/voltfang/emblem.webp?v=08639522",
+  "w": 239,
+  "h": 256
  },
  "beasts/voltfang/expressions/furious": {
-  "url": "/assets/beasts/voltfang/expressions/furious.webp",
-  "w": 416,
-  "h": 501
+  "url": "/assets/beasts/voltfang/expressions/furious.webp?v=e6c4761c",
+  "w": 256,
+  "h": 320
  },
  "beasts/voltfang/expressions/joyful": {
-  "url": "/assets/beasts/voltfang/expressions/joyful.webp",
-  "w": 355,
-  "h": 461
+  "url": "/assets/beasts/voltfang/expressions/joyful.webp?v=18cba699",
+  "w": 246,
+  "h": 320
  },
  "beasts/voltfang/expressions/neutral": {
-  "url": "/assets/beasts/voltfang/expressions/neutral.webp",
-  "w": 358,
-  "h": 496
+  "url": "/assets/beasts/voltfang/expressions/neutral.webp?v=5db3b773",
+  "w": 235,
+  "h": 320
  },
  "beasts/voltfang/expressions/proud": {
-  "url": "/assets/beasts/voltfang/expressions/proud.webp",
-  "w": 357,
-  "h": 498
+  "url": "/assets/beasts/voltfang/expressions/proud.webp?v=9e97cbd6",
+  "w": 229,
+  "h": 320
  },
  "beasts/voltfang/expressions/sad": {
-  "url": "/assets/beasts/voltfang/expressions/sad.webp",
-  "w": 350,
-  "h": 452
+  "url": "/assets/beasts/voltfang/expressions/sad.webp?v=debb6b66",
+  "w": 245,
+  "h": 320
  },
  "beasts/voltfang/expressions/sulky": {
-  "url": "/assets/beasts/voltfang/expressions/sulky.webp",
-  "w": 377,
-  "h": 465
+  "url": "/assets/beasts/voltfang/expressions/sulky.webp?v=4697a60e",
+  "w": 251,
+  "h": 320
  },
  "beasts/voltfang/summon": {
-  "url": "/assets/beasts/voltfang/summon.webp",
-  "w": 692,
-  "h": 1024
+  "url": "/assets/beasts/voltfang/summon.webp?v=29f3adcf",
+  "w": 608,
+  "h": 900
  },
  "beasts/zephyra/awakened-eye/card-art": {
-  "url": "/assets/beasts/zephyra/awakened-eye/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/zephyra/awakened-eye/card-art.webp?v=5cf855ec",
+  "w": 683,
+  "h": 1024
  },
  "beasts/zephyra/awakened-eye/cutin": {
-  "url": "/assets/beasts/zephyra/awakened-eye/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/zephyra/awakened-eye/cutin.webp?v=ab064327",
+  "w": 1024,
+  "h": 683
  },
  "beasts/zephyra/awakened-eye/emblem": {
-  "url": "/assets/beasts/zephyra/awakened-eye/emblem.webp",
-  "w": 850,
-  "h": 904
+  "url": "/assets/beasts/zephyra/awakened-eye/emblem.webp?v=3dd2c56e",
+  "w": 241,
+  "h": 256
  },
  "beasts/zephyra/awakened-eye/expressions/furious": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/furious.webp",
-  "w": 489,
-  "h": 465
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/furious.webp?v=ee4b6eee",
+  "w": 320,
+  "h": 304
  },
  "beasts/zephyra/awakened-eye/expressions/joyful": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/joyful.webp",
-  "w": 497,
-  "h": 473
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/joyful.webp?v=9a471d67",
+  "w": 320,
+  "h": 305
  },
  "beasts/zephyra/awakened-eye/expressions/neutral": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/neutral.webp",
-  "w": 469,
-  "h": 462
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/neutral.webp?v=084e1a88",
+  "w": 320,
+  "h": 315
  },
  "beasts/zephyra/awakened-eye/expressions/proud": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/proud.webp",
-  "w": 481,
-  "h": 464
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/proud.webp?v=953a8133",
+  "w": 320,
+  "h": 309
  },
  "beasts/zephyra/awakened-eye/expressions/sad": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/sad.webp",
-  "w": 467,
-  "h": 468
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/sad.webp?v=bbd45c8b",
+  "w": 319,
+  "h": 320
  },
  "beasts/zephyra/awakened-eye/expressions/sulky": {
-  "url": "/assets/beasts/zephyra/awakened-eye/expressions/sulky.webp",
-  "w": 475,
-  "h": 477
+  "url": "/assets/beasts/zephyra/awakened-eye/expressions/sulky.webp?v=5b06f817",
+  "w": 319,
+  "h": 320
  },
  "beasts/zephyra/awakened-eye/summon": {
-  "url": "/assets/beasts/zephyra/awakened-eye/summon.webp",
-  "w": 716,
-  "h": 1024
+  "url": "/assets/beasts/zephyra/awakened-eye/summon.webp?v=745c0e1d",
+  "w": 630,
+  "h": 900
  },
  "beasts/zephyra/awakened-gale/card-art": {
-  "url": "/assets/beasts/zephyra/awakened-gale/card-art.webp",
-  "w": 853,
-  "h": 1280
+  "url": "/assets/beasts/zephyra/awakened-gale/card-art.webp?v=520ddc6a",
+  "w": 683,
+  "h": 1024
  },
  "beasts/zephyra/awakened-gale/cutin": {
-  "url": "/assets/beasts/zephyra/awakened-gale/cutin.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/beasts/zephyra/awakened-gale/cutin.webp?v=70fb2863",
+  "w": 1024,
+  "h": 683
  },
  "beasts/zephyra/awakened-gale/emblem": {
-  "url": "/assets/beasts/zephyra/awakened-gale/emblem.webp",
-  "w": 882,
-  "h": 897
+  "url": "/assets/beasts/zephyra/awakened-gale/emblem.webp?v=0e55ab06",
+  "w": 252,
+  "h": 256
  },
  "beasts/zephyra/awakened-gale/expressions/furious": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/furious.webp",
-  "w": 459,
-  "h": 481
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/furious.webp?v=3e19226d",
+  "w": 305,
+  "h": 320
  },
  "beasts/zephyra/awakened-gale/expressions/joyful": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/joyful.webp",
-  "w": 465,
-  "h": 508
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/joyful.webp?v=e94c8157",
+  "w": 293,
+  "h": 320
  },
  "beasts/zephyra/awakened-gale/expressions/neutral": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/neutral.webp",
-  "w": 499,
-  "h": 511
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/neutral.webp?v=2094b96b",
+  "w": 312,
+  "h": 320
  },
  "beasts/zephyra/awakened-gale/expressions/proud": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/proud.webp",
-  "w": 512,
-  "h": 488
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/proud.webp?v=011a5001",
+  "w": 320,
+  "h": 305
  },
  "beasts/zephyra/awakened-gale/expressions/sad": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/sad.webp",
-  "w": 456,
-  "h": 505
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/sad.webp?v=1b03b56d",
+  "w": 289,
+  "h": 320
  },
  "beasts/zephyra/awakened-gale/expressions/sulky": {
-  "url": "/assets/beasts/zephyra/awakened-gale/expressions/sulky.webp",
-  "w": 512,
-  "h": 486
+  "url": "/assets/beasts/zephyra/awakened-gale/expressions/sulky.webp?v=16187a54",
+  "w": 320,
+  "h": 304
  },
  "beasts/zephyra/awakened-gale/summon": {
-  "url": "/assets/beasts/zephyra/awakened-gale/summon.webp",
-  "w": 716,
-  "h": 1024
+  "url": "/assets/beasts/zephyra/awakened-gale/summon.webp?v=54b652ec",
+  "w": 630,
+  "h": 900
  },
  "beasts/zephyra/card-art": {
-  "url": "/assets/beasts/zephyra/card-art.webp",
-  "w": 853,
-  "h": 1280
- },
- "beasts/zephyra/cutin": {
-  "url": "/assets/beasts/zephyra/cutin.webp",
-  "w": 1280,
-  "h": 853
- },
- "beasts/zephyra/emblem": {
-  "url": "/assets/beasts/zephyra/emblem.webp",
-  "w": 794,
-  "h": 876
- },
- "beasts/zephyra/expressions/furious": {
-  "url": "/assets/beasts/zephyra/expressions/furious.webp",
-  "w": 466,
-  "h": 477
- },
- "beasts/zephyra/expressions/joyful": {
-  "url": "/assets/beasts/zephyra/expressions/joyful.webp",
-  "w": 443,
-  "h": 454
- },
- "beasts/zephyra/expressions/neutral": {
-  "url": "/assets/beasts/zephyra/expressions/neutral.webp",
-  "w": 481,
-  "h": 477
- },
- "beasts/zephyra/expressions/proud": {
-  "url": "/assets/beasts/zephyra/expressions/proud.webp",
-  "w": 486,
-  "h": 475
- },
- "beasts/zephyra/expressions/sad": {
-  "url": "/assets/beasts/zephyra/expressions/sad.webp",
-  "w": 461,
-  "h": 455
- },
- "beasts/zephyra/expressions/sulky": {
-  "url": "/assets/beasts/zephyra/expressions/sulky.webp",
-  "w": 429,
-  "h": 455
- },
- "beasts/zephyra/summon": {
-  "url": "/assets/beasts/zephyra/summon.webp",
-  "w": 689,
+  "url": "/assets/beasts/zephyra/card-art.webp?v=80d8db20",
+  "w": 683,
   "h": 1024
  },
+ "beasts/zephyra/cutin": {
+  "url": "/assets/beasts/zephyra/cutin.webp?v=f67e6db8",
+  "w": 1024,
+  "h": 683
+ },
+ "beasts/zephyra/emblem": {
+  "url": "/assets/beasts/zephyra/emblem.webp?v=f21e2b6e",
+  "w": 232,
+  "h": 256
+ },
+ "beasts/zephyra/expressions/furious": {
+  "url": "/assets/beasts/zephyra/expressions/furious.webp?v=84485321",
+  "w": 313,
+  "h": 320
+ },
+ "beasts/zephyra/expressions/joyful": {
+  "url": "/assets/beasts/zephyra/expressions/joyful.webp?v=ff1e0c96",
+  "w": 312,
+  "h": 320
+ },
+ "beasts/zephyra/expressions/neutral": {
+  "url": "/assets/beasts/zephyra/expressions/neutral.webp?v=aa4b0770",
+  "w": 320,
+  "h": 317
+ },
+ "beasts/zephyra/expressions/proud": {
+  "url": "/assets/beasts/zephyra/expressions/proud.webp?v=089c959b",
+  "w": 320,
+  "h": 313
+ },
+ "beasts/zephyra/expressions/sad": {
+  "url": "/assets/beasts/zephyra/expressions/sad.webp?v=678ba416",
+  "w": 320,
+  "h": 316
+ },
+ "beasts/zephyra/expressions/sulky": {
+  "url": "/assets/beasts/zephyra/expressions/sulky.webp?v=9e3b6f7b",
+  "w": 302,
+  "h": 320
+ },
+ "beasts/zephyra/summon": {
+  "url": "/assets/beasts/zephyra/summon.webp?v=1e99436a",
+  "w": 606,
+  "h": 900
+ },
  "characters/avatars-sheet": {
-  "url": "/assets/characters/avatars-sheet.webp",
+  "url": "/assets/characters/avatars-sheet.webp?v=fc796a44",
   "w": 1024,
   "h": 702
  },
  "characters/avatars/avatar-1": {
-  "url": "/assets/characters/avatars/avatar-1.webp",
-  "w": 406,
-  "h": 493
+  "url": "/assets/characters/avatars/avatar-1.webp?v=ebf713bc",
+  "w": 211,
+  "h": 256
  },
  "characters/avatars/avatar-2": {
-  "url": "/assets/characters/avatars/avatar-2.webp",
-  "w": 412,
-  "h": 477
+  "url": "/assets/characters/avatars/avatar-2.webp?v=9a5911a4",
+  "w": 221,
+  "h": 256
  },
  "characters/avatars/avatar-3": {
-  "url": "/assets/characters/avatars/avatar-3.webp",
-  "w": 414,
-  "h": 464
+  "url": "/assets/characters/avatars/avatar-3.webp?v=98b72278",
+  "w": 228,
+  "h": 256
  },
  "characters/avatars/avatar-4": {
-  "url": "/assets/characters/avatars/avatar-4.webp",
-  "w": 356,
-  "h": 465
+  "url": "/assets/characters/avatars/avatar-4.webp?v=1664edb2",
+  "w": 196,
+  "h": 256
  },
  "characters/avatars/avatar-5": {
-  "url": "/assets/characters/avatars/avatar-5.webp",
-  "w": 453,
-  "h": 461
+  "url": "/assets/characters/avatars/avatar-5.webp?v=53821981",
+  "w": 252,
+  "h": 256
  },
  "characters/avatars/avatar-6": {
-  "url": "/assets/characters/avatars/avatar-6.webp",
-  "w": 391,
-  "h": 440
+  "url": "/assets/characters/avatars/avatar-6.webp?v=6fb22992",
+  "w": 227,
+  "h": 256
  },
  "characters/bosses/brick-full": {
-  "url": "/assets/characters/bosses/brick-full.webp",
-  "w": 714,
-  "h": 1024
+  "url": "/assets/characters/bosses/brick-full.webp?v=f1bc421b",
+  "w": 627,
+  "h": 900
  },
  "characters/bosses/brick/angry": {
-  "url": "/assets/characters/bosses/brick/angry.webp",
-  "w": 422,
-  "h": 455
+  "url": "/assets/characters/bosses/brick/angry.webp?v=4b104150",
+  "w": 297,
+  "h": 320
  },
  "characters/bosses/brick/confident": {
-  "url": "/assets/characters/bosses/brick/confident.webp",
-  "w": 422,
-  "h": 469
+  "url": "/assets/characters/bosses/brick/confident.webp?v=11213248",
+  "w": 288,
+  "h": 320
  },
  "characters/bosses/brick/defeated": {
-  "url": "/assets/characters/bosses/brick/defeated.webp",
-  "w": 442,
-  "h": 461
+  "url": "/assets/characters/bosses/brick/defeated.webp?v=acb6edc7",
+  "w": 307,
+  "h": 320
  },
  "characters/bosses/brick/respect": {
-  "url": "/assets/characters/bosses/brick/respect.webp",
-  "w": 418,
-  "h": 446
+  "url": "/assets/characters/bosses/brick/respect.webp?v=cdd77197",
+  "w": 300,
+  "h": 320
  },
  "characters/bosses/brick/shocked": {
-  "url": "/assets/characters/bosses/brick/shocked.webp",
-  "w": 445,
-  "h": 463
+  "url": "/assets/characters/bosses/brick/shocked.webp?v=5044dcf5",
+  "w": 308,
+  "h": 320
  },
  "characters/bosses/brick/shout": {
-  "url": "/assets/characters/bosses/brick/shout.webp",
-  "w": 445,
-  "h": 473
+  "url": "/assets/characters/bosses/brick/shout.webp?v=17156680",
+  "w": 301,
+  "h": 320
  },
  "characters/bosses/kaze/angry": {
-  "url": "/assets/characters/bosses/kaze/angry.webp",
-  "w": 308,
-  "h": 411
+  "url": "/assets/characters/bosses/kaze/angry.webp?v=594019ef",
+  "w": 240,
+  "h": 320
  },
  "characters/bosses/kaze/confident": {
-  "url": "/assets/characters/bosses/kaze/confident.webp",
-  "w": 312,
-  "h": 423
+  "url": "/assets/characters/bosses/kaze/confident.webp?v=3c6f7a4c",
+  "w": 236,
+  "h": 320
  },
  "characters/bosses/kaze/defeated": {
-  "url": "/assets/characters/bosses/kaze/defeated.webp",
-  "w": 337,
-  "h": 405
+  "url": "/assets/characters/bosses/kaze/defeated.webp?v=0fb8519c",
+  "w": 266,
+  "h": 320
  },
  "characters/bosses/kaze/respect": {
-  "url": "/assets/characters/bosses/kaze/respect.webp",
-  "w": 310,
-  "h": 400
+  "url": "/assets/characters/bosses/kaze/respect.webp?v=7626b243",
+  "w": 248,
+  "h": 320
  },
  "characters/bosses/kaze/shocked": {
-  "url": "/assets/characters/bosses/kaze/shocked.webp",
-  "w": 321,
-  "h": 421
+  "url": "/assets/characters/bosses/kaze/shocked.webp?v=bab94a16",
+  "w": 244,
+  "h": 320
  },
  "characters/bosses/kaze/shout": {
-  "url": "/assets/characters/bosses/kaze/shout.webp",
-  "w": 308,
-  "h": 419
+  "url": "/assets/characters/bosses/kaze/shout.webp?v=328e21cc",
+  "w": 235,
+  "h": 320
  },
  "characters/bosses/mira-full": {
-  "url": "/assets/characters/bosses/mira-full.webp",
-  "w": 714,
-  "h": 1024
+  "url": "/assets/characters/bosses/mira-full.webp?v=31562408",
+  "w": 628,
+  "h": 900
  },
  "characters/bosses/mira/angry": {
-  "url": "/assets/characters/bosses/mira/angry.webp",
-  "w": 407,
-  "h": 473
+  "url": "/assets/characters/bosses/mira/angry.webp?v=923409c2",
+  "w": 275,
+  "h": 320
  },
  "characters/bosses/mira/confident": {
-  "url": "/assets/characters/bosses/mira/confident.webp",
-  "w": 400,
-  "h": 465
+  "url": "/assets/characters/bosses/mira/confident.webp?v=06856e0e",
+  "w": 275,
+  "h": 320
  },
  "characters/bosses/mira/defeated": {
-  "url": "/assets/characters/bosses/mira/defeated.webp",
-  "w": 392,
-  "h": 463
+  "url": "/assets/characters/bosses/mira/defeated.webp?v=b52d65f1",
+  "w": 271,
+  "h": 320
  },
  "characters/bosses/mira/respect": {
-  "url": "/assets/characters/bosses/mira/respect.webp",
-  "w": 377,
-  "h": 458
+  "url": "/assets/characters/bosses/mira/respect.webp?v=8d1dcced",
+  "w": 263,
+  "h": 320
  },
  "characters/bosses/mira/shocked": {
-  "url": "/assets/characters/bosses/mira/shocked.webp",
-  "w": 425,
-  "h": 459
+  "url": "/assets/characters/bosses/mira/shocked.webp?v=0bb18dab",
+  "w": 296,
+  "h": 320
  },
  "characters/bosses/mira/shout": {
-  "url": "/assets/characters/bosses/mira/shout.webp",
-  "w": 505,
-  "h": 461
+  "url": "/assets/characters/bosses/mira/shout.webp?v=db6a1cb6",
+  "w": 320,
+  "h": 292
  },
  "characters/bosses/ren-full": {
-  "url": "/assets/characters/bosses/ren-full.webp",
-  "w": 712,
-  "h": 1024
+  "url": "/assets/characters/bosses/ren-full.webp?v=c4060cbf",
+  "w": 626,
+  "h": 900
  },
  "characters/bosses/ren/angry": {
-  "url": "/assets/characters/bosses/ren/angry.webp",
-  "w": 396,
-  "h": 481
+  "url": "/assets/characters/bosses/ren/angry.webp?v=a87449d9",
+  "w": 263,
+  "h": 320
  },
  "characters/bosses/ren/confident": {
-  "url": "/assets/characters/bosses/ren/confident.webp",
-  "w": 387,
-  "h": 479
+  "url": "/assets/characters/bosses/ren/confident.webp?v=fa91b71a",
+  "w": 259,
+  "h": 320
  },
  "characters/bosses/ren/defeated": {
-  "url": "/assets/characters/bosses/ren/defeated.webp",
-  "w": 391,
-  "h": 484
+  "url": "/assets/characters/bosses/ren/defeated.webp?v=0f527945",
+  "w": 259,
+  "h": 320
  },
  "characters/bosses/ren/respect": {
-  "url": "/assets/characters/bosses/ren/respect.webp",
-  "w": 384,
-  "h": 461
+  "url": "/assets/characters/bosses/ren/respect.webp?v=ebfe2818",
+  "w": 267,
+  "h": 320
  },
  "characters/bosses/ren/shocked": {
-  "url": "/assets/characters/bosses/ren/shocked.webp",
-  "w": 422,
-  "h": 477
+  "url": "/assets/characters/bosses/ren/shocked.webp?v=31cd31ed",
+  "w": 283,
+  "h": 320
  },
  "characters/bosses/ren/shout": {
-  "url": "/assets/characters/bosses/ren/shout.webp",
-  "w": 432,
-  "h": 474
+  "url": "/assets/characters/bosses/ren/shout.webp?v=c8b75554",
+  "w": 292,
+  "h": 320
  },
  "characters/bosses/vex-full": {
-  "url": "/assets/characters/bosses/vex-full.webp",
-  "w": 689,
-  "h": 1024
+  "url": "/assets/characters/bosses/vex-full.webp?v=26446848",
+  "w": 605,
+  "h": 900
  },
  "characters/bosses/vex/angry": {
-  "url": "/assets/characters/bosses/vex/angry.webp",
-  "w": 500,
-  "h": 511
+  "url": "/assets/characters/bosses/vex/angry.webp?v=d2197e36",
+  "w": 313,
+  "h": 320
  },
  "characters/bosses/vex/confident": {
-  "url": "/assets/characters/bosses/vex/confident.webp",
-  "w": 369,
-  "h": 488
+  "url": "/assets/characters/bosses/vex/confident.webp?v=02391339",
+  "w": 242,
+  "h": 320
  },
  "characters/bosses/vex/defeated": {
-  "url": "/assets/characters/bosses/vex/defeated.webp",
-  "w": 429,
-  "h": 466
+  "url": "/assets/characters/bosses/vex/defeated.webp?v=b263895c",
+  "w": 295,
+  "h": 320
  },
  "characters/bosses/vex/respect": {
-  "url": "/assets/characters/bosses/vex/respect.webp",
-  "w": 461,
-  "h": 511
+  "url": "/assets/characters/bosses/vex/respect.webp?v=3dd60ab4",
+  "w": 289,
+  "h": 320
  },
  "characters/bosses/vex/shocked": {
-  "url": "/assets/characters/bosses/vex/shocked.webp",
-  "w": 427,
-  "h": 509
+  "url": "/assets/characters/bosses/vex/shocked.webp?v=2a1cd1a8",
+  "w": 268,
+  "h": 320
  },
  "characters/bosses/vex/shout": {
-  "url": "/assets/characters/bosses/vex/shout.webp",
-  "w": 412,
-  "h": 489
+  "url": "/assets/characters/bosses/vex/shout.webp?v=584eedf3",
+  "w": 270,
+  "h": 320
  },
  "characters/commentator-sheet": {
-  "url": "/assets/characters/commentator-sheet.webp",
+  "url": "/assets/characters/commentator-sheet.webp?v=0da10f96",
   "w": 1024,
   "h": 698
  },
  "characters/commentator/hyped": {
-  "url": "/assets/characters/commentator/hyped.webp",
-  "w": 338,
-  "h": 486
+  "url": "/assets/characters/commentator/hyped.webp?v=fa9094a8",
+  "w": 178,
+  "h": 256
  },
  "characters/commentator/laughing": {
-  "url": "/assets/characters/commentator/laughing.webp",
-  "w": 342,
-  "h": 493
+  "url": "/assets/characters/commentator/laughing.webp?v=ff40f1b9",
+  "w": 178,
+  "h": 256
  },
  "characters/commentator/pointing": {
-  "url": "/assets/characters/commentator/pointing.webp",
-  "w": 491,
-  "h": 497
+  "url": "/assets/characters/commentator/pointing.webp?v=1ab4cd39",
+  "w": 253,
+  "h": 256
  },
  "characters/commentator/serious": {
-  "url": "/assets/characters/commentator/serious.webp",
-  "w": 367,
-  "h": 489
+  "url": "/assets/characters/commentator/serious.webp?v=76cad0e6",
+  "w": 192,
+  "h": 256
  },
  "characters/commentator/shocked": {
-  "url": "/assets/characters/commentator/shocked.webp",
-  "w": 348,
-  "h": 480
+  "url": "/assets/characters/commentator/shocked.webp?v=bbd41d8e",
+  "w": 186,
+  "h": 256
  },
  "characters/commentator/thumbs-up": {
-  "url": "/assets/characters/commentator/thumbs-up.webp",
-  "w": 418,
-  "h": 481
+  "url": "/assets/characters/commentator/thumbs-up.webp?v=e54ff9e9",
+  "w": 222,
+  "h": 256
  },
  "characters/rival-full": {
-  "url": "/assets/characters/rival-full.webp",
-  "w": 698,
-  "h": 1024
+  "url": "/assets/characters/rival-full.webp?v=bae7f8c0",
+  "w": 614,
+  "h": 900
  },
  "key-art/style-anchor-v3": {
-  "url": "/assets/key-art/style-anchor-v3.webp",
-  "w": 1280,
-  "h": 853
+  "url": "/assets/key-art/style-anchor-v3.webp?v=c67cec85",
+  "w": 1024,
+  "h": 683
  },
  "launchers/aegiron": {
-  "url": "/assets/launchers/aegiron.webp",
-  "w": 685,
-  "h": 1024
+  "url": "/assets/launchers/aegiron.webp?v=cad9eccb",
+  "w": 342,
+  "h": 512
  },
  "launchers/agnyx": {
-  "url": "/assets/launchers/agnyx.webp",
-  "w": 723,
-  "h": 1024
+  "url": "/assets/launchers/agnyx.webp?v=2fa4b10f",
+  "w": 361,
+  "h": 512
  },
  "launchers/nagara": {
-  "url": "/assets/launchers/nagara.webp",
-  "w": 708,
-  "h": 1024
+  "url": "/assets/launchers/nagara.webp?v=934d2b6e",
+  "w": 354,
+  "h": 512
  },
  "launchers/umbrax": {
-  "url": "/assets/launchers/umbrax.webp",
-  "w": 711,
-  "h": 1024
+  "url": "/assets/launchers/umbrax.webp?v=379560ab",
+  "w": 356,
+  "h": 512
  },
  "launchers/voltfang": {
-  "url": "/assets/launchers/voltfang.webp",
-  "w": 708,
-  "h": 1024
+  "url": "/assets/launchers/voltfang.webp?v=37662a43",
+  "w": 354,
+  "h": 512
  },
  "launchers/zephyra": {
-  "url": "/assets/launchers/zephyra.webp",
-  "w": 699,
-  "h": 1024
+  "url": "/assets/launchers/zephyra.webp?v=7f0f0685",
+  "w": 349,
+  "h": 512
  },
  "onboarding/calibrate": {
-  "url": "/assets/onboarding/calibrate.webp",
-  "w": 768,
-  "h": 649
+  "url": "/assets/onboarding/calibrate.webp?v=0cd3a5ed",
+  "w": 640,
+  "h": 541
  },
  "onboarding/no-throw": {
-  "url": "/assets/onboarding/no-throw.webp",
-  "w": 764,
-  "h": 768
+  "url": "/assets/onboarding/no-throw.webp?v=06020ccc",
+  "w": 637,
+  "h": 640
  },
  "onboarding/safety-grip": {
-  "url": "/assets/onboarding/safety-grip.webp",
-  "w": 522,
-  "h": 768
+  "url": "/assets/onboarding/safety-grip.webp?v=fdb3f876",
+  "w": 435,
+  "h": 640
  },
  "onboarding/tap-ready": {
-  "url": "/assets/onboarding/tap-ready.webp",
-  "w": 629,
-  "h": 768
+  "url": "/assets/onboarding/tap-ready.webp?v=33246c66",
+  "w": 524,
+  "h": 640
  },
  "parts/blade-bastion": {
-  "url": "/assets/parts/blade-bastion.webp",
+  "url": "/assets/parts/blade-bastion.webp?v=bf7b7efc",
   "w": 512,
   "h": 512
  },
  "parts/blade-crescent": {
-  "url": "/assets/parts/blade-crescent.webp",
+  "url": "/assets/parts/blade-crescent.webp?v=51f99234",
   "w": 512,
   "h": 512
  },
  "parts/blade-dome": {
-  "url": "/assets/parts/blade-dome.webp",
+  "url": "/assets/parts/blade-dome.webp?v=e48874d9",
   "w": 512,
   "h": 512
  },
  "parts/blade-eclipse": {
-  "url": "/assets/parts/blade-eclipse.webp",
+  "url": "/assets/parts/blade-eclipse.webp?v=31f6801b",
   "w": 512,
   "h": 512
  },
  "parts/blade-fang": {
-  "url": "/assets/parts/blade-fang.webp",
+  "url": "/assets/parts/blade-fang.webp?v=f5f5f8e3",
   "w": 512,
   "h": 512
  },
  "parts/blade-fury": {
-  "url": "/assets/parts/blade-fury.webp",
+  "url": "/assets/parts/blade-fury.webp?v=4c018db4",
   "w": 512,
   "h": 512
  },
  "parts/blade-gale": {
-  "url": "/assets/parts/blade-gale.webp",
+  "url": "/assets/parts/blade-gale.webp?v=654cdb06",
   "w": 512,
   "h": 512
  },
  "parts/blade-guard": {
-  "url": "/assets/parts/blade-guard.webp",
+  "url": "/assets/parts/blade-guard.webp?v=28b793ef",
   "w": 512,
   "h": 512
  },
  "parts/blade-halo": {
-  "url": "/assets/parts/blade-halo.webp",
+  "url": "/assets/parts/blade-halo.webp?v=a773b0c4",
   "w": 512,
   "h": 512
  },
  "parts/blade-prism": {
-  "url": "/assets/parts/blade-prism.webp",
+  "url": "/assets/parts/blade-prism.webp?v=132de102",
   "w": 512,
   "h": 512
  },
  "parts/blade-saw": {
-  "url": "/assets/parts/blade-saw.webp",
+  "url": "/assets/parts/blade-saw.webp?v=21892fe4",
   "w": 512,
   "h": 512
  },
  "parts/blade-spiral": {
-  "url": "/assets/parts/blade-spiral.webp",
+  "url": "/assets/parts/blade-spiral.webp?v=f6bbc9bd",
   "w": 512,
   "h": 512
  },
  "parts/blade-tempest": {
-  "url": "/assets/parts/blade-tempest.webp",
+  "url": "/assets/parts/blade-tempest.webp?v=e198b5a8",
   "w": 512,
   "h": 512
  },
  "parts/blade-wing": {
-  "url": "/assets/parts/blade-wing.webp",
+  "url": "/assets/parts/blade-wing.webp?v=d2efd7cd",
   "w": 512,
   "h": 512
  },
  "parts/disc-compact": {
-  "url": "/assets/parts/disc-compact.webp",
+  "url": "/assets/parts/disc-compact.webp?v=1da96cc7",
   "w": 512,
   "h": 512
  },
  "parts/disc-feather": {
-  "url": "/assets/parts/disc-feather.webp",
+  "url": "/assets/parts/disc-feather.webp?v=94c76d96",
   "w": 512,
   "h": 512
  },
  "parts/disc-gyro": {
-  "url": "/assets/parts/disc-gyro.webp",
+  "url": "/assets/parts/disc-gyro.webp?v=e995faa4",
   "w": 512,
   "h": 512
  },
  "parts/disc-heavy": {
-  "url": "/assets/parts/disc-heavy.webp",
+  "url": "/assets/parts/disc-heavy.webp?v=282fc0f4",
   "w": 512,
   "h": 512
  },
  "parts/disc-orbit": {
-  "url": "/assets/parts/disc-orbit.webp",
+  "url": "/assets/parts/disc-orbit.webp?v=46c3adfb",
   "w": 512,
   "h": 512
  },
  "parts/disc-rim": {
-  "url": "/assets/parts/disc-rim.webp",
+  "url": "/assets/parts/disc-rim.webp?v=353ec996",
   "w": 512,
   "h": 512
  },
  "parts/disc-standard": {
-  "url": "/assets/parts/disc-standard.webp",
+  "url": "/assets/parts/disc-standard.webp?v=6f0b9800",
   "w": 512,
   "h": 512
  },
  "parts/disc-titan": {
-  "url": "/assets/parts/disc-titan.webp",
+  "url": "/assets/parts/disc-titan.webp?v=b2f1988c",
   "w": 512,
   "h": 512
  },
  "parts/tip-ball": {
-  "url": "/assets/parts/tip-ball.webp",
-  "w": 761,
-  "h": 977
+  "url": "/assets/parts/tip-ball.webp?v=18c00854",
+  "w": 299,
+  "h": 384
  },
  "parts/tip-flat": {
-  "url": "/assets/parts/tip-flat.webp",
-  "w": 783,
-  "h": 889
+  "url": "/assets/parts/tip-flat.webp?v=e976f8d5",
+  "w": 338,
+  "h": 384
  },
  "parts/tip-grip": {
-  "url": "/assets/parts/tip-grip.webp",
-  "w": 727,
-  "h": 833
+  "url": "/assets/parts/tip-grip.webp?v=abb84559",
+  "w": 335,
+  "h": 384
  },
  "parts/tip-needle": {
-  "url": "/assets/parts/tip-needle.webp",
-  "w": 761,
-  "h": 873
+  "url": "/assets/parts/tip-needle.webp?v=9c8c749e",
+  "w": 335,
+  "h": 384
  },
  "parts/tip-orb": {
-  "url": "/assets/parts/tip-orb.webp",
-  "w": 750,
-  "h": 873
+  "url": "/assets/parts/tip-orb.webp?v=f988edd4",
+  "w": 330,
+  "h": 384
  },
  "parts/tip-rush": {
-  "url": "/assets/parts/tip-rush.webp",
-  "w": 858,
-  "h": 864
+  "url": "/assets/parts/tip-rush.webp?v=077d15ae",
+  "w": 381,
+  "h": 384
  },
  "parts/tip-semi": {
-  "url": "/assets/parts/tip-semi.webp",
-  "w": 1003,
-  "h": 873
+  "url": "/assets/parts/tip-semi.webp?v=d4d3ce74",
+  "w": 384,
+  "h": 334
  },
  "parts/tip-spike": {
-  "url": "/assets/parts/tip-spike.webp",
-  "w": 826,
-  "h": 814
+  "url": "/assets/parts/tip-spike.webp?v=cddc6be5",
+  "w": 384,
+  "h": 378
  },
  "parts/tip-wide": {
-  "url": "/assets/parts/tip-wide.webp",
-  "w": 826,
-  "h": 743
+  "url": "/assets/parts/tip-wide.webp?v=c0945938",
+  "w": 384,
+  "h": 345
  },
  "stadium/arena-floor": {
-  "url": "/assets/stadium/arena-floor.webp",
+  "url": "/assets/stadium/arena-floor.webp?v=4894149b",
   "w": 1024,
   "h": 1024
  },
  "stadium/bowl-classic": {
-  "url": "/assets/stadium/bowl-classic.webp",
+  "url": "/assets/stadium/bowl-classic.webp?v=302313f0",
   "w": 1024,
   "h": 1024
  },
  "stadium/bowl-frozen-moon": {
-  "url": "/assets/stadium/bowl-frozen-moon.webp",
+  "url": "/assets/stadium/bowl-frozen-moon.webp?v=a0016f97",
   "w": 1024,
   "h": 1024
  },
  "stadium/bowl-volcano": {
-  "url": "/assets/stadium/bowl-volcano.webp",
+  "url": "/assets/stadium/bowl-volcano.webp?v=69b51a67",
   "w": 1024,
   "h": 1024
  },
  "ui/banner-defeat": {
-  "url": "/assets/ui/banner-defeat.webp",
-  "w": 768,
-  "h": 521
+  "url": "/assets/ui/banner-defeat.webp?v=a0a1ab73",
+  "w": 720,
+  "h": 488
  },
  "ui/banner-finish-ringout": {
-  "url": "/assets/ui/banner-finish-ringout.webp",
-  "w": 768,
-  "h": 524
+  "url": "/assets/ui/banner-finish-ringout.webp?v=02664e20",
+  "w": 720,
+  "h": 492
  },
  "ui/banner-finish-shatter": {
-  "url": "/assets/ui/banner-finish-shatter.webp",
-  "w": 768,
-  "h": 519
+  "url": "/assets/ui/banner-finish-shatter.webp?v=c75ed4a9",
+  "w": 720,
+  "h": 487
  },
  "ui/banner-finish-spin": {
-  "url": "/assets/ui/banner-finish-spin.webp",
-  "w": 768,
-  "h": 526
+  "url": "/assets/ui/banner-finish-spin.webp?v=4b37e613",
+  "w": 720,
+  "h": 493
  },
  "ui/banner-finish-spirit": {
-  "url": "/assets/ui/banner-finish-spirit.webp",
-  "w": 768,
-  "h": 525
+  "url": "/assets/ui/banner-finish-spirit.webp?v=845af5ab",
+  "w": 720,
+  "h": 492
  },
  "ui/banner-shout": {
-  "url": "/assets/ui/banner-shout.webp",
-  "w": 768,
-  "h": 516
- },
- "ui/banner-spirit-call": {
-  "url": "/assets/ui/banner-spirit-call.webp",
-  "w": 768,
-  "h": 533
- },
- "ui/banner-victory": {
-  "url": "/assets/ui/banner-victory.webp",
-  "w": 768,
-  "h": 524
- },
- "ui/banner-vs": {
-  "url": "/assets/ui/banner-vs.webp",
-  "w": 768,
+  "url": "/assets/ui/banner-shout.webp?v=daa0920a",
+  "w": 720,
   "h": 484
  },
+ "ui/banner-spirit-call": {
+  "url": "/assets/ui/banner-spirit-call.webp?v=422d84eb",
+  "w": 720,
+  "h": 500
+ },
+ "ui/banner-victory": {
+  "url": "/assets/ui/banner-victory.webp?v=dc4b921a",
+  "w": 720,
+  "h": 491
+ },
+ "ui/banner-vs": {
+  "url": "/assets/ui/banner-vs.webp?v=e1a68115",
+  "w": 720,
+  "h": 454
+ },
  "ui/callout-good": {
-  "url": "/assets/ui/callout-good.webp",
-  "w": 768,
-  "h": 517
+  "url": "/assets/ui/callout-good.webp?v=fcb7a8ee",
+  "w": 720,
+  "h": 485
  },
  "ui/callout-great": {
-  "url": "/assets/ui/callout-great.webp",
-  "w": 768,
-  "h": 517
+  "url": "/assets/ui/callout-great.webp?v=5d87480f",
+  "w": 720,
+  "h": 485
  },
  "ui/callout-overspin": {
-  "url": "/assets/ui/callout-overspin.webp",
-  "w": 768,
-  "h": 521
+  "url": "/assets/ui/callout-overspin.webp?v=8d769c02",
+  "w": 720,
+  "h": 489
  },
  "ui/callout-perfect": {
-  "url": "/assets/ui/callout-perfect.webp",
-  "w": 768,
-  "h": 559
- },
- "ui/callout-weak": {
-  "url": "/assets/ui/callout-weak.webp",
-  "w": 768,
-  "h": 516
- },
- "ui/card-frame-common": {
-  "url": "/assets/ui/card-frame-common.webp",
-  "w": 522,
-  "h": 768
- },
- "ui/card-frame-epic": {
-  "url": "/assets/ui/card-frame-epic.webp",
-  "w": 534,
-  "h": 768
- },
- "ui/card-frame-legendary": {
-  "url": "/assets/ui/card-frame-legendary.webp",
-  "w": 536,
-  "h": 768
- },
- "ui/card-frame-rare": {
-  "url": "/assets/ui/card-frame-rare.webp",
-  "w": 532,
-  "h": 768
- },
- "ui/countdown-1": {
-  "url": "/assets/ui/countdown-1.webp",
-  "w": 640,
-  "h": 768
- },
- "ui/countdown-2": {
-  "url": "/assets/ui/countdown-2.webp",
-  "w": 768,
-  "h": 731
- },
- "ui/countdown-3": {
-  "url": "/assets/ui/countdown-3.webp",
-  "w": 762,
-  "h": 768
- },
- "ui/countdown-launch": {
-  "url": "/assets/ui/countdown-launch.webp",
-  "w": 768,
-  "h": 525
- },
- "ui/grade-A": {
-  "url": "/assets/ui/grade-A.webp",
-  "w": 556,
-  "h": 768
- },
- "ui/grade-B": {
-  "url": "/assets/ui/grade-B.webp",
-  "w": 529,
-  "h": 768
- },
- "ui/grade-C": {
-  "url": "/assets/ui/grade-C.webp",
-  "w": 630,
-  "h": 768
- },
- "ui/grade-S": {
-  "url": "/assets/ui/grade-S.webp",
-  "w": 768,
-  "h": 768
- },
- "ui/hud-plate-aegiron": {
-  "url": "/assets/ui/hud-plate-aegiron.webp",
-  "w": 768,
-  "h": 520
- },
- "ui/hud-plate-agnyx": {
-  "url": "/assets/ui/hud-plate-agnyx.webp",
-  "w": 768,
-  "h": 520
- },
- "ui/hud-plate-nagara": {
-  "url": "/assets/ui/hud-plate-nagara.webp",
-  "w": 768,
+  "url": "/assets/ui/callout-perfect.webp?v=a052fb90",
+  "w": 720,
   "h": 524
  },
+ "ui/callout-weak": {
+  "url": "/assets/ui/callout-weak.webp?v=ad5f95cc",
+  "w": 720,
+  "h": 484
+ },
+ "ui/card-frame-common": {
+  "url": "/assets/ui/card-frame-common.webp?v=6b857d36",
+  "w": 261,
+  "h": 384
+ },
+ "ui/card-frame-epic": {
+  "url": "/assets/ui/card-frame-epic.webp?v=d2d2ebcb",
+  "w": 267,
+  "h": 384
+ },
+ "ui/card-frame-legendary": {
+  "url": "/assets/ui/card-frame-legendary.webp?v=a5a3d774",
+  "w": 268,
+  "h": 384
+ },
+ "ui/card-frame-rare": {
+  "url": "/assets/ui/card-frame-rare.webp?v=f17b655a",
+  "w": 266,
+  "h": 384
+ },
+ "ui/countdown-1": {
+  "url": "/assets/ui/countdown-1.webp?v=aa14aab5",
+  "w": 600,
+  "h": 720
+ },
+ "ui/countdown-2": {
+  "url": "/assets/ui/countdown-2.webp?v=808077c3",
+  "w": 720,
+  "h": 685
+ },
+ "ui/countdown-3": {
+  "url": "/assets/ui/countdown-3.webp?v=8a75b0e4",
+  "w": 714,
+  "h": 720
+ },
+ "ui/countdown-launch": {
+  "url": "/assets/ui/countdown-launch.webp?v=2b45e37a",
+  "w": 720,
+  "h": 492
+ },
+ "ui/grade-A": {
+  "url": "/assets/ui/grade-A.webp?v=24a00955",
+  "w": 521,
+  "h": 720
+ },
+ "ui/grade-B": {
+  "url": "/assets/ui/grade-B.webp?v=ee2b445e",
+  "w": 496,
+  "h": 720
+ },
+ "ui/grade-C": {
+  "url": "/assets/ui/grade-C.webp?v=077a9691",
+  "w": 591,
+  "h": 720
+ },
+ "ui/grade-S": {
+  "url": "/assets/ui/grade-S.webp?v=d2224715",
+  "w": 720,
+  "h": 720
+ },
+ "ui/hud-plate-aegiron": {
+  "url": "/assets/ui/hud-plate-aegiron.webp?v=fc266d27",
+  "w": 640,
+  "h": 434
+ },
+ "ui/hud-plate-agnyx": {
+  "url": "/assets/ui/hud-plate-agnyx.webp?v=0f579210",
+  "w": 640,
+  "h": 433
+ },
+ "ui/hud-plate-nagara": {
+  "url": "/assets/ui/hud-plate-nagara.webp?v=2528a332",
+  "w": 640,
+  "h": 437
+ },
  "ui/hud-plate-umbrax": {
-  "url": "/assets/ui/hud-plate-umbrax.webp",
-  "w": 768,
-  "h": 527
+  "url": "/assets/ui/hud-plate-umbrax.webp?v=026bcbdc",
+  "w": 640,
+  "h": 439
  },
  "ui/hud-plate-voltfang": {
-  "url": "/assets/ui/hud-plate-voltfang.webp",
-  "w": 768,
-  "h": 565
+  "url": "/assets/ui/hud-plate-voltfang.webp?v=b91fa9ef",
+  "w": 640,
+  "h": 471
  },
  "ui/hud-plate-zephyra": {
-  "url": "/assets/ui/hud-plate-zephyra.webp",
-  "w": 768,
-  "h": 520
+  "url": "/assets/ui/hud-plate-zephyra.webp?v=5504b8bd",
+  "w": 640,
+  "h": 434
  },
  "ui/icon-coin": {
-  "url": "/assets/ui/icon-coin.webp",
-  "w": 692,
-  "h": 768
+  "url": "/assets/ui/icon-coin.webp?v=df5f91c7",
+  "w": 115,
+  "h": 128
  },
  "ui/icon-spirit-shard": {
-  "url": "/assets/ui/icon-spirit-shard.webp",
-  "w": 615,
-  "h": 768
+  "url": "/assets/ui/icon-spirit-shard.webp?v=fee3de65",
+  "w": 102,
+  "h": 128
  },
  "ui/icons/collection": {
-  "url": "/assets/ui/icons/collection.webp",
-  "w": 726,
-  "h": 768
+  "url": "/assets/ui/icons/collection.webp?v=710aa1a6",
+  "w": 182,
+  "h": 192
  },
  "ui/icons/cups": {
-  "url": "/assets/ui/icons/cups.webp",
-  "w": 678,
-  "h": 768
+  "url": "/assets/ui/icons/cups.webp?v=d5b8f2a0",
+  "w": 169,
+  "h": 192
  },
  "ui/icons/garage": {
-  "url": "/assets/ui/icons/garage.webp",
-  "w": 751,
-  "h": 768
+  "url": "/assets/ui/icons/garage.webp?v=db2dca21",
+  "w": 188,
+  "h": 192
  },
  "ui/icons/journal": {
-  "url": "/assets/ui/icons/journal.webp",
-  "w": 701,
-  "h": 768
+  "url": "/assets/ui/icons/journal.webp?v=e6de885d",
+  "w": 175,
+  "h": 192
  },
  "ui/icons/live": {
-  "url": "/assets/ui/icons/live.webp",
-  "w": 768,
-  "h": 675
+  "url": "/assets/ui/icons/live.webp?v=b82b38b0",
+  "w": 192,
+  "h": 169
  },
  "ui/icons/pass": {
-  "url": "/assets/ui/icons/pass.webp",
-  "w": 768,
-  "h": 696
+  "url": "/assets/ui/icons/pass.webp?v=f5414350",
+  "w": 192,
+  "h": 174
  },
  "ui/icons/quests": {
-  "url": "/assets/ui/icons/quests.webp",
-  "w": 768,
-  "h": 663
+  "url": "/assets/ui/icons/quests.webp?v=56de3259",
+  "w": 192,
+  "h": 166
  },
  "ui/icons/ranked": {
-  "url": "/assets/ui/icons/ranked.webp",
-  "w": 654,
-  "h": 768
+  "url": "/assets/ui/icons/ranked.webp?v=69457b07",
+  "w": 163,
+  "h": 192
  },
  "ui/icons/settings": {
-  "url": "/assets/ui/icons/settings.webp",
-  "w": 702,
-  "h": 768
+  "url": "/assets/ui/icons/settings.webp?v=ee9e0045",
+  "w": 176,
+  "h": 192
  },
  "ui/icons/shop": {
-  "url": "/assets/ui/icons/shop.webp",
-  "w": 582,
-  "h": 768
+  "url": "/assets/ui/icons/shop.webp?v=f5f1db22",
+  "w": 145,
+  "h": 192
  },
  "ui/icons/tower": {
-  "url": "/assets/ui/icons/tower.webp",
-  "w": 534,
-  "h": 768
+  "url": "/assets/ui/icons/tower.webp?v=4a03b1c6",
+  "w": 134,
+  "h": 192
  },
  "ui/icons/trophy": {
-  "url": "/assets/ui/icons/trophy.webp",
-  "w": 574,
-  "h": 768
+  "url": "/assets/ui/icons/trophy.webp?v=cd43ead9",
+  "w": 143,
+  "h": 192
  },
  "ui/logo": {
-  "url": "/assets/ui/logo.webp",
+  "url": "/assets/ui/logo.webp?v=b33f7b12",
   "w": 768,
   "h": 524
  },
  "ui/permission-motion-mic": {
-  "url": "/assets/ui/permission-motion-mic.webp",
+  "url": "/assets/ui/permission-motion-mic.webp?v=0580f5b1",
   "w": 768,
   "h": 551
  },
  "ui/type-attack": {
-  "url": "/assets/ui/type-attack.webp",
-  "w": 743,
-  "h": 768
+  "url": "/assets/ui/type-attack.webp?v=26e00894",
+  "w": 124,
+  "h": 128
  },
  "ui/type-balance": {
-  "url": "/assets/ui/type-balance.webp",
-  "w": 637,
-  "h": 768
+  "url": "/assets/ui/type-balance.webp?v=a06adf60",
+  "w": 106,
+  "h": 128
  },
  "ui/type-defense": {
-  "url": "/assets/ui/type-defense.webp",
-  "w": 688,
-  "h": 768
+  "url": "/assets/ui/type-defense.webp?v=d48b9317",
+  "w": 115,
+  "h": 128
  },
  "ui/type-stamina": {
-  "url": "/assets/ui/type-stamina.webp",
-  "w": 687,
-  "h": 678
+  "url": "/assets/ui/type-stamina.webp?v=ba2fc54e",
+  "w": 128,
+  "h": 126
  },
  "vfx/crack-decal": {
-  "url": "/assets/vfx/crack-decal.webp",
+  "url": "/assets/vfx/crack-decal.webp?v=e657d600",
   "w": 512,
   "h": 512
  },
  "vfx/dust-flipbook": {
-  "url": "/assets/vfx/dust-flipbook.webp",
+  "url": "/assets/vfx/dust-flipbook.webp?v=13f577d4",
   "w": 512,
   "h": 512
  },
  "vfx/hit-crystal": {
-  "url": "/assets/vfx/hit-crystal.webp",
+  "url": "/assets/vfx/hit-crystal.webp?v=79b1a076",
   "w": 512,
   "h": 512
  },
  "vfx/hit-fire": {
-  "url": "/assets/vfx/hit-fire.webp",
+  "url": "/assets/vfx/hit-fire.webp?v=178a76e0",
   "w": 512,
   "h": 512
  },
  "vfx/hit-lightning": {
-  "url": "/assets/vfx/hit-lightning.webp",
+  "url": "/assets/vfx/hit-lightning.webp?v=ede47e32",
   "w": 512,
   "h": 512
  },
  "vfx/hit-shadow": {
-  "url": "/assets/vfx/hit-shadow.webp",
+  "url": "/assets/vfx/hit-shadow.webp?v=8c47e2bd",
   "w": 512,
   "h": 512
  },
  "vfx/hit-water": {
-  "url": "/assets/vfx/hit-water.webp",
+  "url": "/assets/vfx/hit-water.webp?v=7db38705",
   "w": 512,
   "h": 512
  },
  "vfx/hit-wind": {
-  "url": "/assets/vfx/hit-wind.webp",
+  "url": "/assets/vfx/hit-wind.webp?v=25a193e5",
   "w": 512,
   "h": 512
  },
  "vfx/impact-flash": {
-  "url": "/assets/vfx/impact-flash.webp",
+  "url": "/assets/vfx/impact-flash.webp?v=fbf71906",
   "w": 512,
   "h": 512
  },
  "vfx/shockwave": {
-  "url": "/assets/vfx/shockwave.webp",
+  "url": "/assets/vfx/shockwave.webp?v=98484126",
   "w": 512,
   "h": 512
  },
  "vfx/speedlines": {
-  "url": "/assets/vfx/speedlines.webp",
+  "url": "/assets/vfx/speedlines.webp?v=9c6dc280",
   "w": 512,
   "h": 341
  }

@@ -64,8 +64,8 @@ Rate limits key on the client address from `X-Forwarded-For`, trusted only from 
 ## 5. Scaling notes
 
 - Realtime rooms and the tournament lock live in one process. Run a single API instance; scaling out needs sticky routing by room code and a database lock on tournament rows.
-- Static files under `/assets/*-<hash>.js|css` are cached for a year. Art and audio (`.webp`, `.mp3`) are cached for a week, so ship replaced art under a new file name. HTML and the service worker always revalidate.
-- The service worker precaches the app shell only; art loads on demand and is cached by the browser.
+- Static files under `/assets/*-<hash>.js|css` are cached for a year. Art (`.webp`) is also cached for a year: the manifest requests each image with a content hash (`?v=…`), so replaced art is fetched fresh after `python tools/build_assets.py`. Audio is cached for a week. HTML and the service worker always revalidate.
+- The service worker precaches the app shell; art is cached on first view (cache-first) and the likely next screens are warmed in the background after launch. Images are sized to how they are shown (icons 192 px, emblems 256 px, faces 320 px, card art 1024 px).
 
 ## 6. Health and logs
 

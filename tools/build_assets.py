@@ -16,13 +16,47 @@ SKIP = re.compile(r"(turnaround|tops/.*-sheet|stadium/.*-sheet|key-art/style-anc
 manifest = {}
 
 
+RULES_VERSION = 2
+SIZE_RULES = [
+    (r"^ui/icons/", 192, 82),
+    (r"^ui/(icon-coin|icon-spirit-shard|type-)", 128, 82),
+    (r"^ui/card-frame-", 384, 82),
+    (r"^ui/hud-plate-", 640, 80),
+    (r"^ui/(banner-|callout-|countdown-|grade-)", 720, 80),
+    (r"/emblem$", 256, 82),
+    (r"/expressions/", 320, 80),
+    (r"^characters/bosses/[a-z]+/", 320, 80),
+    (r"^characters/(avatars/|commentator/)", 256, 80),
+    (r"^characters/.*-full$", 900, 80),
+    (r"^characters/rival-full$", 900, 80),
+    (r"/summon$", 900, 78),
+    (r"/card-art$", 1024, 76),
+    (r"/cutin$", 1024, 76),
+    (r"^launchers/", 512, 80),
+    (r"^parts/tip-", 384, 85),
+    (r"^backgrounds/", 1080, 74),
+    (r"^onboarding/", 640, 80),
+    (r"^key-art/", 1024, 76),
+]
+
+
+def limit(rel, max_side, quality):
+    for pat, side, q in SIZE_RULES:
+        if re.search(pat, rel):
+            return min(max_side, side), q
+    return max_side, quality
+
+
 def save(img, rel, max_side, quality=82):
+    import hashlib
+    max_side, quality = limit(rel, max_side, quality)
     img = img.copy()
     img.thumbnail((max_side, max_side), Image.LANCZOS)
     path = os.path.join(OUT, rel + ".webp")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path, "WEBP", quality=quality, method=6)
-    manifest[rel] = {"url": "/assets/" + rel.replace(os.sep, "/") + ".webp", "w": img.width, "h": img.height}
+    v = hashlib.sha1(open(path, "rb").read()).hexdigest()[:8]
+    manifest[rel] = {"url": "/assets/" + rel.replace(os.sep, "/") + ".webp?v=" + v, "w": img.width, "h": img.height}
 
 
 def trim(img):
@@ -81,12 +115,12 @@ def process(rel_png):
     rel = rel_png[:-4].replace("\\", "/")
     mtime = os.path.getmtime(os.path.join(SRC, rel_png))
     hit = cache.get(rel_png)
-    if hit and hit["mtime"] == mtime and all(os.path.exists(os.path.join(OUT, k + ".webp")) for k in hit["entries"]):
+    if hit and hit["mtime"] == mtime and hit.get("rules") == RULES_VERSION and all(os.path.exists(os.path.join(OUT, k + ".webp")) for k in hit["entries"]):
         manifest.update(hit["entries"])
         return
     before = set(manifest)
     _process(rel_png, rel)
-    cache[rel_png] = {"mtime": mtime, "entries": {k: manifest[k] for k in set(manifest) - before}}
+    cache[rel_png] = {"mtime": mtime, "rules": RULES_VERSION, "entries": {k: manifest[k] for k in set(manifest) - before}}
 
 
 def _process(rel_png, rel):

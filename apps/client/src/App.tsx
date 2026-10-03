@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from 
 import type { MatchResult, MatchSetup } from './game/BattleController'
 import { setHaptics } from './input/haptics'
 import { useRuntime } from './runtime'
+import { warmImages } from './assets/assets'
 import { currentRoute, useNav, type Route } from './state/nav'
 import { storyBuild, useSave } from './state/save'
 import { reconcileStory, settleMatch } from './state/settle'
@@ -61,6 +62,7 @@ export function App() {
     else if (!s.onboarded.safety) nav.reset({ k: 'safety' })
     else {
       reconcileStory()
+      warmArt()
       nav.reset({ k: 'home' })
       const q = new URLSearchParams(location.search)
       const join = q.get('join'), cup = q.get('cup')
@@ -170,4 +172,15 @@ function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
 function stadiumTheme(): StadiumTheme {
   const id = useSave.getState().cosmetics?.stadium ?? 'stadium-classic'
   return id === 'stadium-volcano' ? 'volcano' : id === 'stadium-frozen-moon' ? 'frozen-moon' : 'classic'
+}
+
+function warmArt(): void {
+  const s = useSave.getState()
+  const b = s.loadout?.beastId ?? s.starter ?? 'voltfang'
+  const art = s.beasts[b]?.awakened ? `beasts/${b}/awakened-${s.beasts[b]!.awakened}` : `beasts/${b}`
+  const icons = ['live', 'ranked', 'cups', 'garage', 'collection', 'shop', 'pass', 'journal', 'quests', 'settings'].map(i => `ui/icons/${i}`)
+  const faces = ['neutral', 'proud', 'joyful', 'sad', 'furious', 'sulky'].map(m => `${art}/expressions/${m}`)
+  const battle = ['ui/banner-victory', 'ui/banner-defeat', 'ui/banner-vs', 'ui/countdown-3', 'ui/countdown-2', 'ui/countdown-1', 'ui/countdown-launch', 'ui/callout-perfect', 'ui/callout-great', 'ui/callout-good', 'ui/callout-weak', `ui/hud-plate-${b}`, `${art}/cutin`, `${art}/summon`, `launchers/${b}`, 'backgrounds/share']
+  const parts = [...s.owned.blades.map(id => `parts/blade-${id}`), ...s.owned.discs.map(id => `parts/disc-${id}`), ...s.owned.tips.map(id => `parts/tip-${id}`)]
+  warmImages([`${art}/card-art`, `${art}/emblem`, 'ui/icon-coin', 'ui/icon-spirit-shard', ...icons, ...faces, ...battle, 'backgrounds/garage', 'backgrounds/tower', ...parts])
 }

@@ -33,6 +33,19 @@ function deviceLogs(): Plugin {
 
 export default defineConfig({
   plugins: [
+    {
+      name: 'versioned-art-cache',
+      configureServer(server: { middlewares: { use(fn: (req: { url?: string }, res: { setHeader(k: string, v: string): void }, next: () => void) => void): void } }) {
+        server.middlewares.use((req, res, next) => {
+          if (/^\/assets\/.+\.webp\?v=/.test(req.url ?? '')) {
+            const set = res.setHeader.bind(res)
+            res.setHeader = (k, v) => set(k, k.toLowerCase() === 'cache-control' ? 'public, max-age=31536000, immutable' : v)
+            set('Cache-Control', 'public, max-age=31536000, immutable')
+          }
+          next()
+        })
+      },
+    },
     react(),
     deviceLogs(),
     ...(process.env.HTTP_ONLY ? [] : [basicSsl({ name: 'spirit-spin-dev', domains: ['*.sslip.io', 'localhost'] })]),
@@ -40,8 +53,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
+        id: '/',
         name: 'Spirit Spin',
         short_name: 'Spirit Spin',
+        lang: 'en',
+        categories: ['games', 'entertainment'],
         description: 'Rip your phone. Summon your spirit. Battle your friends.',
         theme_color: '#0a0f24',
         background_color: '#0a0f24',
@@ -57,7 +73,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2}'],
         runtimeCaching: [
-          { urlPattern: /\/assets\/.*\.(webp|png|mp3|ogg|json)$/, handler: 'CacheFirst', options: { cacheName: 'game-assets', expiration: { maxEntries: 600 } } },
+          { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'font-css' } },
+          { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'font-files', expiration: { maxEntries: 20, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } } },
+          { urlPattern: /\/assets\/.*\.(webp|png|mp3|ogg|json)(\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'game-assets', expiration: { maxEntries: 600 } } },
         ],
       },
     }),

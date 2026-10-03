@@ -152,7 +152,7 @@
 .p2-stats dt { font-size: 12px; font-weight: 700; color: var(--muted); }
 .p2-stats dd { margin: 2px 0 0; font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: #fff; }
 .p2-stats dd small { font-size: 16px; color: var(--muted); }
-.p2-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; touch-action: pan-x; }
+.p2-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; touch-action: pan-x pan-y; }
 .p2-tabs::-webkit-scrollbar { display: none; }
 .p2-tabs button { flex: none; min-height: 40px; padding: 0 14px; border: 0; background: var(--ink); color: var(--muted); font-weight: 700; font-size: 15px; cursor: pointer; transform: skewX(var(--skew)); }
 .p2-tabs button.on { background: var(--cyan); color: #04122a; }
@@ -239,7 +239,7 @@
 .danger p { margin: 0; font-weight: 600; color: var(--chrome); }
 .danger-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
-.j2-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; touch-action: pan-x; }
+.j2-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; touch-action: pan-x pan-y; }
 .j2-tabs::-webkit-scrollbar { display: none; }
 .j2-tabs button { flex: none; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 12px 4px 4px; border: 1px solid var(--line); background: var(--ink); color: var(--muted); font-weight: 700; font-size: 14px; cursor: pointer; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%); }
 .j2-tabs button img { width: 34px; height: 34px; }
@@ -323,3 +323,21 @@
 .starter-art { aspect-ratio: 3 / 3.7; }
 .emblem-pick { min-height: 82px; align-content: start; }
 .emblem-pick span { line-height: 1.1; }
+
+.battle-screen, .battle-screen canvas, .game-canvas { touch-action: none; }
+.page { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+@media (max-height: 760px) {
+  .result2 { gap: 10px; }
+  .r2-banner { width: min(46vw, 230px); margin-bottom: -10px; }
+  .r2-score b { font-size: 56px; }
+  .r2-score i { font-size: 36px; }
+  .r2-rounds { margin-top: 4px; }
+  .r2-tile { padding: 8px 6px 10px; }
+  .r2-tile img, .r2-tile em { width: 28px; height: 28px; }
+  .r2-tile strong { font-size: 28px; }
+  .r2-face { width: 84px; height: 84px; }
+  .r2-moment { grid-template-columns: 84px 1fr; }
+  .r2-bubble p { font-size: 15px; }
+  .r2-unlock { padding: 8px 12px; }
+  .r2-unlock img { width: 40px; height: 40px; }
+}

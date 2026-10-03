@@ -25,3 +25,17 @@ export function preloadImages(ids: string[]): Promise<void[]> {
     ),
   )
 }
+
+export function warmImages(ids: string[], concurrency = 4): void {
+  const queue = [...new Set(ids)].filter(hasAsset)
+  const next = (): void => {
+    const id = queue.shift()
+    if (!id) return
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = img.onerror = () => next()
+    img.src = assetUrl(id)
+  }
+  const idle = (window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 300))
+  idle(() => { for (let i = 0; i < concurrency; i++) next() })
+}

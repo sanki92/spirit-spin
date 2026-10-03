@@ -2,7 +2,8 @@ import { chromium, devices } from 'playwright'
 
 const [, , out = 'e2e/out/look', ...steps] = process.argv
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] })
-const ctx = await browser.newContext({ ...devices['Pixel 7'], ignoreHTTPSErrors: true })
+const dev = process.env.LOOK_DEVICE ? devices[process.env.LOOK_DEVICE] : devices['Pixel 7']
+const ctx = await browser.newContext({ ...dev, ignoreHTTPSErrors: true, ...(process.env.LOOK_H ? { viewport: { width: 390, height: Number(process.env.LOOK_H) } } : {}) })
 const page = await ctx.newPage()
 page.on('pageerror', e => console.log('PAGEERROR', e.message))
 page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text().slice(0, 200)) })
