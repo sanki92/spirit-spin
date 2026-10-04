@@ -11,6 +11,7 @@ export const players = pgTable('players', {
   recoveryHash: text('recovery_hash').notNull().unique(),
   name: text('name').notNull().default('Spinner'),
   friendCode: text('friend_code').unique(),
+  username: text('username'),
   save: jsonb('save').$type<Record<string, unknown>>().notNull().default({}),
   saveVersion: integer('save_version').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -232,6 +233,8 @@ const MIGRATIONS: string[] = [
   )`,
   `DELETE FROM ghost_matches a USING ghost_matches b WHERE a.ref_id IS NOT NULL AND a.ref_id = b.ref_id AND a.player_id = b.player_id AND (a.created_at, a.id) > (b.created_at, b.id);
   CREATE UNIQUE INDEX IF NOT EXISTS ghost_matches_one_attempt ON ghost_matches (ref_id, player_id) WHERE ref_id IS NOT NULL`,
+  `ALTER TABLE players ADD COLUMN IF NOT EXISTS username text;
+  CREATE UNIQUE INDEX IF NOT EXISTS players_username_key ON players (lower(username))`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

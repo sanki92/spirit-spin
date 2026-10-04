@@ -14,6 +14,8 @@ async function player(browser: Browser, name: string, beast: string): Promise<Pa
   if (await page.getByRole('button', { name: /continue/i }).isVisible()) await page.getByRole('button', { name: /continue/i }).click()
   await page.getByText(/tap to ready/i).click()
   await page.waitForFunction(() => (window as W).__save && (window as W).__nav && (window as W).__net && (window as W).__rt?.ready)
+  await page.waitForFunction(() => !!(window as W).__claimUsername && !!(window as W).__profile?.getState().loaded, null, { timeout: 15000 })
+  await page.evaluate(() => (window as W).__claimUsername('T' + Math.random().toString(36).slice(2, 11)))
   await page.evaluate(([n, b]) => {
     const w = window as W
     const s = w.__save.getState()

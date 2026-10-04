@@ -2,7 +2,9 @@ import { BLADES, COSMETICS, DISCS, levelForXp, PASS, PASS_TIERS, passTier, SKUS,
 import { BEASTS } from '../../game/beasts'
 import { useEffect, useState } from 'react'
 import { useNav } from '../../state/nav'
+import { useProfile } from '../../state/profile'
 import { ownsCosmetic, useSave } from '../../state/save'
+import { UsernameSheet } from '../UsernameSheet'
 import { buy, refreshEntitlements, type BuyResult } from '../purchase'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
 
@@ -108,8 +110,9 @@ function unlockHint(id: string): string {
 export function Profile() {
   const nav = useNav()
   const s = useSave()
-  const [name, setName] = useState(s.name)
   const [editing, setEditing] = useState(false)
+  const profile = useProfile()
+  const [copied, setCopied] = useState(false)
   const [tab, setTab] = useState<Kind>('avatar')
   useEffect(() => { void refreshEntitlements() }, [])
   const cos = s.cosmetics ?? { frame: 'frame-common', title: 'title-rookie', launcher: null, stadium: 'stadium-classic' }
@@ -122,29 +125,45 @@ export function Profile() {
   const lvl = levelForXp(s.xp)
   const st = s.stats
   const rate = st.battles ? Math.round((st.wins / st.battles) * 100) : 0
-  const commit = () => { s.setName(name); setName(useSave.getState().name); setEditing(false) }
+  const shareId = async () => {
+    const id = profile.friendCode
+    if (!id) return
+    const text = `Battle me in Spirit Spin! My ID: ${id}${profile.username ? ` (@${profile.username})` : ''}`
+    if (typeof navigator.share === 'function') { await navigator.share({ text }).catch(() => undefined); return }
+    await navigator.clipboard?.writeText(id).catch(() => undefined)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
+  }
+  const copyId = async () => {
+    if (!profile.friendCode) return
+    await navigator.clipboard?.writeText(profile.friendCode).catch(() => undefined)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
+  }
   const tier = currentPassTier(s)
   return (
     <Screen className="profile2">
       <TopBar title="Profile" right={<button className="icon-btn icon-img" onClick={() => nav.push({ k: 'settings' })} aria-label="Settings"><Img id="ui/icons/settings" /></button>} />
       <section className="p2-card" style={{ ['--c' as string]: BEASTS[beastId].color }}>
         <Img id={`beasts/${beastId}/card-art`} className="p2-bg" />
-        <div className="framed-avatar p2-avatar">
+        <div className={`framed-avatar p2-avatar ${cos.frame}`}>
           <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar-img" />
           <Img id={COSMETICS[cos.frame]?.art ?? 'ui/card-frame-common'} className="avatar-frame" />
         </div>
         <div className="p2-id">
-          {editing ? (
-            <form onSubmit={e => { e.preventDefault(); commit() }}>
-              <input autoFocus value={name} onChange={e => setName(e.target.value.slice(0, 16))} onBlur={commit} aria-label="Spinner name" maxLength={16} />
-            </form>
-          ) : (
-            <button className="p2-name" onClick={() => setEditing(true)} aria-label={`Name ${s.name}. Tap to change`}>{s.name}<span aria-hidden="true">Edit</span></button>
+          <button className="p2-name" onClick={() => setEditing(true)} aria-label={`Username ${profile.username ?? s.name}. Tap to change`}>{profile.username ?? s.name}<span aria-hidden="true">Edit</span></button>
+          {profile.friendCode && (
+            <span className="p2-uid">
+              <span>ID <b>{profile.friendCode}</b></span>
+              <button onClick={() => void copyId()} aria-label="Copy your ID">{copied ? 'Copied' : 'Copy'}</button>
+              <button onClick={() => void shareId()} aria-label="Share your ID">Share</button>
+            </span>
           )}
           <span className="p2-title">{COSMETICS[cos.title]?.name}</span>
           <span className="p2-level"><b>Level {lvl}</b><i><i style={{ transform: `scaleX(${Math.min(1, (s.xp - xpForLevel(lvl)) / Math.max(1, xpForLevel(lvl + 1) - xpForLevel(lvl)))})` }} /></i></span>
         </div>
       </section>
+      {editing && <UsernameSheet onClose={() => setEditing(false)} />}
       <dl className="p2-stats">
         <div><dt>Battles</dt><dd>{st.battles}</dd></div>
         <div><dt>Wins</dt><dd>{st.wins}</dd></div>

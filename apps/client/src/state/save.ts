@@ -132,6 +132,7 @@ export const useSave = create<SaveData & SaveActions>()(
       },
       recordMatch: (m, beastSummary, cleared) => {
         const r = matchRewards(m)
+        get().refreshQuests()
         const s = get()
         let changes: Change[] = []
         const beastId = s.loadout?.beastId

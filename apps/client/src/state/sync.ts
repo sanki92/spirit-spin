@@ -1,4 +1,5 @@
 import { log } from '../telemetry'
+import { useProfile, type Invite } from './profile'
 import { useSave, type SaveData } from './save'
 
 const AUTH_KEY = 'spirit.auth'
@@ -8,6 +9,8 @@ let auth: Auth | null = null
 let timer = 0
 let inflight = false
 let applyingRemote = false
+
+interface Me { version: number; save: Record<string, unknown>; token?: string; username?: string | null; friendCode?: string }
 
 function loadAuth(): Auth | null {
   try {
@@ -92,11 +95,12 @@ export async function startSync(): Promise<void> {
       storeAuth({ ...g.data, version: 0 })
       log('sync.guest', { playerId: g.data.playerId })
     }
-    let me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
+    let me = await api<Me>('GET', '/v1/me')
     if (me.status === 401) {
       if (!(await reauth())) return
-      me = await api<{ version: number; save: Record<string, unknown>; token?: string }>('GET', '/v1/me')
+      me = await api<Me>('GET', '/v1/me')
     }
+    if (me.status === 200) useProfile.getState().set({ loaded: true, username: me.data.username ?? null, friendCode: me.data.friendCode ?? null })
     if (me.status === 200 && me.data.token) storeAuth({ ...(auth as Auth), token: me.data.token })
     if (me.status === 200 && me.data.version > (auth as Auth).version && Object.keys(me.data.save).length) {
       const local = snapshot()
@@ -144,7 +148,38 @@ export async function recover(code: string): Promise<boolean> {
   const r = await api<{ token: string; playerId: string }>('POST', '/v1/auth/recover', { code })
   if (r.status !== 200) return false
   storeAuth({ token: r.data.token, playerId: r.data.playerId, recoveryCode: code.toUpperCase(), version: 0 })
-  const me = await api<{ version: number; save: Record<string, unknown> }>('GET', '/v1/me')
-  if (me.status === 200) adopt(me.data.save, me.data.version)
+  const me = await api<Me>('GET', '/v1/me')
+  if (me.status === 200) {
+    adopt(me.data.save, me.data.version)
+    useProfile.getState().set({ loaded: true, username: me.data.username ?? null, friendCode: me.data.friendCode ?? null })
+  }
   return true
+}
+
+export type UsernameReason = 'short' | 'long' | 'start' | 'chars' | 'blocked' | 'taken'
+
+export async function checkUsername(username: string): Promise<{ available: boolean; reason?: UsernameReason } | null> {
+  const r = await api<{ available: boolean; reason?: UsernameReason }>('GET', `/v1/username/check?username=${encodeURIComponent(username)}`).catch(() => null)
+  return r && r.status === 200 ? r.data : null
+}
+
+export async function claimUsername(username: string): Promise<{ ok: true; username: string } | { ok: false; reason: UsernameReason | 'offline' }> {
+  const r = await api<{ username?: string; error?: string; reason?: UsernameReason }>('POST', '/v1/username', { username }).catch(() => null)
+  if (!r) return { ok: false, reason: 'offline' }
+  if (r.status === 200 && r.data.username) {
+    useProfile.getState().set({ username: r.data.username })
+    useSave.getState().setName(r.data.username)
+    return { ok: true, username: r.data.username }
+  }
+  return { ok: false, reason: r.status === 409 ? 'taken' : r.data.reason ?? 'offline' }
+}
+
+export async function fetchInvites(): Promise<Invite[] | null> {
+  if (!auth) return null
+  const r = await api<{ challenges: Invite[] }>('GET', '/v1/challenges').catch(() => null)
+  return r && r.status === 200 ? r.data.challenges : null
+}
+
+export async function declineInvite(from: string): Promise<void> {
+  await api('POST', '/v1/challenges/decline', { from }).catch(() => undefined)
 }

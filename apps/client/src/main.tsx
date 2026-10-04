@@ -19,6 +19,8 @@ const runtime = new Runtime()
 if (import.meta.env.DEV) {
   Object.assign(window, { __nav: useNav, __save: useSave, __rt: runtime, __hud: useHud })
   void import('./net/rt').then(m => Object.assign(window, { __net: m.rt }))
+  void import('./state/sync').then(m => Object.assign(window, { __claimUsername: m.claimUsername }))
+  void import('./state/profile').then(m => Object.assign(window, { __profile: m.useProfile }))
   if (new URLSearchParams(location.search).has('sim')) void import('./dev/sim').then(m => m.installSim())
 }
 void startSync()

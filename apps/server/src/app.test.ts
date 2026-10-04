@@ -150,3 +150,58 @@ describe('spirit director route', () => {
     await fake.close()
   })
 })
+
+describe('usernames', () => {
+  const claim = (token: string, username: string) => app.inject({ method: 'POST', url: '/v1/username', headers: auth(token), payload: { username } })
+  const me = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/me', headers: auth(token) })).json() as { name: string; username: string | null; friendCode: string }
+
+  it('a valid username is claimed once, case-insensitively, and becomes the display name', async () => {
+    const a = await guest(), b = await guest()
+    expect((await me(a.token)).username).toBeNull()
+    const r = await claim(a.token, 'Kaze_Rival')
+    expect(r.statusCode).toBe(200)
+    expect(r.json()).toEqual({ username: 'Kaze_Rival' })
+    expect(await me(a.token)).toMatchObject({ username: 'Kaze_Rival', name: 'Kaze_Rival' })
+    const taken = await claim(b.token, 'kaze_rival')
+    expect(taken.statusCode).toBe(409)
+    expect(taken.json()).toMatchObject({ error: 'taken' })
+    expect((await claim(a.token, 'kaze_rival')).statusCode).toBe(200)
+  })
+
+  it('rejects invalid names with the reason', async () => {
+    const a = await guest()
+    expect((await claim(a.token, '9lives')).json()).toMatchObject({ error: 'invalid', reason: 'start' })
+    expect((await claim(a.token, 'admin_x')).json()).toMatchObject({ error: 'invalid', reason: 'blocked' })
+    expect((await claim(a.token, 'ab')).statusCode).toBe(400)
+  })
+
+  it('reports availability while typing', async () => {
+    const a = await guest(), b = await guest()
+    await claim(a.token, 'TakenName')
+    const check = async (n: string) => (await app.inject({ method: 'GET', url: `/v1/username/check?username=${encodeURIComponent(n)}`, headers: auth(b.token) })).json()
+    expect(await check('takenname')).toEqual({ available: false, reason: 'taken' })
+    expect(await check('FreshName')).toEqual({ available: true })
+    expect(await check('x')).toEqual({ available: false, reason: 'short' })
+  })
+
+  it('a save sync cannot overwrite a claimed username, and renaming frees the old one', async () => {
+    const a = await guest(), b = await guest()
+    await claim(a.token, 'OldHandle')
+    await app.inject({ method: 'PUT', url: '/v1/save', headers: auth(a.token), payload: { baseVersion: 0, save: { ...SAVE, name: 'Impostor' } } })
+    expect((await me(a.token)).name).toBe('OldHandle')
+    await claim(a.token, 'NewHandle')
+    expect((await claim(b.token, 'oldhandle')).statusCode).toBe(200)
+  })
+
+  it('friends can be added by username, and invites show the sender username to the invitee on any screen', async () => {
+    const a = await guest(), b = await guest()
+    await claim(a.token, 'Inviter')
+    await claim(b.token, 'Invitee')
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { username: 'INVITEE' } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(b.token), payload: { username: 'inviter' } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { username: 'nobody_here' } })).statusCode).toBe(404)
+    await app.inject({ method: 'POST', url: '/v1/challenges', headers: auth(a.token), payload: { to: b.playerId, code: 'AB12' } })
+    const inbox = (await app.inject({ method: 'GET', url: '/v1/challenges', headers: auth(b.token) })).json()
+    expect(inbox).toEqual({ challenges: [{ from: { playerId: a.playerId, name: 'Inviter' }, code: 'AB12', at: expect.any(Number) }] })
+  })
+})

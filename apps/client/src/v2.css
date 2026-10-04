@@ -125,10 +125,11 @@
 .h2-claim { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 12px; border: 0; cursor: pointer; background: var(--gold); color: #241300; font-size: 15px; transform: skewX(var(--skew)); animation: claimPulse 1.2s ease-in-out infinite alternate; }
 .h2-claim img { width: 20px; height: 20px; }
 @keyframes claimPulse { from { box-shadow: 0 0 0 rgba(255, 201, 60, 0); } to { box-shadow: 0 0 18px rgba(255, 201, 60, 0.6); } }
-.h2-dock { position: sticky; z-index: 6; bottom: calc(-16px - var(--safe-bottom)); margin: auto -16px calc(-16px - var(--safe-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 8px calc(6px + var(--safe-bottom)); background: linear-gradient(180deg, rgba(10, 15, 38, 0.96), #050818); border-top: 1px solid var(--line); }
-.h2-dock button { display: grid; justify-items: center; gap: 0; min-height: 60px; padding: 4px 0; border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+.h2-dock { position: sticky; z-index: 6; bottom: calc(-16px - var(--safe-bottom)); margin: auto -16px calc(-16px - var(--safe-bottom)); display: grid; grid-template-columns: repeat(6, 1fr); padding: 6px 8px calc(6px + var(--safe-bottom)); background: linear-gradient(180deg, rgba(10, 15, 38, 0.96), #050818); border-top: 1px solid var(--line); }
+.h2-dock button { display: grid; justify-items: center; gap: 0; min-height: 60px; padding: 4px 0; border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; position: relative; }
+.dock-badge { position: absolute; top: 2px; right: calc(50% - 26px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #ff3b5c; color: #fff; font-size: 12px; font-weight: 800; line-height: 20px; box-shadow: 0 0 0 2px #0a0f26; }
 .h2-dock button:active { color: var(--chrome); }
-.h2-dock img { width: 38px; height: 38px; object-fit: contain; }
+.h2-dock img { width: 34px; height: 34px; object-fit: contain; }
 .reduce-motion .h2-claim { animation: none; }
 @media (prefers-reduced-motion: reduce) { .h2-claim { animation: none; } }
 
@@ -481,3 +482,25 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .soon-tag { padding: 3px 12px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: #241300; background: var(--gold); transform: skewX(var(--skew)); }
 .soon-card h2 { margin: 4px 0 0; font-size: 26px; color: #fff; }
 .soon-card p { margin: 0 0 6px; max-width: 32ch; font-size: 16px; line-height: 1.4; color: var(--muted); }
+.username-sheet h2 { margin: 4px 40px 0 0; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 32px; letter-spacing: 1px; color: var(--chrome); }
+.username-help { margin: 0; color: var(--muted); font-size: 15px; }
+.username-field { display: flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 54px; border-radius: 12px; background: var(--steel); border: 2px solid var(--line); }
+.username-field:focus-within { border-color: var(--cyan); }
+.username-field span { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--muted); }
+.username-field input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--chrome); font: 700 20px 'Rajdhani', system-ui, sans-serif; letter-spacing: 0.5px; }
+.username-status { margin: -4px 2px 0; min-height: 20px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.username-status.ok { color: #4cff9a; }
+.username-status.bad { color: #ff6b6b; }
+.username-sheet .slash { justify-self: stretch; min-width: 0; }
+.p2-uid { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.p2-uid b { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 20px; letter-spacing: 2px; color: var(--chrome); }
+.p2-uid button { min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--chrome); font: 700 13px inherit; cursor: pointer; }
+.invite-toast { position: fixed; z-index: 60; top: calc(10px + var(--safe-top)); left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 14px; background: linear-gradient(120deg, #1c2a63, #0b1130); border: 1px solid rgba(255, 207, 74, 0.55); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5); animation: inviteIn 0.35s cubic-bezier(0.2, 1, 0.3, 1) both; }
+.invite-text { flex: 1; min-width: 0; display: grid; line-height: 1.15; }
+.invite-text strong { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 22px; letter-spacing: 1px; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invite-text span { font-size: 14px; color: var(--chrome); }
+.invite-join { min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: linear-gradient(100deg, #ffe08a, var(--gold) 45%, #ff9f2e); color: #2a1600; font: 400 22px 'Bebas Neue', sans-serif; letter-spacing: 1px; cursor: pointer; }
+.invite-x { width: 40px; height: 44px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.08); color: var(--chrome); font-size: 16px; cursor: pointer; }
+@keyframes inviteIn { from { transform: translateY(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
+.reduce-motion .invite-toast { animation: none; }
+@media (prefers-reduced-motion: reduce) { .invite-toast { animation: none; } }

@@ -16,17 +16,36 @@ export const QUEST_POOL: readonly Omit<Quest, 'progress'>[] = [
   { id: 'comeback1', text: 'Win after being 3 points down', target: 1, reward: 150 },
 ]
 
-export function dailyQuests(dateKey: string): Quest[] {
+const ANCHOR = Date.UTC(2026, 0, 1)
+const DAY_MS = 86_400_000
+const picked = new Map<number, QuestId[]>()
+
+function pick(dateKey: string, avoid: ReadonlySet<QuestId>): QuestId[] {
   let seed = 2166136261
   for (let i = 0; i < dateKey.length; i++) seed = Math.imul(seed ^ dateKey.charCodeAt(i), 16777619) >>> 0
   const rng = createRng(seed)
-  const pool = [...QUEST_POOL]
-  const out: Quest[] = []
-  while (out.length < 3) {
-    const q = pool.splice(Math.floor(rngNext(rng) * pool.length), 1)[0] as Omit<Quest, 'progress'>
-    out.push({ ...q, progress: 0 })
-  }
+  const pool = QUEST_POOL.map(q => q.id).filter(id => !avoid.has(id))
+  const out: QuestId[] = []
+  while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(rngNext(rng) * pool.length), 1)[0]!)
   return out
+}
+
+function chain(idx: number): QuestId[] {
+  const hit = picked.get(idx)
+  if (hit) return hit
+  let prev: QuestId[] = []
+  for (let i = Math.max(0, idx - 400); i < idx; i++) prev = chain(i)
+  const ids = pick(new Date(ANCHOR + idx * DAY_MS).toISOString().slice(0, 10), new Set(prev))
+  if (picked.size > 4000) picked.clear()
+  picked.set(idx, ids)
+  return ids
+}
+
+export function dailyQuests(dateKey: string): Quest[] {
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(dateKey)
+  const idx = iso ? Math.round((Date.parse(`${dateKey}T00:00:00Z`) - ANCHOR) / DAY_MS) : -1
+  const ids = idx >= 0 ? chain(idx) : pick(dateKey, new Set())
+  return ids.map(id => ({ ...QUEST_POOL.find(q => q.id === id)!, progress: 0 }))
 }
 
 function gain(id: QuestId, m: MatchSummary): number {

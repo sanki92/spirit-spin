@@ -170,12 +170,28 @@ function useCountdown(): string {
   return t
 }
 
+const SHOP_KEY = 'spirit.shop-owned'
+
+function dayOwned(day: string): ReadonlySet<string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(SHOP_KEY) ?? 'null') as { day?: string; ids?: string[] } | null
+    if (v?.day === day && Array.isArray(v.ids)) return new Set(v.ids)
+  } catch {
+    return new Set()
+  }
+  const o = useSave.getState().owned
+  const ids = [...o.blades.map(id => `blade:${id}`), ...o.discs.map(id => `disc:${id}`), ...o.tips.map(id => `tip:${id}`)]
+  try { localStorage.setItem(SHOP_KEY, JSON.stringify({ day, ids })) } catch { return new Set(ids) }
+  return new Set(ids)
+}
+
 export function Shop() {
   const s = useSave()
   const tower = useSave(s => s.tower)
   const refresh = useCountdown()
   const day = todayKey()
-  const items = useMemo(() => shopRotation(day, 6, tower), [day, tower, refresh])
+  const ownedAtOpen = useMemo(() => dayOwned(day), [day])
+  const items = useMemo(() => shopRotation(day, 6, tower, ownedAtOpen), [day, tower, refresh, ownedAtOpen])
   const [msg, setMsg] = useState<string | null>(null)
   const [tab, setTab] = useState<'parts' | 'cosmetics'>('parts')
   const [sheet, setSheet] = useState<(typeof items)[number] | null>(null)
@@ -200,6 +216,7 @@ export function Shop() {
         <em>New stock in {refresh}</em>
       </div>
       <p className="s2-note">Clearing Tower floors adds their story parts to the shop.</p>
+      {items.length === 0 && <p className="s2-note">You own every part on sale. Clear more Tower floors to unlock new ones.</p>}
       <div className="shop-grid">
         {items.map(it => (
           <button key={it.id} className={`shop-item ${it.rarity}`} onClick={() => setSheet(it)} aria-label={`${partName(it.kind, it.partId)}, ${it.rarity} ${it.kind}, ${owns(it.kind, it.partId) ? 'owned' : `${it.price} coins`}. Show details`}>

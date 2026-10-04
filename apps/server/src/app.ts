@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { cleanName, hashRecoveryCode, newRecoveryCode, randomCode, Tokens } from './auth'
 import type { Config } from './config'
 import { openDb, players, aiCalls, entitlements, friendships, type Db } from './db'
-import { PASS_TIERS, SKUS } from '@spirit/core'
+import { PASS_TIERS, SKUS, usernameError, usernameKey } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { createHash, timingSafeEqual } from 'node:crypto'
@@ -166,7 +166,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.get('/v1/me', { preHandler: requireAuth }, async (req, reply) => {
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
-    return { playerId: row.id, name: row.name, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id) }
+    return { playerId: row.id, name: row.name, username: row.username ?? null, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id) }
   })
 
   const cups = registerTournaments(app, db, requireAuth)
@@ -200,8 +200,9 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     }
   })
 
-  app.post('/v1/friends', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ code: z.string().regex(/^[A-Za-z0-9]{6}$/) }) } }, async (req, reply) => {
-    const [friend] = await db.select({ id: players.id }).from(players).where(eq(players.friendCode, req.body.code.toUpperCase())).limit(1)
+  app.post('/v1/friends', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.union([z.object({ code: z.string().regex(/^[A-Za-z0-9]{6}$/) }), z.object({ username: z.string().min(1).max(40) })]) } }, async (req, reply) => {
+    const where = 'code' in req.body ? eq(players.friendCode, req.body.code.toUpperCase()) : sql`lower(${players.username}) = ${usernameKey(req.body.username)}`
+    const [friend] = await db.select({ id: players.id }).from(players).where(where).limit(1)
     if (!friend) return reply.code(404).send({ error: 'unknown code' })
     if (friend.id === req.playerId) return reply.code(400).send({ error: 'own code' })
     await db.insert(friendships).values({ playerId: req.playerId, friendId: friend.id }).onConflictDoNothing()
@@ -214,6 +215,14 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     inbox.set(req.playerId, { code: req.body.code.toUpperCase(), at: Date.now() })
     challenges.set(req.body.to, inbox)
     return { ok: true }
+  })
+
+  app.get('/v1/challenges', { preHandler: requireAuth }, async req => {
+    const now = Date.now(), inbox = challenges.get(req.playerId)
+    for (const [from, c] of inbox ?? []) if (now - c.at > CHALLENGE_MS) inbox!.delete(from)
+    const ids = [...(inbox?.keys() ?? [])]
+    const names = new Map(ids.length ? (await db.select({ id: players.id, name: players.name }).from(players).where(inArray(players.id, ids))).map(r => [r.id, r.name]) : [])
+    return { challenges: [...(inbox ?? [])].map(([from, c]) => ({ from: { playerId: from, name: names.get(from) ?? 'A friend' }, code: c.code, at: c.at })) }
   })
 
   app.post('/v1/challenges/decline', { preHandler: requireAuth, schema: { body: z.object({ from: z.string().uuid() }) } }, async req => {
@@ -234,7 +243,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     const save = await sanitizeSave(db, req.playerId, req.body.save)
     const updated = await db
       .update(players)
-      .set({ save, name: cleanName(save.name), saveVersion: baseVersion + 1, updatedAt: new Date() })
+      .set({ save, name: sql`coalesce(${players.username}, ${cleanName(save.name)})`, saveVersion: baseVersion + 1, updatedAt: new Date() })
       .where(and(eq(players.id, req.playerId), eq(players.saveVersion, baseVersion)))
       .returning({ version: players.saveVersion })
     if (updated.length) return { version: updated[0]!.version }
@@ -246,6 +255,31 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   const key = cfg.openaiKey
   const director = deps.director ?? (key ? (m: MomentInput, model: string) => directSpirit(key, model, m) : null)
   const moderator = deps.moderator ?? (key ? (t: string) => moderate(key, t) : async () => true)
+
+  const usernameTaken = async (username: string, self: string) => {
+    const [hit] = await db.select({ id: players.id }).from(players).where(sql`lower(${players.username}) = ${usernameKey(username)}`).limit(1)
+    return !!hit && hit.id !== self
+  }
+
+  app.get('/v1/username/check', { preHandler: requireAuth, config: { rateLimit: { max: 60, timeWindow: '1 minute' } }, schema: { querystring: z.object({ username: z.string().max(40) }) } }, async req => {
+    const reason = usernameError(req.query.username)
+    if (reason) return { available: false, reason }
+    return (await usernameTaken(req.query.username, req.playerId)) ? { available: false, reason: 'taken' } : { available: true }
+  })
+
+  app.post('/v1/username', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ username: z.string().max(40) }) } }, async (req, reply) => {
+    const username = req.body.username.trim()
+    const reason = usernameError(username)
+    if (reason) return reply.code(400).send({ error: 'invalid', reason })
+    if (!(await moderator(username))) return reply.code(400).send({ error: 'invalid', reason: 'blocked' })
+    if (await usernameTaken(username, req.playerId)) return reply.code(409).send({ error: 'taken' })
+    try {
+      await db.update(players).set({ username, name: username, updatedAt: new Date() }).where(eq(players.id, req.playerId))
+    } catch {
+      return reply.code(409).send({ error: 'taken' })
+    }
+    return { username }
+  })
   const dayStart = () => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d }
 
   app.post('/v1/spirit/moment', { preHandler: requireAuth, config: { rateLimit: { max: 20, timeWindow: '1 minute' } }, schema: { body: MomentBody } }, async req => {

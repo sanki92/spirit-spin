@@ -3,6 +3,7 @@ import { FEATURES } from '../../features'
 import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
+import { useProfile } from '../../state/profile'
 import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
@@ -17,7 +18,13 @@ const greeting = new Set<string>()
 export function Home() {
   const nav = useNav()
   const s = useSave()
-  useEffect(() => { s.refreshQuests(); s.ensurePass() }, [s.refreshQuests])
+  const invites = useProfile(p => p.invites.length)
+  useEffect(() => {
+    s.refreshQuests()
+    s.ensurePass()
+    const id = window.setInterval(() => useSave.getState().refreshQuests(), 60_000)
+    return () => window.clearInterval(id)
+  }, [s.refreshQuests])
   const beastId = s.loadout?.beastId ?? s.starter ?? 'voltfang'
   const beast = s.beasts[beastId]
   const info = BEASTS[beastId]
@@ -65,7 +72,7 @@ export function Home() {
     <Screen className="home2" bg="backgrounds/main-menu">
       <header className="h2-head">
         <button className="h2-me" onClick={() => nav.push({ k: 'profile' })} aria-label="Open profile">
-          <span className="framed-avatar">
+          <span className={`framed-avatar ${s.cosmetics?.frame ?? 'frame-common'}`}>
             <Img id={`characters/avatars/avatar-${s.avatar + 1}`} className="avatar-img" />
             <Img id={COSMETICS[s.cosmetics?.frame ?? 'frame-common']?.art ?? 'ui/card-frame-common'} className="avatar-frame" />
           </span>
@@ -141,6 +148,7 @@ export function Home() {
       <nav className="h2-dock" aria-label="Main">
         <button onClick={() => nav.push({ k: 'garage' })}><Img id="ui/icons/garage" /><span>Garage</span></button>
         <button onClick={() => nav.push({ k: 'collection' })}><Img id="ui/icons/collection" /><span>Collection</span></button>
+        <button onClick={() => nav.push({ k: 'friends' })} aria-label={invites ? `Friends, ${invites} invite${invites > 1 ? 's' : ''}` : 'Friends'}><Img id="ui/icons/live" /><span>Friends</span>{invites > 0 && <b className="dock-badge" aria-hidden="true">{invites}</b>}</button>
         <button onClick={() => nav.push({ k: 'shop' })}><Img id="ui/icons/shop" /><span>Shop</span></button>
         <button onClick={() => nav.push({ k: 'pass' })}><Img id="ui/icons/pass" /><span>Pass</span></button>
         <button onClick={() => nav.push({ k: 'journal' })}><Img id="ui/icons/journal" /><span>Journal</span></button>

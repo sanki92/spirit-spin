@@ -299,14 +299,18 @@ function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { l
   const [copied, setCopied] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const post = (body: { code: string } | { username: string }) => fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify(body) }).catch(() => null)
   const add = async (c: string) => {
     setNote(null)
     setPending(c)
-    const r = await fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ code: c }) }).catch(() => null)
+    const raw = c.trim().replace(/^@/, '')
+    const asId = !c.trim().startsWith('@') && /^[A-Za-z0-9]{6}$/.test(raw)
+    let r = await post(asId ? { code: raw.toUpperCase() } : { username: raw })
+    if (asId && r?.status === 404) r = await post({ username: raw })
     setPending(null)
     if (!r) return setNote('No connection. Try again in a moment.')
-    if (r.status === 404) return setNote('No player has that friend code.')
-    if (r.status === 400) return setNote('That is your own code.')
+    if (r.status === 404) return setNote('No player has that ID or username.')
+    if (r.status === 400) return setNote("That's you!")
     if (!r.ok) return setNote('Could not add that friend. Try again.')
     setCode('')
     log('friends.add', {})
@@ -336,11 +340,11 @@ function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { l
       {(adding || empty) && (
         <div className="lb-addbox">
           <button className="lb-mycode" onClick={copy} disabled={!mine} aria-label="Copy your friend code">
-            <span>Your friend code</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
+            <span>Your ID</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
           </button>
-          <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.length === 6) void add(code) }}>
-            <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase())} placeholder="Their friend code" maxLength={6} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label="Friend code" />
-            <button className="lb-btn cyan" disabled={code.length !== 6 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
+          <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.replace(/^@/, '').length >= 3) void add(code) }}>
+            <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
+            <button className="lb-btn cyan" disabled={code.replace(/^@/, '').length < 3 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
           </form>
           {note && <p className="form-error" role="alert">{note}</p>}
         </div>
@@ -372,7 +376,7 @@ function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { l
               <button className="lb-x" onClick={() => void remove(f, `Cancelled request to ${f.name}`)} disabled={pending !== null} aria-label={`Cancel request to ${f.name}`}>×</button>
             </div>
           ))}
-          {empty && <p className="lb-empty">Swap friend codes with a friend. Once you've both added each other, you can battle them from here.</p>}
+          {empty && <p className="lb-empty">Add a friend by their ID or @username. Once you've both added each other, you can battle them from here.</p>}
         </>
       )}
     </section>
