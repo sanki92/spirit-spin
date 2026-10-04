@@ -13,7 +13,9 @@ import { openDb, players, aiCalls, entitlements, friendships, type Db } from './
 import { PASS_TIERS, SKUS } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
+import { timingSafeEqual } from 'node:crypto'
 import { EdgeClient } from './rt/edge'
+import { NetLog } from './rt/netlog'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
 import { registerTournaments } from './tournaments'
@@ -79,9 +81,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
   const edge = deps.realtime?.edge ?? (cfg.edge ? new EdgeClient(cfg.edge) : null)
   if (edge instanceof EdgeClient && !deps.realtime?.edge) app.addHook('onClose', async () => edge.close())
+  const netlog = new NetLog()
   const rooms = await registerRealtime(app, tokens, {
     ...deps.realtime,
     edge,
+    netlog,
     onResult: room => {
       const [a, b] = room.seats
       if (!a || !b || a.playerId === b.playerId) return
@@ -124,6 +128,22 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
       if (req.socket.remoteAddress !== '127.0.0.1' && req.socket.remoteAddress !== '::1' && req.socket.remoteAddress !== '::ffff:127.0.0.1') return reply.code(404).send()
       devShutdown()
       return { ok: true }
+    })
+  }
+  const dashKey = process.env.NET_DASH_KEY ?? ''
+  if (devShutdown || dashKey) {
+    const loopback = (req: FastifyRequest) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '')
+    const keyOk = (req: FastifyRequest) => {
+      const k = String((req.query as { key?: unknown }).key ?? '')
+      return dashKey.length > 0 && k.length === dashKey.length && timingSafeEqual(Buffer.from(k), Buffer.from(dashKey))
+    }
+    const allowed = (req: FastifyRequest) => loopback(req) || keyOk(req)
+    app.get('/__dev/net.json', async (req, reply) => (allowed(req) ? { summary: netlog.summary(), rows: netlog.rows() } : reply.code(404).send()))
+    app.get('/__dev/net', async (req, reply) => {
+      if (!allowed(req)) return reply.code(404).send()
+      const url = process.env.RT_EDGE_METRICS
+      const edgeText = url ? await fetch(url, { signal: AbortSignal.timeout(1000) }).then(r => r.text()).catch(() => null) : null
+      return reply.type('text/html; charset=utf-8').header('cache-control', 'no-store').send(netlog.html(edgeText))
     })
   }
 
