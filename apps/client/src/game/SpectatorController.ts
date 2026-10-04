@@ -1,4 +1,5 @@
-import { createBattle, NET, Predictor, type BattleEvent, type NetInput, type RipResult, type ServerMsg, type Side } from '@spirit/core'
+import { createBattle, PLAYOUT, playoutSteps, Replayer, startTimeline, type BattleEvent, type RipResult, type ServerMsg, type Side, type WireMsg } from '@spirit/core'
+import { mainLink } from '../net/link'
 import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
@@ -6,11 +7,10 @@ import type { Game } from './Game'
 import { tierOf } from './launchPlan'
 
 export class SpectatorController extends BattleController {
-  private pred: Predictor | null = null
+  private rp: Replayer | null = null
+  private primed = false
   private ripRound = 0
-  private snapTick = 0
-  private snapAt = 0
-  private own: NetInput = { x: 0, y: 0, seq: 0 }
+  private unwire: () => void
   private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
   private done = false
@@ -18,6 +18,7 @@ export class SpectatorController extends BattleController {
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private names: [string, string]) {
     super(game, setup, deps)
     this.unsub = rt.on(m => this.onNet(m))
+    this.unwire = mainLink.on(m => this.onWire(m))
   }
 
   override start(): void {
@@ -29,6 +30,7 @@ export class SpectatorController extends BattleController {
 
   override dispose(): void {
     this.unsub()
+    this.unwire()
     super.dispose()
   }
 
@@ -42,39 +44,32 @@ export class SpectatorController extends BattleController {
     if (this.disposed || this.done) return
     if (m.k === 'round' && m.round > this.ripRound) {
       this.ripRound = m.round
-      this.pred = null
+      this.rp = null
       this.countdown(Math.max(performance.now() + 600, rt.toLocalPerf(m.launchAt)))
     } else if (m.k === 'start' && m.round === this.ripRound) {
       const [a, b] = this.game.specs!
       const rips = m.rips.map(v => ({ ...v, startT: 0 }) as unknown as RipResult)
       const s = createBattle([a, b], [{ rip: rips[0]!, hesitate: false }, { rip: rips[1]!, hesitate: false }], m.seed)
-      this.pred = new Predictor(s, 0)
-      this.snapTick = m.tick
-      this.snapAt = performance.now()
+      this.rp = new Replayer(startTimeline(s))
+      this.primed = false
       this.spiritSeen = [false, false]
       const best = m.rips[0].rpm >= m.rips[1].rpm ? 0 : 1
       useHud.getState().set({ callout: { quality: m.rips[best].ok ? m.rips[best].quality : 'FAIL', rpm: m.rips[best].rpm, note: this.names[best] } })
       this.game.setBattle(s)
       this.game.launch([tierOf(m.rips[0]), tierOf(m.rips[1])])
       this.enterBattlePhase()
-    } else if (m.k === 'snap' && this.pred) {
-      const before = this.pred.state.tops.map(t => ({ x: t.x, y: t.y }))
-      this.own = m.inputs[0]
-      if (!this.pred.reconcile(m.tick, m.state, m.inputs)) return
-      this.snapTick = m.tick
-      this.snapAt = performance.now()
-      this.pred.state.tops.forEach((t, i) => this.game.correct(i as Side, before[i]!.x - t.x, before[i]!.y - t.y))
-      this.game.battle = this.pred.state
-      this.transitions()
+    } else if (m.k === 'catchup' && m.round === this.ripRound && this.rp) {
+      this.rp = new Replayer(m.tl)
+      this.primed = false
     } else if (m.k === 'end' && m.round === this.ripRound) {
-      if (!this.game.battle && this.pred) this.game.setBattle(this.pred.state)
-      this.finishRound({ k: 'finish', tick: this.pred?.state.tick ?? 0, outcome: m.outcome })
+      if (!this.game.battle && this.rp) this.game.setBattle(this.rp.tl.state)
+      this.finishRound({ k: 'finish', tick: this.rp?.tl.state.tick ?? 0, outcome: m.outcome })
       this.match = { ...this.match, scores: m.scores, winner: m.winner }
       useHud.getState().set({ scores: m.scores })
       if (m.winner !== null) this.done = true
     } else if (m.k === 'left') {
       this.done = true
-      this.pred = null
+      this.rp = null
       this.match = { ...this.match, winner: m.winner ?? this.match.winner ?? 0 }
       this.concludeMatch()
     } else if (m.k === 'seats') {
@@ -91,19 +86,26 @@ export class SpectatorController extends BattleController {
     this.later(4200, () => this.deps.onEnd({ winner: w ?? 0, match: this.match, bestRpm: 0, spiritCalls: 0, comeback: false, perfectRips: 0, overspins: 0, finishes: [], aggression: 0 }))
   }
 
+  private onWire(m: WireMsg): void {
+    if (m.op === 'frames' && this.rp && m.round === (this.ripRound & 255)) this.rp.push(m.first, m.frames)
+  }
+
   protected override tick(): void {
-    const p = this.pred
-    if (!p || p.state.outcome) return
-    const lag = this.snapTick + (performance.now() - this.snapAt) / NET.tickMs - p.state.tick
-    const steps = lag > 2 ? 2 : lag < -2 ? 0 : 1
-    for (let i = 0; i < steps; i++) {
-      p.step(this.own, this.events)
+    const rp = this.rp
+    if (!rp || this.done) return
+    if (!this.primed) {
+      if (rp.backlog < PLAYOUT.prime) return
+      this.primed = true
+    }
+    for (let i = playoutSteps(rp.backlog); i > 0; i--) {
+      rp.stepOne(this.events)
       for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(e)
       this.events.length = 0
     }
-    this.game.battle = p.state
+    this.game.battle = rp.tl.state
     this.transitions()
   }
+
 
   private transitions(): void {
     const b = this.game.battle
