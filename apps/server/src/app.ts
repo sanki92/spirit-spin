@@ -13,6 +13,7 @@ import { openDb, players, aiCalls, entitlements, friendships, type Db } from './
 import { PASS_TIERS, SKUS } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
+import { EdgeClient } from './rt/edge'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
 import { registerTournaments } from './tournaments'
@@ -76,8 +77,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
+  const edge = deps.realtime?.edge ?? (cfg.edge ? new EdgeClient(cfg.edge) : null)
+  if (edge instanceof EdgeClient && !deps.realtime?.edge) app.addHook('onClose', async () => edge.close())
   const rooms = await registerRealtime(app, tokens, {
     ...deps.realtime,
+    edge,
     onResult: room => {
       const [a, b] = room.seats
       if (!a || !b || a.playerId === b.playerId) return

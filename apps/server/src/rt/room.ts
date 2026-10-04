@@ -1,9 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import {
   applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch, SEQ,
   type BattleState, type MatchState, type MotionSample, type RipResult, type RipView, type ServerMsg,
   type Side, type TopBuild, type TouchSample, type WireMsg,
 } from '@spirit/core'
+import { RemoteRound, type EdgeApi, type RoundRunner } from './edge'
 import { LiveMatch, type LiveDeps } from './live'
+import { signTicket } from './tickets'
 
 export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000, quietMs: 2000 }
 
@@ -33,7 +36,7 @@ export class Room {
   match: MatchState = newMatch()
   round = 0
   phase: 'wait' | 'launch' | 'battle' | 'between' | 'done' = 'wait'
-  live: LiveMatch | null = null
+  live: RoundRunner | null = null
   private silence: ReturnType<typeof setInterval> | null = null
   launchAt = 0
   private views: [RipView | null, RipView | null] = [null, null]
@@ -41,7 +44,13 @@ export class Room {
   private timers: ReturnType<typeof setTimeout>[] = []
   readonly spectators = new Map<(m: ServerMsg) => void, (b: Uint8Array) => void>()
 
-  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number; log?: (o: Record<string, unknown>) => void }) {}
+  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number; log?: (o: Record<string, unknown>) => void; edge?: EdgeApi | null }) {
+    this.matchId = `${code}-${randomUUID().slice(0, 8)}`
+  }
+
+  private readonly matchId: string
+  private edgeMatch: Promise<{ certHash: string }> | null = null
+  private certHash: string | null = null
 
   get battle(): BattleState | null {
     return this.live?.ver.tl.state ?? null
@@ -67,7 +76,7 @@ export class Room {
     send(this.seatsMsg())
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
     if (this.phase === 'battle' && this.live) {
-      send(this.startMsg())
+      send(this.startMsg(null))
       send(this.live.catchup(null))
     }
     return true
@@ -134,7 +143,7 @@ export class Room {
     }
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
     if (this.phase === 'battle' && this.live) {
-      send(this.startMsg())
+      send(this.startMsg(side))
       send(this.live.catchup(side))
     }
     return side
@@ -199,9 +208,11 @@ export class Room {
     b.ripLog.push(this.views[1]!)
     this.seed = Math.floor(Math.random() * 2 ** 31)
     const state = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
-    this.live = new LiveMatch(this.round, state, this.liveDeps())
     this.phase = 'battle'
-    this.broadcast(this.startMsg())
+    const round = this.round
+    const e = this.opts.edge
+    if (!e) this.runLocal(state)
+    else void this.runEdge(e, round, state)
     const now = this.opts.now() + SEQ.leadInMs
     this.seats.forEach((s, i) => {
       if (!s) return
@@ -244,8 +255,49 @@ export class Room {
     }
   }
 
-  private startMsg(): ServerMsg {
-    return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], t0: this.live!.t0 }
+  private runLocal(state: BattleState): void {
+    this.live = new LiveMatch(this.round, state, this.liveDeps())
+    this.sendStart()
+  }
+
+  private async runEdge(e: EdgeApi, round: number, state: BattleState): Promise<void> {
+    try {
+      const { certHash } = await (this.edgeMatch ??= e.createMatch(this.matchId))
+      this.certHash = certHash
+      const t0 = await e.startRound(this.matchId, round, SEQ.leadInMs)
+      if (this.phase !== 'battle' || this.round !== round || this.live) return
+      this.live = new RemoteRound(round, state, t0, e, this.matchId, {
+        watch: b => { for (const w of this.spectators.values()) w(b) },
+        resync: (side, m) => { const s = this.seats[side]; if (s?.online) s.send(m) },
+        end: () => this.endRound(),
+        lost: () => this.edgeLost(),
+        log: o => this.opts.log?.({ code: this.code, ...o }),
+      })
+      this.sendStart()
+    } catch (err) {
+      this.edgeMatch = null
+      this.opts.log?.({ msg: 'edge.fallback', level: 'warn', code: this.code, err: String(err) })
+      if (this.phase === 'battle' && this.round === round && !this.live) this.runLocal(state)
+    }
+  }
+
+  private edgeLost(): void {
+    this.opts.log?.({ msg: 'edge.lost', level: 'error', code: this.code, round: this.round })
+    this.broadcast({ k: 'error', code: 'no-room' })
+    this.finish()
+  }
+
+  private sendStart(): void {
+    this.seats.forEach((s, i) => { if (s?.online) s.send(this.startMsg(i as Side)) })
+    for (const w of this.spectators.keys()) w(this.startMsg(null))
+  }
+
+  private startMsg(side: Side | null): ServerMsg {
+    const e = this.opts.edge
+    const edge = e && side !== null && this.live instanceof RemoteRound
+      ? { wt: e.cfg.wt, ws: e.cfg.ws, certHash: this.certHash, ticket: signTicket(e.cfg.secret, { m: this.matchId, s: side, e: Date.now() + 15 * 60 * 1000 }) }
+      : undefined
+    return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], t0: this.live!.t0, ...(edge ? { edge } : {}) }
   }
 
   onWire(side: Side, m: WireMsg): void {
@@ -280,6 +332,7 @@ export class Room {
   private finish(): void {
     if (this.phase === 'done') return
     this.phase = 'done'
+    this.endEdgeMatch()
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
@@ -288,8 +341,15 @@ export class Room {
     this.opts.onDone(this)
   }
 
+  private endEdgeMatch(): void {
+    if (!this.edgeMatch) return
+    this.edgeMatch = null
+    void this.opts.edge?.endMatch(this.matchId).catch(() => undefined)
+  }
+
   close(): void {
     this.phase = 'done'
+    this.endEdgeMatch()
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)

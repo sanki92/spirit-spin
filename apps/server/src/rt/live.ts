@@ -1,4 +1,5 @@
 import { encode, SEQ, Sequencer, WIRE, type BattleState, type ServerMsg, type Side, type WireMsg } from '@spirit/core'
+import type { RoundRunner } from './edge'
 import { Verifier } from './verifier'
 
 export const LIVE = { resyncGapMs: 500 } as const
@@ -13,7 +14,7 @@ export interface LiveDeps {
   log(o: Record<string, unknown>): void
 }
 
-export class LiveMatch {
+export class LiveMatch implements RoundRunner {
   readonly seq: Sequencer
   readonly ver: Verifier
   readonly t0: number

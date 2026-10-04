@@ -1,6 +1,22 @@
 import { decode, type ServerMsg, type WireMsg } from '@spirit/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { EdgeApi, EdgeBatch } from './edge'
+import type { LiveMatch } from './live'
 import { Room } from './room'
+
+function fakeEdge(fail = false) {
+  const calls: string[] = []
+  const subs: ((b: EdgeBatch) => void)[] = []
+  const edge: EdgeApi = {
+    cfg: { grpc: 'x', secret: 'edge-secret-0123456789', wt: 'https://{host}:4433/wt', ws: '/edge/ws' },
+    createMatch: async id => { calls.push(`create:${id}`); if (fail) throw new Error('down'); return { certHash: 'ab'.repeat(32) } },
+    startRound: async (_id, round, lead) => { calls.push(`start:${round}:${lead}`); return Date.now() + lead },
+    endRound: async () => { calls.push('endRound'); return {} },
+    endMatch: async () => { calls.push('endMatch') },
+    stream: (_id, _r, _a, onBatch) => { subs.push(onBatch); return () => undefined },
+  }
+  return { edge, calls, subs }
+}
 
 const BUILD = { bladeId: 'fang', discId: 'standard', tipId: 'flat', beastId: 'voltfang' } as const
 const SWIPE = { points: Array.from({ length: 11 }, (_, i) => ({ t: 10 + i * 16, x: 200 + (i % 2), y: 100 + i * 50 })), h: 800 }
@@ -43,7 +59,7 @@ describe('room', () => {
     expect(ks.indexOf('start')).toBeGreaterThan(-1)
     expect(ks.indexOf('catchup')).toBe(ks.indexOf('start') + 1)
     const c = again.find((m): m is Extract<ServerMsg, { k: 'catchup' }> => m.k === 'catchup')!
-    expect(c.tl.frame).toBe(room.live!.seq.frame)
+    expect(c.tl.frame).toBe((room.live as LiveMatch).seq.frame)
   })
 
   it('a seat silent for 2 s mid-battle is shown as reconnecting, and back when its inputs resume', () => {
@@ -55,7 +71,7 @@ describe('room', () => {
     room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
     room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
     const r = room
-    const feed = (side: 0 | 1) => r.onWire(side, { op: 'input', round: 1, first: r.live!.seq.frame + 1, ack: 0, inputs: [{ x: 0, y: 0, sp: 0 }] })
+    const feed = (side: 0 | 1) => r.onWire(side, { op: 'input', round: 1, first: (r.live as LiveMatch).seq.frame + 1, ack: 0, inputs: [{ x: 0, y: 0, sp: 0 }] })
     for (let i = 0; i < 12; i++) { feed(0); feed(1); vi.advanceTimersByTime(100) }
     expect(peers.filter(p => !p.online)).toHaveLength(0)
     for (let i = 0; i < 30 && !peers.some(p => !p.online); i++) { feed(0); vi.advanceTimersByTime(100) }
@@ -82,14 +98,69 @@ describe('room', () => {
     expect(room.seats[1]!.quiet).toBe(false)
   })
 
+  it('edge mode: start carries a per-seat ticket and the edge t0; watchers get no ticket', async () => {
+    const { edge, calls } = fakeEdge()
+    const a: ServerMsg[] = [], b: ServerMsg[] = [], tv: ServerMsg[] = []
+    room = new Room('EDGE', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, m => a.push(m))
+    room.seat('b', 'B', BUILD, m => b.push(m))
+    room.watch(m => tv.push(m))
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    const sa = a.find((m): m is Extract<ServerMsg, { k: 'start' }> => m.k === 'start')!
+    const sb = b.find((m): m is Extract<ServerMsg, { k: 'start' }> => m.k === 'start')!
+    const st = tv.find((m): m is Extract<ServerMsg, { k: 'start' }> => m.k === 'start')!
+    expect(sa.edge).toMatchObject({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', certHash: 'ab'.repeat(32) })
+    expect(sa.edge!.ticket).not.toBe(sb.edge!.ticket)
+    expect(st.edge).toBeUndefined()
+    expect(calls).toEqual([expect.stringMatching(/^create:EDGE-/), 'start:1:1100'])
+    expect(room.live?.constructor.name).toBe('RemoteRound')
+  })
+
+  it('edge mode: an unreachable edge falls back to the in-process round', async () => {
+    const { edge } = fakeEdge(true)
+    const a: ServerMsg[] = []
+    room = new Room('DOWN', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, m => a.push(m))
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    const s = a.find((m): m is Extract<ServerMsg, { k: 'start' }> => m.k === 'start')!
+    expect(s.edge).toBeUndefined()
+    expect(room.live?.constructor.name).toBe('LiveMatch')
+  })
+
+  it('edge mode: streamed frames reach watchers and the outcome ends the round', async () => {
+    const { edge, subs, calls } = fakeEdge()
+    const a: ServerMsg[] = [], tvBins: Uint8Array[] = []
+    room = new Room('EDGE2', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, m => a.push(m))
+    room.seat('b', 'B', BUILD, () => undefined)
+    room.watch(() => undefined, b => tvBins.push(b))
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    const idle = { x: 0, y: 0, sp: 0 }
+    subs[0]!({ round: 1, first: 1, frames: Array.from({ length: 3000 }, () => [idle, idle] as const), hashes: [] })
+    expect(tvBins.length).toBeGreaterThan(0)
+    expect(a.some(m => m.k === 'end')).toBe(true)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(calls).toContain('endRound')
+  })
+
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {
     const { room } = battle()
     vi.advanceTimersByTime(1200)
-    const f = room.live!.seq.frame + 2
+    const f = (room.live as LiveMatch).seq.frame + 2
     room.onWire(0, { op: 'input', round: 1, first: f, ack: 0, inputs: [{ x: 100, y: 0, sp: 0 }] })
     vi.advanceTimersByTime(100)
-    expect(room.live!.seq.confirmed[f - 1]![0].x).toBe(100)
-    const live = room.live!
+    expect((room.live as LiveMatch).seq.confirmed[f - 1]![0].x).toBe(100)
+    const live = room.live as LiveMatch
     room.forfeit(1, 'quit')
     expect(live.done).toBe(true)
   })

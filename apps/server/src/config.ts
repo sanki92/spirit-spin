@@ -16,6 +16,10 @@ const Env = z.object({
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   STATIC_DIR: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  RT_EDGE_GRPC: z.string().optional(),
+  RT_EDGE_SECRET: z.string().optional(),
+  RT_EDGE_WT: z.string().optional(),
+  RT_EDGE_WS: z.string().optional(),
 })
 
 export interface Config {
@@ -29,10 +33,12 @@ export interface Config {
   trustProxy?: string | boolean | undefined
   staticDir?: string | undefined
   payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
+  edge?: { grpc: string; secret: string; wt: string; ws: string } | null
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const e = Env.parse(env)
+  if (e.RT_EDGE_GRPC && (e.RT_EDGE_SECRET ?? '').length < 16) throw new Error('RT_EDGE_SECRET (16+ chars) is required when RT_EDGE_GRPC is set')
   if (e.NODE_ENV === 'production') {
     if (!e.JWT_SECRET) throw new Error('JWT_SECRET is required in production')
     if (!e.RECOVERY_PEPPER) throw new Error('RECOVERY_PEPPER is required in production')
@@ -50,6 +56,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
     staticDir: e.STATIC_DIR,
+    edge: e.RT_EDGE_GRPC ? { grpc: e.RT_EDGE_GRPC, secret: e.RT_EDGE_SECRET!, wt: e.RT_EDGE_WT ?? 'https://{host}:4433/wt', ws: e.RT_EDGE_WS ?? '/edge/ws' } : null,
     payments: e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET
       ? { provider: 'razorpay', keyId: e.RAZORPAY_KEY_ID, keySecret: e.RAZORPAY_KEY_SECRET, webhookSecret: e.RAZORPAY_WEBHOOK_SECRET }
       : env.DEV_TOOLS === '1'
