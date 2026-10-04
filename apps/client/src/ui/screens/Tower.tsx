@@ -1,5 +1,5 @@
 import { BLADES, BOSSES, CHAPTERS, DISCS, TIPS, towerFloor, TOWER_FLOORS, type BossId, type Chapter } from '@spirit/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
 import { useNav } from '../../state/nav'
@@ -19,11 +19,22 @@ function BossTalk({ chapter, mode, onDone, onCancel }: { chapter: Chapter; mode:
   const mood = mode === 'intro' ? (i === lines.length - 1 ? 'shout' : 'confident') : i === 0 ? 'defeated' : 'respect'
   const next = () => { rt.sound.play('ui', { volume: 0.5 }); if (!last) setI(i + 1) }
   const focus = useRef<HTMLButtonElement>(null)
+  const root = useRef<HTMLDivElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   useEffect(() => { focus.current?.focus() }, [last])
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => root.current?.style.setProperty('--talk-box', `${el.offsetHeight + 28}px`)
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
-    <div className={`boss-talk ${mode}`} role="dialog" aria-modal="true" aria-label={`${b.name} speaks`} onClick={last ? undefined : next} onKeyDown={e => { if (e.key === 'Escape' && onCancel) onCancel() }}>
+    <div ref={root} className={`boss-talk ${mode}`} role="dialog" aria-modal="true" aria-label={`${b.name} speaks`} onClick={last ? undefined : next} onKeyDown={e => { if (e.key === 'Escape' && onCancel) onCancel() }}>
       <Img id={full(chapter.boss)} className="boss-talk-art" eager />
-      <div className="boss-talk-box">
+      <div ref={box} className="boss-talk-box">
         <div className="boss-talk-head">
           <Img id={face(chapter.boss, mood)} className="boss-talk-face" eager fallback={<Img id={full(chapter.boss)} className="boss-talk-face" />} />
           <div><strong>{b.name}</strong><span>{b.title}</span></div>

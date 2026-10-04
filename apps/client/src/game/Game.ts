@@ -97,7 +97,7 @@ export class Game {
     const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire, wind, shadow } }, quality === 'low' ? 60 : 140))
     g.stadium = buildStadium(bowl, floor, rim, THEME_ACCENT[theme])
     g.stage.world.add(g.stadium.group)
-    g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow })
+    g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow, ring: shock })
     g.stage.world.add(g.techFx.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
     for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : [])]) g.stage.renderer.initTexture(t)

@@ -2,6 +2,7 @@ import json, os, re, sys
 import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
+from vfx_key import key_vfx
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "assets", "final")
@@ -140,8 +141,11 @@ def _process(rel_png, rel):
     if rel.startswith("stadium/bowl-"):
         save(circle_mask(img, 1024), rel, 1024, 85)
         return
-    if "cutin" in rel or rel.startswith("vfx/"):
-        save(img.convert("RGB"), rel, 1280 if "cutin" in rel else 512, 80)
+    if rel.startswith("vfx/"):
+        save(key_vfx(rel[4:], img), rel, 512, 85)
+        return
+    if "cutin" in rel:
+        save(img.convert("RGB"), rel, 1280, 80)
         return
     if has_alpha:
         save(trim(img.convert("RGBA")), rel, 768 if rel.startswith(("ui/", "onboarding/")) else 1024)

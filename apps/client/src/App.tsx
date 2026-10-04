@@ -136,7 +136,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     },
     [route, nav],
   )
-  return <BattleScreen setup={setup} theme={route.floor ? (route.floor > 30 ? 'volcano' : route.floor > 15 ? 'frozen-moon' : 'classic') : stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
+  return <BattleScreen setup={setup} theme={towerTheme(route.floor)} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
 }
 
 function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
@@ -177,6 +177,12 @@ function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
     [issued, route, nav],
   )
   return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || s.settings.inputMode === 'swipe'} controller={controller} />
+}
+
+function towerTheme(floor: number | null | undefined): StadiumTheme {
+  const own = stadiumTheme()
+  if (!floor || own !== 'classic') return own
+  return floor > 30 ? 'volcano' : floor > 15 ? 'frozen-moon' : 'classic'
 }
 
 function stadiumTheme(): StadiumTheme {
