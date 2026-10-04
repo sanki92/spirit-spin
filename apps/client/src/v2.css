@@ -474,3 +474,10 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .r2-bonus { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: -6px; }
 .r2-bonus span { padding: 4px 10px; font-size: 13px; font-weight: 800; color: #241300; background: var(--gold); transform: skewX(var(--skew)); }
 .r2-bonus span.lvl { background: var(--cyan); color: #04122a; }
+.h2-modes button.soon { position: relative; cursor: default; opacity: 0.55; filter: grayscale(0.7); }
+.h2-modes button.soon span { color: var(--gold); font-weight: 700; }
+.soon-card { display: grid; justify-items: center; gap: 10px; margin-top: 8vh; padding: 24px 18px; text-align: center; background: linear-gradient(180deg, var(--ink-hi), var(--ink)); border: 1px solid var(--line); clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
+.soon-icon { width: 96px; height: 96px; object-fit: contain; }
+.soon-tag { padding: 3px 12px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: #241300; background: var(--gold); transform: skewX(var(--skew)); }
+.soon-card h2 { margin: 4px 0 0; font-size: 26px; color: #fff; }
+.soon-card p { margin: 0 0 6px; max-width: 32ch; font-size: 16px; line-height: 1.4; color: var(--muted); }

@@ -1,4 +1,5 @@
 import { BLADES, BOSSES, chapterOf, COSMETICS, DAILY_TRACK, DISCS, loginState, ROOKIE_BUILDS, TIPS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
+import { FEATURES } from '../../features'
 import { useEffect, useMemo, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
@@ -112,8 +113,10 @@ export function Home() {
       {!first && (
         <nav className="h2-modes" aria-label="Play with others">
           <button onClick={() => nav.push({ k: 'friends' })} aria-label="Live, battle a friend"><Img id="ui/icons/live" /><strong>Live</strong><span>With a friend</span></button>
-          <button onClick={() => nav.push({ k: 'ranked' })}><Img id="ui/icons/ranked" /><strong>Ranked</strong><span>Climb the ladder</span></button>
-          <button onClick={() => nav.push({ k: 'cups' })}><Img id="ui/icons/cups" /><strong>Cups</strong><span>Tournaments</span></button>
+          {FEATURES.ranked ? <button onClick={() => nav.push({ k: 'ranked' })}><Img id="ui/icons/ranked" /><strong>Ranked</strong><span>Climb the ladder</span></button>
+            : <button className="soon" aria-disabled="true" aria-label="Ranked, coming soon"><Img id="ui/icons/ranked" /><strong>Ranked</strong><span>Coming soon</span></button>}
+          {FEATURES.cups ? <button onClick={() => nav.push({ k: 'cups' })}><Img id="ui/icons/cups" /><strong>Cups</strong><span>Tournaments</span></button>
+            : <button className="soon" aria-disabled="true" aria-label="Cups, coming soon"><Img id="ui/icons/cups" /><strong>Cups</strong><span>Coming soon</span></button>}
         </nav>
       )}
 

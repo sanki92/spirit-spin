@@ -21,6 +21,8 @@ import { Tower } from './ui/screens/Tower'
 import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
 import { AgeGate, Calibrate, Safety, Splash, StarterSelect } from './ui/screens/Onboarding'
 import { ReadyScreen } from './ui/screens/ReadyScreen'
+import { ComingSoon } from './ui/screens/Soon'
+import { FEATURES } from './features'
 import { Result } from './ui/screens/Result'
 
 const BattleScreen = lazy(() => import('./ui/screens/BattleScreen').then(m => ({ default: m.BattleScreen })))
@@ -93,16 +95,19 @@ export function App() {
     case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
     case 'friends': return <Friends join={route.join} />
     case 'live': return <Lazy><LiveRoute route={route} /></Lazy>
-    case 'ranked': return <Ranked />
+    case 'ranked': return FEATURES.ranked ? <Ranked /> : <RankedSoon />
     case 'pass': return <Pass />
     case 'stadium': return <Lazy><Stadium /></Lazy>
     case 'profile': return <Profile />
-    case 'cups': return <Cups join={route.join} />
-    case 'cup': return <CupScreen id={route.id} />
-    case 'ghost': return <Lazy><GhostRoute route={route} /></Lazy>
+    case 'cups': return FEATURES.cups ? <Cups join={route.join} /> : <CupsSoon />
+    case 'cup': return FEATURES.cups ? <CupScreen id={route.id} /> : <CupsSoon />
+    case 'ghost': return (route.kind === 'tournament' ? FEATURES.cups : FEATURES.ranked) ? <Lazy><GhostRoute route={route} /></Lazy> : route.kind === 'tournament' ? <CupsSoon /> : <RankedSoon />
     case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} then={route.next} />
   }
 }
+
+const RankedSoon = () => <ComingSoon title="Ranked" icon="ui/icons/ranked" text="Climb the ladder against other players' recorded battles. We're tuning it now; Live battles with friends and the Spirit Tower are open." />
+const CupsSoon = () => <ComingSoon title="Cups" icon="ui/icons/cups" text="Bracket tournaments with friends are almost ready. Until then, challenge friends in Live battle or climb the Spirit Tower." />
 
 function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
   const nav = useNav()
