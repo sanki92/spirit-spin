@@ -1,6 +1,8 @@
 import { AdditiveBlending, Color, Group, Sprite, SpriteMaterial, Texture } from 'three'
 
-const H = 1.45
+const H = 1.15
+const GHOST = 0.3
+const BACK = 0.18
 const ease = (t: number) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2
 const DELAY = 0.75
 const RISE = 0.45
@@ -21,10 +23,10 @@ export class SpiritBillboard {
     const img = tex.image as { width?: number; height?: number } | undefined
     this.aspect = img?.width && img.height ? img.width / img.height : 0.67
     this.tint = new Color(color)
-    this.beast = new Sprite(new SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false }))
+    this.beast = new Sprite(new SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false, toneMapped: false }))
     this.beast.center.set(0.5, 0.08)
     this.beast.renderOrder = 20
-    this.aura = new Sprite(new SpriteMaterial({ map: tex, toneMapped: false, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }))
+    this.aura = new Sprite(new SpriteMaterial({ map: tex, toneMapped: false, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: true, depthWrite: false, opacity: 0 }))
     this.aura.center.set(0.5, 0.1)
     this.aura.renderOrder = 19
     this.ring = new Sprite(new SpriteMaterial({ map: shock, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }))
@@ -79,6 +81,7 @@ export class SpiritBillboard {
       lift = k * 0.35
       if (k >= 1) return this.hide()
     }
+    if (this.state === 'hold') a = 1 - Math.min(1, this.t / 0.35) * (1 - GHOST)
     const breathe = this.state === 'hold' ? 1 + Math.sin(this.life * 3.1) * 0.025 : 1
     const h = H * s * breathe
     this.beast.scale.set(h * this.aspect, h, 1)
@@ -86,11 +89,11 @@ export class SpiritBillboard {
     bm.color.setScalar(1 + flash * 2.2)
     const dx = fx - x, dy = fy - y, d = Math.hypot(dx, dy) || 1
     bm.rotation = Math.max(-0.12, Math.min(0.12, (-dx / d) * 0.1))
-    am.opacity = a * (0.45 + Math.sin(this.life * 5) * 0.15)
+    am.opacity = a * (0.35 + Math.sin(this.life * 5) * 0.12)
     am.rotation = bm.rotation
     this.aura.scale.set(h * this.aspect * 1.09, h * 1.07, 1)
     const lean = 0.12
-    this.group.position.set(x + (dx / d) * lean, 0.12 + lift + Math.sin(this.life * 2.2) * 0.03, -y - (dy / d) * lean)
+    this.group.position.set(x + (dx / d) * lean, 0.12 + lift + Math.sin(this.life * 2.2) * 0.03, -y - (dy / d) * lean - BACK)
     this.ring.position.set(0, 0.05, 0)
   }
 }
