@@ -66,3 +66,17 @@ Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+
 | duo plain set | 22/22 (#10 sampling flake fixed) |
 | duo netcode behind netproxy 150/30 | 5/5, depth ≤ 15, own inputs never replaced |
 | Playwright live + stadium | 2/2 |
+
+## Finish replay online + live-test review fixes (2026-10-04)
+
+| Run | Result |
+|---|---|
+| `npm run check` | 316/316 |
+| `npm run edge:test` (vet, race, load) | green |
+| core soak, 250 matches per profile (incl. 500 iOS-order resumes, 750 freezes) | 11/11, 0 desyncs |
+| soak-stack edge (`EDGE=1`) | 20/20, 48 rounds, 0 desyncs, 0 fallbacks, 0 lost |
+| soak-stack in-process | 20/20, 45 rounds, 0 desyncs |
+| duo edge set (Chromium + WebKit) | 12/12; #1 asserts every decisive finish replays on both phones, contains the decisive moment, and taps never skip it |
+| duo plain set | 22/22 |
+| Playwright live + stadium | 2/2 |
+| Live iPhone (edge, hotspot LAN) | replays on both screens, 0 corrections in normal rounds, 5-10 after mid-fight background returns (was 18-34) |
