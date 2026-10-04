@@ -18,10 +18,11 @@ const AUDIO_STUB = () => {
 }
 const ROOKIE = { voltfang: ['spark', 'compact', 'rookie-flat'], aegiron: ['pebble', 'rim', 'rookie-ball'], nagara: ['ripple', 'standard', 'rookie-needle'], agnyx: ['ember', 'heavy', 'rookie-semi'] }
 
-async function device(label, { beast, launcher, name, swipe = false, skewMs = 0, lagMs = 0, engine = 'chromium' }) {
+async function device(label, { beast, launcher, name, swipe = false, skewMs = 0, lagMs = 0, engine = 'chromium', noWT = false }) {
   const ctx = await (engine === 'webkit' ? await wkBrowser() : browser).newContext({ ...devices[engine === 'webkit' ? 'iPhone 13' : 'Pixel 7'], deviceScaleFactor: 1, ignoreHTTPSErrors: true })
   if (engine === 'webkit') await ctx.addInitScript(AUDIO_STUB)
   if (skewMs) await ctx.addInitScript(ms => { const o = Date.now; Date.now = () => o() + ms }, skewMs)
+  if (noWT) await ctx.addInitScript(() => { delete window.WebTransport })
   if (lagMs) await ctx.addInitScript(ms => {
     const W = window.WebSocket
     window.WebSocket = class extends W {
@@ -504,6 +505,29 @@ await scenario(43, 'Netcode: B drops its socket mid-round, rejoins and ends on t
   await sameConfirmed(sc, A, B)
   const [a, b] = await Promise.all([view(A), view(B)])
   check(sc, 'scores mirror after the rejoin', JSON.stringify(a.scores) === JSON.stringify(flip(b.scores)), `${a.scores} vs ${b.scores}`)
+})
+
+await scenario(44, 'Edge: both Chromium phones play over WebTransport datagrams (needs the edge running)', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  await sleep(2500)
+  const k = d => d.page.evaluate(() => window.__ctrl?.link?.kind ?? null)
+  const [ka, kb] = await Promise.all([k(A), k(B)])
+  check(sc, 'A on WebTransport', ka === 'wt', ka)
+  check(sc, 'B on WebTransport', kb === 'wt', kb)
+  const [sa, sb] = await Promise.all([netStats(A), netStats(B)])
+  check(sc, 'confirmed frames flowing on both, no own corrections', sa?.confirmed > 60 && sb?.confirmed > 60 && sa.ownReplaced === 0 && sb.ownReplaced === 0, `${JSON.stringify(sa)} ${JSON.stringify(sb)}`)
+  await sameConfirmed(sc, A, B)
+})
+
+await scenario(45, 'Edge: WebTransport blocked on A, it falls back to the edge WebSocket and the round finishes in sync', async (sc, mk) => {
+  const [A, B] = await mkAB(mk, { noWT: true })
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  await sleep(1500)
+  check(sc, 'A on the WebSocket fallback', (await A.page.evaluate(() => window.__ctrl?.link?.kind)) === 'ws')
+  await sameConfirmed(sc, A, B)
 })
 
 writeFileSync(`${OUT}/report.json`, JSON.stringify(results, null, 1))

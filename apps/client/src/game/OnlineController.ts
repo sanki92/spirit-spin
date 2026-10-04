@@ -1,4 +1,5 @@
 import { beginAt, chooseDelay, createBattle, NetDriver, startTimeline, targetMargin, type BattleEvent, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
+import { EdgeLink } from '../net/edgeLink'
 import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
@@ -34,6 +35,14 @@ export class OnlineController extends BattleController {
     super(game, setup, deps)
     game.timeWarp = false
     this.unsub = rt.on(m => this.onNet(m))
+    this.unwire = this.link.on(m => this.onWire(m))
+  }
+
+  private useLink(next: WireLink): void {
+    if (next === this.link) return
+    this.unwire()
+    if (this.link !== mainLink) this.link.close()
+    this.link = next
     this.unwire = this.link.on(m => this.onWire(m))
   }
 
@@ -88,12 +97,14 @@ export class OnlineController extends BattleController {
       useHud.getState().set({ scores })
       if (winner !== null) {
         this.ended = true
+        this.useLink(mainLink)
         if (!this.game.battle) this.later(1500, () => this.concludeMatch())
       }
     } else if (m.k === 'error' && m.code === 'no-room' && !this.ended) {
       log('net.room-lost', { round: this.ripRound })
       this.ended = true
       this.driver = null
+      this.useLink(mainLink)
       useHud.getState().set({ notice: 'Connection lost. The match ended without a result.' })
       const abort = this.deps.onAbort
       if (abort) this.later(2200, abort)
@@ -103,6 +114,7 @@ export class OnlineController extends BattleController {
       }
     } else if (m.k === 'left' && !this.ended) {
       this.ended = true
+      this.useLink(mainLink)
       log('net.peer-left', { reason: m.reason })
       useHud.getState().set({ notice: 'Opponent left. You win!' })
       this.match = { ...this.match, winner: 0 }
@@ -127,6 +139,11 @@ export class OnlineController extends BattleController {
 
   private onStart(m: Extract<ServerMsg, { k: 'start' }>): void {
     this.startedRound = m.round
+    if (m.edge && !(this.link instanceof EdgeLink)) {
+      const l = new EdgeLink(m.edge, { baseOffset: rt.offset })
+      this.useLink(l)
+      void l.open().catch(e => log('edge.open-failed', { err: String(e) }))
+    } else if (!m.edge) this.useLink(mainLink)
     this.pendingRip = null
     this.resolvedAt = this.launchAt
     const [a, b] = this.game.specs!
