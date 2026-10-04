@@ -60,7 +60,7 @@ describe('server', () => {
 
 describe('friends', () => {
   const me = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/me', headers: auth(token) })).json() as { friendCode: string; playerId: string }
-  const list = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(token) })).json() as { friends: { playerId: string; name: string; friendCode: string }[] }
+  const list = async (token: string) => (await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(token) })).json() as { friends: { playerId: string; name: string; friendCode: string; seen?: number }[] }
   it('every player has a friend code; friendship forms when both add each other, idempotently', async () => {
     const a = await guest(), b = await guest()
     const ma = await me(a.token), mb = await me(b.token)
@@ -72,8 +72,40 @@ describe('friends', () => {
     expect((await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode } })).statusCode).toBe(200)
     expect((await list(a.token)).friends).toEqual([])
     await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(b.token), payload: { code: ma.friendCode } })
-    expect((await list(a.token)).friends).toEqual([{ playerId: b.playerId, name: 'Bob', friendCode: mb.friendCode }])
+    expect((await list(a.token)).friends).toEqual([{ playerId: b.playerId, name: 'Bob', friendCode: mb.friendCode, beast: SAVE.starter, seen: expect.any(Number) }])
+    expect((await list(a.token)).friends[0]!.seen).toBeLessThan(5000)
     expect((await list(b.token)).friends.map(f => f.playerId)).toEqual([a.playerId])
+  })
+  const befriend = async () => {
+    const a = await guest(), b = await guest()
+    const ma = await me(a.token), mb = await me(b.token)
+    await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(a.token), payload: { code: mb.friendCode } })
+    await app.inject({ method: 'POST', url: '/v1/friends', headers: auth(b.token), payload: { code: ma.friendCode } })
+    return { a, b, ma, mb }
+  }
+  const challenges = async (token: string) => ((await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(token) })).json() as { challenges: { from: { playerId: string; name: string }; code: string }[] }).challenges
+  it('a friend can challenge with a room code; it shows up for them once and clears when declined', async () => {
+    const { a, b, ma } = await befriend()
+    const send = await app.inject({ method: 'POST', url: '/v1/challenges', headers: auth(a.token), payload: { to: b.playerId, code: 'abcd' } })
+    expect(send.statusCode).toBe(200)
+    await app.inject({ method: 'POST', url: '/v1/challenges', headers: auth(a.token), payload: { to: b.playerId, code: 'WXYZ' } })
+    const got = await challenges(b.token)
+    expect(got).toEqual([{ from: { playerId: ma.playerId, name: expect.any(String) }, code: 'WXYZ', at: expect.any(Number) }])
+    expect(await challenges(a.token)).toEqual([])
+    expect((await app.inject({ method: 'POST', url: '/v1/challenges/decline', headers: auth(b.token), payload: { from: a.playerId } })).statusCode).toBe(200)
+    expect(await challenges(b.token)).toEqual([])
+  })
+  it('only mutual friends can be challenged, with a valid code', async () => {
+    const a = await guest(), b = await guest()
+    expect((await app.inject({ method: 'POST', url: '/v1/challenges', headers: auth(a.token), payload: { to: b.playerId, code: 'ABCD' } })).statusCode).toBe(403)
+    const f = await befriend()
+    expect((await app.inject({ method: 'POST', url: '/v1/challenges', headers: auth(f.a.token), payload: { to: f.b.playerId, code: 'AB!' } })).statusCode).toBe(400)
+  })
+  it('declining a request or removing a friend deletes both directions', async () => {
+    const { a, b } = await befriend()
+    expect((await app.inject({ method: 'DELETE', url: `/v1/friends/${a.playerId}`, headers: auth(b.token) })).statusCode).toBe(200)
+    expect((await list(a.token)).friends).toEqual([])
+    expect(((await app.inject({ method: 'GET', url: '/v1/friends', headers: auth(a.token) })).json() as { outgoing: unknown[]; incoming: unknown[] })).toMatchObject({ outgoing: [], incoming: [] })
   })
   it('unknown and own codes are refused', async () => {
     const a = await guest()

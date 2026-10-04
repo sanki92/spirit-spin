@@ -73,11 +73,7 @@ export function Stadium() {
       <div className="stadium-body">
         <section className="stadium-join">
           <h1 className="slant">Stadium Mode</h1>
-          <p>This screen is the stadium. Two phones are the launchers.</p>
-          <ol>
-            <li>Scan the code with each phone, or open Spirit Spin and tap <strong>Live</strong> then <strong>Join</strong>.</li>
-            <li>Enter the code below. The battle starts when both phones are in.</li>
-          </ol>
+          <p>This screen is the arena. Two phones are the launchers: scan the QR, or open <strong>Live battle</strong> and join with this code.</p>
           <div className="stadium-code" aria-label="Stadium code">{code ?? '····'}</div>
           {error && <p className="form-error" role="alert">{error}</p>}
         </section>

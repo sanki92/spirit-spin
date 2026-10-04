@@ -86,11 +86,13 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     },
   })
 
+  const lastSeen = new Map<string, number>()
   const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
     const h = req.headers.authorization
     const id = h?.startsWith('Bearer ') ? await tokens.verify(h.slice(7)) : null
     if (!id) return reply.code(401).send({ error: 'unauthorized' })
     req.playerId = id
+    lastSeen.set(id, Date.now())
   }
 
   if (cfg.staticDir && existsSync(cfg.staticDir)) {
@@ -147,15 +149,27 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   registerStore(app, db, requireAuth, deps.payments ?? cfg.payments ?? { provider: 'none' })
   registerLeague(app, db, requireAuth, cups.onVerified)
 
+  const CHALLENGE_MS = 120_000
+  const challenges = new Map<string, Map<string, { code: string; at: number }>>()
+  const mutual = async (a: string, b: string) => {
+    const rows = await db.select({ p: friendships.playerId }).from(friendships).where(sql`(${friendships.playerId} = ${a} AND ${friendships.friendId} = ${b}) OR (${friendships.playerId} = ${b} AND ${friendships.friendId} = ${a})`)
+    return rows.length === 2
+  }
+
   app.get('/v1/friends', { preHandler: requireAuth }, async req => {
     const mine = await db.select({ id: friendships.friendId, at: friendships.createdAt }).from(friendships).where(eq(friendships.playerId, req.playerId)).limit(300)
     const theirs = await db.select({ id: friendships.playerId }).from(friendships).where(eq(friendships.friendId, req.playerId)).limit(300)
     const back = new Set(theirs.map(t => t.id))
     const ids = [...new Set([...mine.map(m => m.id), ...theirs.map(t => t.id)])]
-    const people = ids.length ? await db.select({ playerId: players.id, name: players.name, friendCode: players.friendCode }).from(players).where(inArray(players.id, ids)) : []
+    const rows = ids.length ? await db.select({ playerId: players.id, name: players.name, friendCode: players.friendCode, beast: sql<string | null>`coalesce(${players.save}->'loadout'->>'beastId', ${players.save}->>'starter')` }).from(players).where(inArray(players.id, ids)) : []
+    const at = Date.now()
+    const people = rows.map(p => ({ ...p, seen: lastSeen.has(p.playerId) ? at - lastSeen.get(p.playerId)! : null }))
     const byId = new Map(people.map(p => [p.playerId, p]))
     const mineIds = new Set(mine.map(m => m.id))
+    const now = Date.now(), inbox = challenges.get(req.playerId)
+    for (const [from, c] of inbox ?? []) if (now - c.at > CHALLENGE_MS || !mineIds.has(from) || !back.has(from)) inbox!.delete(from)
     return {
+      challenges: [...(inbox ?? [])].map(([from, c]) => ({ from: { playerId: from, name: byId.get(from)?.name ?? 'A friend' }, code: c.code, at: c.at })),
       friends: mine.filter(m => back.has(m.id)).map(m => byId.get(m.id)).filter(Boolean),
       outgoing: mine.filter(m => !back.has(m.id)).map(m => byId.get(m.id)).filter(Boolean),
       incoming: theirs.filter(t => !mineIds.has(t.id)).map(t => byId.get(t.id)).filter(Boolean),
@@ -167,6 +181,27 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (!friend) return reply.code(404).send({ error: 'unknown code' })
     if (friend.id === req.playerId) return reply.code(400).send({ error: 'own code' })
     await db.insert(friendships).values({ playerId: req.playerId, friendId: friend.id }).onConflictDoNothing()
+    return { ok: true }
+  })
+
+  app.post('/v1/challenges', { preHandler: requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ to: z.string().uuid(), code: z.string().regex(/^[A-Za-z0-9]{4}$/) }) } }, async (req, reply) => {
+    if (!(await mutual(req.playerId, req.body.to))) return reply.code(403).send({ error: 'not friends' })
+    const inbox = challenges.get(req.body.to) ?? new Map<string, { code: string; at: number }>()
+    inbox.set(req.playerId, { code: req.body.code.toUpperCase(), at: Date.now() })
+    challenges.set(req.body.to, inbox)
+    return { ok: true }
+  })
+
+  app.post('/v1/challenges/decline', { preHandler: requireAuth, schema: { body: z.object({ from: z.string().uuid() }) } }, async req => {
+    challenges.get(req.playerId)?.delete(req.body.from)
+    return { ok: true }
+  })
+
+  app.delete('/v1/friends/:id', { preHandler: requireAuth, schema: { params: z.object({ id: z.string().uuid() }) } }, async req => {
+    const other = req.params.id
+    await db.delete(friendships).where(sql`(${friendships.playerId} = ${req.playerId} AND ${friendships.friendId} = ${other}) OR (${friendships.playerId} = ${other} AND ${friendships.friendId} = ${req.playerId})`)
+    challenges.get(req.playerId)?.delete(other)
+    challenges.get(other)?.delete(req.playerId)
     return { ok: true }
   })
 

@@ -1,20 +1,97 @@
-import type { ServerMsg, TopBuild } from '@spirit/core'
+import { BLADES, DISCS, TIPS, type BeastId, type ServerMsg, type TopBuild } from '@spirit/core'
 import QRCode from 'qrcode'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { BEASTS } from '../../game/beasts'
 import { rt } from '../../net/rt'
 import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
-import { Img, Screen, Slash, TopBar } from '../kit'
+import { Img, Screen, TopBar } from '../kit'
 import { SkeletonList } from '../Loader'
+import './live.css'
 
 type Phase = { k: 'idle' } | { k: 'connecting' } | { k: 'hosting'; code: string } | { k: 'joining' } | { k: 'waiting'; code: string } | { k: 'error'; text: string }
+interface Friend { playerId: string; name: string; friendCode: string; beast?: string | null; seen?: number | null }
+interface Challenge { from: { playerId: string; name: string }; code: string; at: number }
+interface Lists { friends: Friend[]; incoming: Friend[]; outgoing: Friend[]; challenges: Challenge[] }
+interface Foe { name: string; build: TopBuild }
 
 const ERRORS: Record<string, string> = {
-  'no-room': 'No battle with that code. Check it with your friend.',
+  'no-room': 'No battle with that code. It may have ended; ask your friend for a new one.',
   full: 'That battle already has two players.',
   auth: 'Could not sign you in. Check your connection and try again.',
+  'bad-message': 'The battle server is on a different version. Refresh the page and try again.',
+  rate: 'Too many tries in a row. Wait a few seconds, then try again.',
+}
+const POLL_MS = 5000
+const REVEAL_MS = 1300
+const isBeast = (b: unknown): b is BeastId => typeof b === 'string' && b in BEASTS
+const online = (f: Friend) => f.seen != null && f.seen < 30_000
+const status = (f: Friend) => (f.seen == null ? 'Offline' : online(f) ? 'Online' : f.seen < 3_600_000 ? `Active ${Math.max(1, Math.round(f.seen / 60_000))}m ago` : 'Offline')
+const nice = (b: BeastId) => BEASTS[b].name.charAt(0) + BEASTS[b].name.slice(1).toLowerCase()
+const topName = (b: TopBuild) => [BLADES[b.bladeId]?.name, DISCS[b.discId]?.name, TIPS[b.tipId]?.name].filter(Boolean).join(' · ')
+
+function useFriendLists(active: boolean, onNews: (text: string) => void) {
+  const [lists, setLists] = useState<Lists | null>(null)
+  const [mine, setMine] = useState<string | null>(null)
+  const [offline, setOffline] = useState(false)
+  const prev = useRef<Lists | null>(null)
+  const news = useRef(onNews)
+  news.current = onNews
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch('/v1/friends', { headers: authHeader() })
+      if (!r.ok) throw new Error(String(r.status))
+      const l = (await r.json()) as Partial<Lists>
+      const next: Lists = { friends: l.friends ?? [], incoming: l.incoming ?? [], outgoing: l.outgoing ?? [], challenges: l.challenges ?? [] }
+      const p = prev.current
+      if (p) {
+        const had = (xs: { playerId: string }[], id: string) => xs.some(x => x.playerId === id)
+        for (const f of next.incoming) if (!had(p.incoming, f.playerId) && !had(p.friends, f.playerId)) news.current(`${f.name} sent you a friend request`)
+        for (const f of next.friends) if (!had(p.friends, f.playerId)) news.current(`You and ${f.name} are now friends`)
+      }
+      prev.current = next
+      setLists(next)
+      setOffline(false)
+    } catch {
+      setOffline(true)
+    }
+  }, [])
+  useEffect(() => {
+    void fetch('/v1/me', { headers: authHeader() }).then(r => r.json() as Promise<{ friendCode?: string }>).then(m => setMine(m.friendCode ?? null)).catch(() => undefined)
+  }, [])
+  useEffect(() => {
+    if (!active) return
+    void load()
+    const tick = () => { if (document.visibilityState === 'visible') void load() }
+    const id = window.setInterval(tick, POLL_MS)
+    document.addEventListener('visibilitychange', tick)
+    window.addEventListener('focus', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); window.removeEventListener('focus', tick) }
+  }, [active, load])
+  return { lists, mine, offline, reload: load }
+}
+
+function Avatar({ beast, name, dot }: { beast?: string | null | undefined; name: string; dot?: 'on' | 'away' | 'off' | undefined }) {
+  return (
+    <span className={`lb-avatar ${dot ?? ''}`} style={isBeast(beast) ? { ['--c' as string]: BEASTS[beast].color } : undefined} aria-hidden>
+      {isBeast(beast) ? <Img id={`beasts/${beast}/emblem`} /> : <b>{name.slice(0, 1).toUpperCase()}</b>}
+    </span>
+  )
+}
+
+function Card({ beast, label, name, sub, empty }: { beast?: BeastId | undefined; label: string; name: string; sub: string; empty?: boolean }) {
+  return (
+    <div className={`lb-card ${empty ? 'empty' : ''}`} style={beast ? { ['--c' as string]: BEASTS[beast].color } : undefined}>
+      {beast && !empty ? <Img id={`beasts/${beast}/card-art`} className="lb-card-art" /> : <span className="lb-card-ghost" aria-hidden><i /></span>}
+      <div className="lb-card-text">
+        <small>{label}</small>
+        <strong>{name}</strong>
+        <span>{sub}</span>
+      </div>
+    </div>
+  )
 }
 
 export function Friends({ join }: { join?: string | undefined }) {
@@ -22,19 +99,36 @@ export function Friends({ join }: { join?: string | undefined }) {
   const [phase, setPhase] = useState<Phase>({ k: 'idle' })
   const [code, setCode] = useState(join ?? '')
   const [qr, setQr] = useState<string | null>(null)
+  const [showQr, setShowQr] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [rival, setRival] = useState<Friend | null>(null)
+  const [foe, setFoe] = useState<Foe | null>(null)
   const auto = useRef(false)
+  const rivalRef = useRef<Friend | null>(null)
+  const reveal = useRef(0)
   const build = useSave(s => s.loadout) as TopBuild
   const name = useSave(s => s.name)
+  const busy = phase.k === 'connecting' || phase.k === 'joining'
+  const lobby = phase.k === 'connecting' || phase.k === 'hosting' || phase.k === 'joining' || phase.k === 'waiting' || foe !== null
+  const { lists, mine, offline, reload } = useFriendLists(!lobby, setToast)
 
   useEffect(() => rt.on((m: ServerMsg) => {
-    if (m.k === 'room') setPhase(p => (p.k === 'connecting' ? { k: 'hosting', code: m.code } : p.k === 'joining' ? { k: 'waiting', code: m.code } : p))
-    if (m.k === 'peer' && rt.side !== null && rt.peer) nav.replace({ k: 'live', side: rt.side, peer: { name: rt.peer.name, build: rt.peer.build } })
-    if (m.k === 'error') setPhase({ k: 'error', text: ERRORS[m.code] ?? 'Something went wrong. Try again.' })
+    if (m.k === 'room') {
+      setPhase(p => (p.k === 'connecting' ? { k: 'hosting', code: m.code } : p.k === 'joining' ? { k: 'waiting', code: m.code } : p))
+      const to = rivalRef.current
+      if (to) void fetch('/v1/challenges', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ to: to.playerId, code: m.code }) }).catch(() => undefined)
+    }
+    if (m.k === 'peer' && rt.side !== null && rt.peer && !reveal.current) {
+      const side = rt.side, peer = { name: rt.peer.name, build: rt.peer.build }
+      setFoe(peer)
+      reveal.current = window.setTimeout(() => nav.replace({ k: 'live', side, peer }), REVEAL_MS)
+    }
+    if (m.k === 'error') setPhase({ k: 'error', text: ERRORS[m.code] ?? 'The battle server refused that. Try again.' })
   }), [nav])
 
   const link = phase.k === 'hosting' ? `${location.origin}/?join=${phase.code}` : ''
   useEffect(() => {
-    if (!link) return setQr(null)
+    if (!link) { setQr(null); setShowQr(false); return }
     void QRCode.toDataURL(link, { margin: 1, width: 360, color: { dark: '#070b1f', light: '#ffffff' } }).then(setQr)
   }, [link])
 
@@ -55,16 +149,21 @@ export function Friends({ join }: { join?: string | undefined }) {
   }
   useEffect(() => () => {
     clearTimeout(timeout.current)
+    clearTimeout(reveal.current)
     if (useNav.getState().stack.at(-1)?.k !== 'live') rt.leave()
   }, [])
-  const host = async () => {
+  const host = async (to: Friend | null = null) => {
     rt.leave()
+    rivalRef.current = to
+    setRival(to)
     setPhase({ k: 'connecting' })
     guard()
     if (await connect()) rt.send({ k: 'create', build })
   }
   const enter = async (c: string) => {
     rt.leave()
+    rivalRef.current = null
+    setRival(null)
     setPhase({ k: 'joining' })
     guard()
     if (await connect()) rt.send({ k: 'join', code: c.toUpperCase(), build })
@@ -78,134 +177,194 @@ export function Friends({ join }: { join?: string | undefined }) {
 
   const share = () => {
     if (navigator.share) void navigator.share({ title: 'Spirit Spin battle', text: `Battle me in Spirit Spin! Code ${phase.k === 'hosting' ? phase.code : ''}`, url: link }).catch(() => undefined)
-    else void navigator.clipboard?.writeText(link)
+    else copyLink()
   }
+  const copyLink = () => void navigator.clipboard?.writeText(link).then(() => setToast('Invite link copied'))
   const cancel = () => {
     rt.leave()
+    clearTimeout(reveal.current)
+    reveal.current = 0
+    rivalRef.current = null
+    setRival(null)
+    setFoe(null)
     setPhase({ k: 'idle' })
   }
+  const decline = (from: string) => fetch('/v1/challenges/decline', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ from }) }).catch(() => undefined)
+  const accept = (c: Challenge) => {
+    void decline(c.from.playerId)
+    void enter(c.code)
+  }
 
+  const me = isBeast(build?.beastId) ? build.beastId : undefined
+  if (lobby) {
+    const roomCode = phase.k === 'hosting' || phase.k === 'waiting' ? phase.code : null
+    const foeBeast = foe && isBeast(foe.build.beastId) ? foe.build.beastId : rival && isBeast(rival.beast) ? rival.beast : undefined
+    return (
+      <Screen className="friends lb">
+        <TopBar title="Live battle" />
+        <section className={`lb-lobby ${foe ? 'found' : ''}`} aria-live="polite">
+          <Card beast={me} label="You" name={name || 'You'} sub={me ? `${nice(me)} · ${topName(build)}` : ''} />
+          <div className="lb-vs" aria-hidden><span>VS</span></div>
+          {foe ? (
+            <Card beast={foeBeast} label="Opponent found!" name={foe.name} sub={foeBeast ? `${nice(foeBeast)} · ${topName(foe.build)}` : ''} />
+          ) : (
+            <Card beast={foeBeast} empty label={phase.k === 'joining' || phase.k === 'connecting' ? 'Connecting' : 'Waiting'} name={rival ? rival.name : phase.k === 'joining' ? 'Joining…' : 'Your friend'} sub={rival ? 'Challenge sent. Starts when they accept.' : phase.k === 'hosting' ? 'Share the code. Starts when they join.' : 'Getting your battle ready…'} />
+          )}
+        </section>
+        {foe ? <p className="lb-starting">Battle starting…</p> : (
+          <>
+            {roomCode && (
+              <section className="lb-codebox">
+                <small>Battle code</small>
+                <div className="room-code" aria-label="Battle code">{roomCode}</div>
+                {phase.k === 'hosting' && (
+                  <div className="lb-codebox-acts">
+                    <button className="lb-btn gold" onClick={share}>{'share' in navigator ? 'Share invite' : 'Copy invite'}</button>
+                    {'share' in navigator && <button className="lb-btn ghost" onClick={copyLink}>Copy link</button>}
+                    <button className="lb-btn ghost" onClick={() => setShowQr(v => !v)} aria-expanded={showQr}>{showQr ? 'Hide QR' : 'Show QR'}</button>
+                  </div>
+                )}
+                {showQr && qr && <img className="qr" src={qr} alt={`QR code for battle ${roomCode}`} />}
+              </section>
+            )}
+            <button className="text-btn lb-cancel" onClick={cancel}>{phase.k === 'hosting' ? 'Cancel battle' : 'Leave'}</button>
+          </>
+        )}
+        {toast && <p key={toast} className="toast pop" role="status" onAnimationEnd={() => setTimeout(() => setToast(t => (t === toast ? null : t)), 2400)}>{toast}</p>}
+      </Screen>
+    )
+  }
+
+  const challenge = lists?.challenges[0]
   return (
-    <Screen className="friends">
+    <Screen className="friends lb">
       <TopBar title="Live battle" />
-      {phase.k === 'waiting' ? (
-        <section className="host-card">
-          <div className="room-code" aria-label="Battle code">{phase.code}</div>
-          <p>You're in! Waiting for the other player to join…</p>
-          <p className="fine waiting">Keep this screen open. The battle starts by itself.</p>
-          <button className="text-btn" onClick={cancel}>Leave</button>
+      {challenge && (
+        <section className="lb-challenge" role="alert">
+          <Avatar beast={lists?.friends.find(f => f.playerId === challenge.from.playerId)?.beast} name={challenge.from.name} dot="on" />
+          <div><strong>{challenge.from.name} challenges you!</strong><span>Battle code {challenge.code}</span></div>
+          <div className="lb-challenge-acts">
+            <button className="lb-btn gold" onClick={() => accept(challenge)}>Accept</button>
+            <button className="lb-btn ghost" onClick={() => { void decline(challenge.from.playerId).then(reload) }}>Not now</button>
+          </div>
         </section>
-      ) : phase.k === 'hosting' ? (
-        <section className="host-card">
-          <p>Your friend scans this or opens the link. The battle starts when they join.</p>
-          {qr && <img className="qr" src={qr} alt={`QR code for battle ${phase.code}`} />}
-          <div className="room-code" aria-label="Battle code">{phase.code}</div>
-          <Slash onClick={share}>{'share' in navigator ? 'Send invite' : 'Copy invite link'}</Slash>
-          <p className="fine waiting">Waiting for your friend…</p>
-          <button className="text-btn" onClick={cancel}>Cancel</button>
-        </section>
-      ) : (
-        <>
-          <section className="setting friends-block">
-            <div className="card-head"><Img id="ui/icons/live" className="card-icon" /><span><strong>Host a battle</strong><span>Get a code, a link and a QR to share.</span></span></div>
-            <Slash tone="gold" onClick={() => void host()} disabled={phase.k === 'connecting' || phase.k === 'joining'}>{phase.k === 'connecting' ? 'Opening…' : 'Create battle'}</Slash>
-          </section>
-          <form className="setting recover-form" onSubmit={e => { e.preventDefault(); void enter(code) }}>
-            <div><strong>Join a battle</strong><span>Enter the 4-letter code from your friend.</span></div>
-            <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase())} placeholder="ABCD" maxLength={4} autoCapitalize="characters" aria-label="Battle code" />
-            <button disabled={code.length !== 4 || phase.k === 'joining'}>{phase.k === 'joining' ? 'Joining…' : 'Join'}</button>
-          </form>
-          {phase.k === 'error' && <p className="form-error" role="alert">{phase.text}</p>}
-          <section className="setting stadium-card">
-            <div><strong>Stadium Mode</strong><span>Play on a TV or laptop: the big screen shows the stadium, two phones are the launchers.</span></div>
-            <button className="text-btn" onClick={() => nav.push({ k: 'stadium' })}>Use this device as the stadium</button>
-          </section>
-          <FriendList onChallenge={() => void host()} />
-        </>
       )}
+      <section className="lb-me" style={me ? { ['--c' as string]: BEASTS[me].color } : undefined}>
+        {me && <Img id={`beasts/${me}/card-art`} className="lb-me-art" />}
+        <div className="lb-me-text">
+          <small>Battling with</small>
+          <strong>{me ? BEASTS[me].name : 'Your top'}</strong>
+          <span>{build ? topName(build) : ''}</span>
+          <button className="text-btn" onClick={() => nav.push({ k: 'garage' })}>Change top</button>
+        </div>
+      </section>
+      <div className="lb-modes">
+        <button className="lb-tile host" onClick={() => void host()}>
+          <Img id="ui/icons/live" className="lb-tile-icon" />
+          <strong>Create battle</strong>
+          <span>Get a code to share</span>
+        </button>
+        <form className="lb-tile join" onSubmit={e => { e.preventDefault(); if (code.length === 4) void enter(code) }}>
+          <strong>Join battle</strong>
+          <div className="lb-join-row">
+            <input className="lb-code" value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase())} placeholder="CODE" maxLength={4} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label="Battle code" />
+            <button className="lb-btn cyan" disabled={code.length !== 4}>Go</button>
+          </div>
+        </form>
+      </div>
+      {phase.k === 'error' && <p className="form-error lb-error" role="alert">{phase.text}</p>}
+      <FriendsPanel lists={lists} mine={mine} offline={offline} onChallenge={f => void host(f)} reload={reload} notify={setToast} />
+      <button className="lb-stadium" onClick={() => nav.push({ k: 'stadium' })}>
+        <strong>Stadium Mode</strong>
+        <span>Big screen shows the battle, two phones launch</span>
+      </button>
+      {toast && <p key={toast} className="toast pop" role="status" onAnimationEnd={() => setTimeout(() => setToast(t => (t === toast ? null : t)), 2400)}>{toast}</p>}
     </Screen>
   )
 }
 
-interface Friend { playerId: string; name: string; friendCode: string }
-
-function FriendList({ onChallenge }: { onChallenge: () => void }) {
-  const [mine, setMine] = useState<string | null>(null)
-  const [friends, setFriends] = useState<Friend[] | null>(null)
-  const [incoming, setIncoming] = useState<Friend[]>([])
-  const [outgoing, setOutgoing] = useState<Friend[]>([])
-  const [offline, setOffline] = useState(false)
+function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { lists: Lists | null; mine: string | null; offline: boolean; onChallenge: (f: Friend) => void; reload: () => Promise<void>; notify: (t: string) => void }) {
   const [code, setCode] = useState('')
   const [note, setNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const load = async () => {
-    try {
-      const [me, list] = await Promise.all([
-        fetch('/v1/me', { headers: authHeader() }).then(r => r.json() as Promise<{ friendCode?: string }>),
-        fetch('/v1/friends', { headers: authHeader() }).then(r => r.json() as Promise<{ friends?: Friend[]; incoming?: Friend[]; outgoing?: Friend[] }>),
-      ])
-      setMine(me.friendCode ?? null)
-      setFriends(list.friends ?? [])
-      setIncoming(list.incoming ?? [])
-      setOutgoing(list.outgoing ?? [])
-      setOffline(false)
-    } catch {
-      setOffline(true)
-    }
-  }
-  useEffect(() => { void load() }, [])
-  const add = async (c = code) => {
+  const [pending, setPending] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
+  const add = async (c: string) => {
     setNote(null)
+    setPending(c)
     const r = await fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ code: c }) }).catch(() => null)
+    setPending(null)
     if (!r) return setNote('No connection. Try again in a moment.')
     if (r.status === 404) return setNote('No player has that friend code.')
     if (r.status === 400) return setNote('That is your own code.')
     if (!r.ok) return setNote('Could not add that friend. Try again.')
     setCode('')
-    setNote('Request sent. You become friends when they add you back.')
     log('friends.add', {})
-    void load()
+    await reload()
+  }
+  const remove = async (f: Friend, text: string) => {
+    setPending(f.playerId)
+    const r = await fetch(`/v1/friends/${f.playerId}`, { method: 'DELETE', headers: authHeader() }).catch(() => null)
+    setPending(null)
+    if (r?.ok) notify(text)
+    await reload()
   }
   const copy = () => {
     if (!mine) return
     void navigator.clipboard?.writeText(mine).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
   }
-  if (offline) return <p className="fine">Friends need a connection. Check your network and come back.</p>
+  const friends = [...(lists?.friends ?? [])].sort((a, b) => (a.seen ?? Infinity) - (b.seen ?? Infinity))
+  const live = friends.filter(online).length
+  const empty = lists && friends.length + lists.incoming.length + lists.outgoing.length === 0
   return (
-    <>
-      <section className="setting my-code">
-        <div><strong>Your friend code</strong><span>Friends add you with this code.</span></div>
-        <button className="code-chip" onClick={copy} aria-label="Copy your friend code">{mine ?? '······'}<em>{copied ? 'Copied' : 'Copy'}</em></button>
-      </section>
-      <form className="setting recover-form" onSubmit={e => { e.preventDefault(); void add(code) }}>
-        <div><strong>Add a friend</strong><span>{note ?? 'Enter their 6-character friend code.'}</span></div>
-        <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase())} placeholder="ABC234" maxLength={6} autoCapitalize="characters" aria-label="Friend code" />
-        <button disabled={code.length !== 6}>Add</button>
-      </form>
-      {incoming.length > 0 && (
-        <section className="friend-list" aria-label="Friend requests">
-          <h2>Requests</h2>
-          {incoming.map(f => (
-            <div key={f.playerId} className="friend">
-              <span className="friend-initial" aria-hidden>{f.name.slice(0, 1).toUpperCase()}</span>
+    <section className="lb-friends" aria-label="Friends">
+      <header className="lb-friends-head">
+        <h2>Friends</h2>
+        {lists && friends.length > 0 && <span className="lb-online"><i />{live} online</span>}
+        <button className={`lb-btn ${adding || empty ? 'ghost' : 'cyan'} lb-add-toggle`} onClick={() => setAdding(v => !v)} aria-expanded={adding || !!empty}>{adding ? 'Done' : '+ Add'}</button>
+      </header>
+      {(adding || empty) && (
+        <div className="lb-addbox">
+          <button className="lb-mycode" onClick={copy} disabled={!mine} aria-label="Copy your friend code">
+            <span>Your friend code</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
+          </button>
+          <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.length === 6) void add(code) }}>
+            <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase())} placeholder="Their friend code" maxLength={6} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label="Friend code" />
+            <button className="lb-btn cyan" disabled={code.length !== 6 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
+          </form>
+          {note && <p className="form-error" role="alert">{note}</p>}
+        </div>
+      )}
+      {offline ? <p className="fine">Friends need a connection. We'll keep trying.</p> : !lists ? <SkeletonList rows={2} /> : (
+        <>
+          {lists.incoming.map(f => (
+            <div key={f.playerId} className="lb-row request">
+              <Avatar beast={f.beast} name={f.name} />
               <div><strong>{f.name}</strong><span>Wants to be friends</span></div>
-              <button className="go" onClick={() => void add(f.friendCode)}>Add back</button>
+              <button className="lb-btn cyan" onClick={() => void add(f.friendCode)} disabled={pending !== null}>Accept</button>
+              <button className="lb-x" onClick={() => void remove(f, `Declined ${f.name}`)} disabled={pending !== null} aria-label={`Decline ${f.name}`}>×</button>
             </div>
           ))}
-        </section>
+          {friends.map(f => {
+            const on = online(f)
+            return (
+              <div key={f.playerId} className={`lb-row ${on ? 'on' : ''}`}>
+                <Avatar beast={f.beast} name={f.name} dot={on ? 'on' : f.seen != null && f.seen < 3_600_000 ? 'away' : 'off'} />
+                <div><strong>{f.name}</strong><span>{status(f)}{isBeast(f.beast) ? ` · ${nice(f.beast)}` : ''}</span></div>
+                <button className={`lb-btn ${on ? 'gold' : 'ghost'}`} onClick={() => onChallenge(f)}>{on ? 'Battle' : 'Invite'}</button>
+              </div>
+            )
+          })}
+          {lists.outgoing.map(f => (
+            <div key={f.playerId} className="lb-row out">
+              <Avatar beast={f.beast} name={f.name} />
+              <div><strong>{f.name}</strong><span>Request sent</span></div>
+              <button className="lb-x" onClick={() => void remove(f, `Cancelled request to ${f.name}`)} disabled={pending !== null} aria-label={`Cancel request to ${f.name}`}>×</button>
+            </div>
+          ))}
+          {empty && <p className="lb-empty">Swap friend codes with a friend. Once you've both added each other, you can battle them from here.</p>}
+        </>
       )}
-      <section className="friend-list" aria-label="Friends">
-        <h2>Friends</h2>
-        {friends === null ? <SkeletonList rows={2} /> : friends.length + outgoing.length === 0 ? (
-          <p className="fine">No friends yet. Swap friend codes with someone; once you have both added each other, they show up here.</p>
-        ) : [...friends.map(f => ({ ...f, pending: false })), ...outgoing.map(f => ({ ...f, pending: true }))].map(f => (
-          <div key={f.playerId} className="friend">
-            <span className="friend-initial" aria-hidden>{f.name.slice(0, 1).toUpperCase()}</span>
-            <div><strong>{f.name}</strong><span>{f.pending ? 'Requested' : f.friendCode}</span></div>
-            {!f.pending && <button className="go" onClick={onChallenge}>Challenge</button>}
-          </div>
-        ))}
-      </section>
-    </>
+    </section>
   )
 }
