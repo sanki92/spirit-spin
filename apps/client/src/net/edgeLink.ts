@@ -48,9 +48,8 @@ export class EdgeLink implements WireLink {
   }
 
   refresh(info: EdgeInfo): void {
-    const certChanged = info.certHash !== this.info.certHash
     this.info = info
-    if (certChanged) this.wtBroken = false
+    this.wtBroken = false
     if (this.closed || this.wt || this.ws || this.opening) return
     if (this.timer) clearTimeout(this.timer)
     this.timer = 0
@@ -64,12 +63,13 @@ export class EdgeLink implements WireLink {
     try {
       const urls = edgeUrls(this.info, this.deps.location ?? location)
       const WT = 'WT' in this.deps ? this.deps.WT : (globalThis as { WebTransport?: typeof WebTransport }).WebTransport
+      let wtFailed = false
       if (WT && !this.wtBroken) {
         try {
           await within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs)
           return this.up('wt')
         } catch (e) {
-          this.wtBroken = true
+          wtFailed = true
           log('edge.wt-fail', { err: String(e).slice(0, 120) })
           const t = this.wt
           this.wt = null
@@ -77,6 +77,7 @@ export class EdgeLink implements WireLink {
           try { t?.close() } catch { }
         }
       }
+      if (this.closed) return
       try {
         await within(this.openWS(urls.ws), EDGE.wsTimeoutMs)
       } catch (e) {
@@ -85,6 +86,7 @@ export class EdgeLink implements WireLink {
         try { w?.close() } catch { }
         throw e
       }
+      if (wtFailed) this.wtBroken = true
       this.up('ws')
     } finally {
       this.opening = false

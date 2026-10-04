@@ -1,5 +1,15 @@
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
 play.example.com {
 	encode zstd gzip
+	handle /.well-known/acme-challenge/* {
+		root * /var/lib/caddy
+		file_server
+	}
 	handle /edge/* {
 		uri strip_prefix /edge
 		reverse_proxy 127.0.0.1:4434

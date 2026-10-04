@@ -48,7 +48,7 @@ Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+
 | run | result |
 |---|---|
 | core `npm run soak` (1,000+ virtual matches, 6 profiles incl. criteria and uneven 85/320 ms) | 6/6 pass, 0 desyncs, 0 own-input corrections on criteria |
-| edge load test, 500 concurrent matches, redundant feeders | 88,505 frames, 0 missing inputs, tick pass < 1 ms |
+| edge load test, 500 concurrent matches, redundant feeders | ~87,000 frames, 0 missing inputs; tick pass over all 500 matches measured while feeding: avg 0.19 ms, worst 3.4 ms |
 | full stack via Go edge, 40 bot matches | 40/40 finished, 87 rounds, 0 desyncs, 0 fallbacks, 0 lost, 0 stream drops |
 | full stack via Go edge with faults (5% drop, +60 ms, ±30 ms jitter on edge→phone) | 20/20 finished, 58 rounds, 0 desyncs, 0 late inputs |
 | full stack in-process (no edge), 20 bot matches | 20/20 finished, 45 rounds, 0 desyncs |

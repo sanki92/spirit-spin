@@ -265,6 +265,11 @@ export class Room {
     try {
       this.edgeUsed = true
       const { certHash } = await (this.edgeMatch ??= e.createMatch(this.matchId))
+      if (this.phase === 'done') {
+        void e.endMatch(this.matchId).catch(() => undefined)
+        return
+      }
+      if (this.phase !== 'battle' || this.round !== round || this.live) return
       this.certHash = certHash
       const t0 = await e.startRound(this.matchId, round, SEQ.leadInMs)
       if (this.phase !== 'battle' || this.round !== round || this.live) return
@@ -291,6 +296,8 @@ export class Room {
   }
 
   private sendStart(): void {
+    const heard = this.opts.now() + SEQ.leadInMs
+    for (const s of this.seats) if (s) s.heard = heard
     this.seats.forEach((s, i) => { if (s?.online) s.send(this.startMsg(i as Side)) })
     for (const w of this.spectators.keys()) w(this.startMsg(null))
   }
@@ -337,7 +344,7 @@ export class Room {
   private finish(): void {
     if (this.phase === 'done') return
     this.phase = 'done'
-    this.endEdgeMatch()
+    void this.endEdgeMatch()
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
@@ -346,21 +353,23 @@ export class Room {
     this.opts.onDone(this)
   }
 
-  private endEdgeMatch(): void {
+  private endEdgeMatch(): Promise<void> {
     const e = this.opts.edge
-    if (!this.edgeUsed || !e) return
+    if (!this.edgeUsed || !e) return Promise.resolve()
     this.edgeUsed = false
     this.edgeMatch = null
     const last = this.live instanceof RemoteRound ? this.live.ended : Promise.resolve()
-    void last.finally(() => e.endMatch(this.matchId).catch(() => undefined))
+    const done = last.finally(() => e.endMatch(this.matchId)).then(() => undefined, () => undefined)
+    return Promise.race([done, new Promise<void>(r => setTimeout(r, 1500))])
   }
 
-  close(): void {
+  close(): Promise<void> {
     this.phase = 'done'
-    this.endEdgeMatch()
+    const ended = this.endEdgeMatch()
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
     for (const s of this.seats) if (s?.hold) clearTimeout(s.hold)
+    return ended
   }
 }

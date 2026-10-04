@@ -55,13 +55,22 @@ func TestLoad500Matches(t *testing.T) {
 			}
 		}(ms[i], t0s[i])
 	}
-	wg.Wait()
-	start := time.Now()
-	for _, m := range ms {
-		m.Tick()
+	var worst, total time.Duration
+	passes := 0
+	for time.Now().Before(end) {
+		start := time.Now()
+		for _, m := range ms {
+			m.Tick()
+		}
+		d := time.Since(start)
+		worst = max(worst, d)
+		total += d
+		passes++
+		time.Sleep(10 * time.Millisecond)
 	}
-	pass := time.Since(start)
+	wg.Wait()
 	cancel()
+	pass := total / time.Duration(max(1, passes))
 	var frames, missing uint64
 	for _, m := range ms {
 		st := m.EndRound(1)
@@ -74,8 +83,8 @@ func TestLoad500Matches(t *testing.T) {
 	if float64(missing) > 0.02*float64(2*frames) {
 		t.Fatalf("missing %d of %d inputs", missing, 2*frames)
 	}
-	if pass > 30*time.Millisecond {
-		t.Fatalf("one tick pass over %d matches took %v", N, pass)
+	if pass > 5*time.Millisecond || worst > 50*time.Millisecond {
+		t.Fatalf("tick pass over %d matches under load: avg %v worst %v", N, pass, worst)
 	}
-	t.Logf("frames %d missing %d (%.2f%%) tick pass %v", frames, missing, 100*float64(missing)/float64(2*frames), pass)
+	t.Logf("frames %d missing %d (%.2f%%) tick pass under load avg %v worst %v over %d passes", frames, missing, 100*float64(missing)/float64(2*frames), pass, worst, passes)
 }

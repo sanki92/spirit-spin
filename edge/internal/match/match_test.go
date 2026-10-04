@@ -192,6 +192,18 @@ func TestRegistryReapsOrphanedMatches(t *testing.T) {
 	_ = idle
 }
 
+func TestDrainCountsOnlyMatchesSomeoneUses(t *testing.T) {
+	now := 0.0
+	reg := NewRegistry(func() float64 { return now })
+	reg.Create("ORPHAN").StartRound(1, 0)
+	reg.Create("PLAYED").Attach(0, &fakePeer{})
+	_, cancel := reg.Create("STREAMED").Subscribe(1, 0)
+	defer cancel()
+	if n := reg.Live(); n != 2 {
+		t.Fatalf("live matches %d, want 2", n)
+	}
+}
+
 func TestRunawayRoundStopsAtTheFrameCap(t *testing.T) {
 	m, _, _, now := setup()
 	t0 := m.StartRound(1, 0)

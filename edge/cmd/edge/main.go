@@ -99,7 +99,7 @@ func main() {
 	slog.Info("draining")
 	deadline := time.Now().Add(*drainFor)
 	for time.Now().Before(deadline) {
-		if m, _ := reg.Counts(); m == 0 {
+		if reg.Live() == 0 {
 			break
 		}
 		time.Sleep(time.Second)

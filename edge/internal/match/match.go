@@ -297,6 +297,22 @@ func (r *Registry) all() []*Match {
 	return out
 }
 
+func (m *Match) inUse() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.sub != nil || m.peers[0] != nil || m.peers[1] != nil
+}
+
+func (r *Registry) Live() int {
+	n := 0
+	for _, m := range r.all() {
+		if m.inUse() {
+			n++
+		}
+	}
+	return n
+}
+
 func (r *Registry) Counts() (int, int) {
 	ms := r.all()
 	s := 0

@@ -149,8 +149,12 @@ describe('room', () => {
     subs[0]!({ round: 1, first: 1, frames: Array.from({ length: 3000 }, () => [idle, idle] as const), hashes: [], inputHi: [0, 0] })
     expect(tvBins.length).toBeGreaterThan(0)
     expect(a.some(m => m.k === 'end')).toBe(true)
-    room.close()
+    let settled = false
+    void Promise.resolve(room.close()).then(() => { settled = true })
+    await vi.advanceTimersByTimeAsync(5)
+    expect(settled).toBe(false)
     await vi.advanceTimersByTimeAsync(50)
+    expect(settled).toBe(true)
     expect(calls.slice(-2)).toEqual(['endRound', 'endMatch'])
   })
 
@@ -192,6 +196,37 @@ describe('room', () => {
     room.close()
     await vi.advanceTimersByTimeAsync(10)
     expect(calls.at(-1)).toBe('endMatch')
+  })
+
+  it('edge mode: a room that finishes while the edge match is being created ends it once created, and never starts a round', async () => {
+    const { edge, calls } = fakeEdge()
+    edge.createMatch = async id => { await new Promise(r => setTimeout(r, 100)); calls.push(`create:${id}`); return { certHash: '' } }
+    room = new Room('GONE', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, () => undefined)
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    room.forfeit(1, 'quit')
+    await vi.advanceTimersByTimeAsync(200)
+    expect(calls.some(c => c.startsWith('start:'))).toBe(false)
+    expect(calls.at(-1)).toBe('endMatch')
+  })
+
+  it('edge mode: seats are not flagged silent while the edge is slow to start the round', async () => {
+    const { edge } = fakeEdge()
+    edge.createMatch = async () => { await new Promise(r => setTimeout(r, 2500)); return { certHash: '' } }
+    const peers: Extract<ServerMsg, { k: 'peer' }>[] = []
+    room = new Room('SLOW', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, m => { if (m.k === 'peer') peers.push(m) })
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    const before = peers.length
+    await vi.advanceTimersByTimeAsync(4500)
+    expect(peers.slice(before).filter(p => !p.online)).toHaveLength(0)
   })
 
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {

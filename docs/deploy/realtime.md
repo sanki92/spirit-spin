@@ -9,7 +9,7 @@ One region is one VM:
 | Process | Listens on | Public? | Role |
 |---|---|---|---|
 | Caddy | TCP 80/443 | yes | TLS, the PWA, `/v1`, `/rt` WebSocket, `/edge/*` → edge WebSocket fallback |
-| API (`apps/server`) | 127.0.0.1:8787 | no | accounts, rooms, rips, verification, results, `/__dev/net` dashboard |
+| API (`apps/server`) | 0.0.0.0:8787 (closed by the firewall) | no | accounts, rooms, rips, verification, results, `/__dev/net` dashboard |
 | Edge (`edge/cmd/edge`) | UDP 4433 | yes | WebTransport datagrams (the fast path) |
 | Edge WebSocket fallback | 127.0.0.1:4434 | via Caddy `/edge/ws` | same binary protocol over TCP when UDP is blocked |
 | Edge gRPC | 127.0.0.1:4435 | no | Node drives matches and receives confirmed frames |
@@ -19,7 +19,7 @@ Players are matched within the region they connect to. Start with one VM in Mumb
 
 ## Firewall
 
-Open TCP 80, TCP 443 and UDP 4433. Everything else stays on loopback.
+Open TCP 80, TCP 443 and UDP 4433. Everything else is closed: the API binds 0.0.0.0:8787, so the firewall is what keeps it private. Caddy serves HTTP/1.1 and HTTP/2 only (HTTP/3 is off), so UDP 443 stays closed.
 
 ## Certificates
 
@@ -44,7 +44,14 @@ Generate secrets with `openssl rand -base64 32`. Never commit them.
 RT_EDGE_SECRET=<shared secret, 16+ chars>
 ```
 
-`/etc/spirit/api.env`, in addition to the existing API variables (`NODE_ENV=production`, `JWT_SECRET`, `RECOVERY_PEPPER`, `CORS_ORIGINS`, `TRUST_PROXY=loopback`, `STATIC_DIR=apps/client/dist`, `DATABASE_URL`, ...):
+`/etc/spirit/api.env`, in addition to the existing API variables (`NODE_ENV=production`, `JWT_SECRET`, `RECOVERY_PEPPER`, `CORS_ORIGINS`, `TRUST_PROXY=loopback`, ...). `npm start -w apps/server` runs with its working directory in `apps/server`, so paths must be absolute:
+
+```
+STATIC_DIR=/opt/spirit/app/apps/client/dist
+DATABASE_URL=file:///opt/spirit/data/pglite
+```
+
+And for the realtime edge:
 
 ```
 RT_EDGE_GRPC=127.0.0.1:4435
@@ -58,6 +65,17 @@ NET_DASH_KEY=<random, to open the dashboard remotely>
 If `RT_EDGE_GRPC` is unset, the API runs every round in-process over the `/rt` WebSocket. That is the same netcode with TCP instead of UDP.
 
 ## Build and install
+
+Once per VM:
+
+```bash
+sudo useradd --system --home /opt/spirit --shell /usr/sbin/nologin spirit
+sudo mkdir -p /opt/spirit/app /opt/spirit/data /etc/spirit /var/lib/caddy
+sudo chown -R spirit:spirit /opt/spirit
+sudo chmod 600 /etc/spirit/*.env
+```
+
+Each release:
 
 ```bash
 GOOS=linux GOARCH=amd64 npm run edge:build
@@ -81,7 +99,7 @@ Stop the API with `systemctl stop spirit-api` (SIGTERM). It closes PGlite cleanl
 - `curl -s 127.0.0.1:4436/metrics | grep ^edge_` shows matches, sessions, packets, late inputs, missing inputs and rounds.
 - `https://play.example.com/__dev/net?key=$NET_DASH_KEY` shows rounds, desyncs, edge fallbacks, stream drops and edge losses, plus p50/p95 of late inputs, missing inputs and margins.
 - Raise an alert when any of these happens:
-  - `desyncs > 0` (should never happen; every case is logged at error level as `net.desync`)
+  - `desyncs > 0` (should never happen; every case is logged with `"msg":"net.desync"` and `"level":"error"` inside the record, so alert on the `msg` field)
   - `edge lost > 0`
   - `edge fallbacks` keeps rising (the edge is down or refusing)
   - `edge_late_inputs_total` grows faster than about 1% of `edge_packets_in_total` (players' clocks or networks are struggling)
@@ -91,13 +109,13 @@ Stop the API with `systemctl stop spirit-api` (SIGTERM). It closes PGlite cleanl
 | Event | What players see |
 |---|---|
 | Edge down at round start | The round runs in-process on the API: same game over TCP. `edge.fallback` is logged. |
-| Edge crash mid-round (stream lost for ~5 s) | That match ends with "Connection lost. The match ended without a result." `edge.lost` is logged. |
+| Edge crash mid-round | The stream errors at once and is retried 20 times (~5 s); if the edge is still gone that match ends with "Connection lost. The match ended without a result." and `edge.lost` is logged. A hung edge (no errors, no frames) is detected by the 2 s stall watchdog and takes about 45 s of retries before the same outcome. |
 | Planned edge restart | It drains, so no round is cut. |
 | UDP blocked on a player's network | Their phone falls back to the edge WebSocket within 1.5 s. |
 | Phone loses the edge briefly | It reconnects with backoff. The edge resends from the phone's last ack, up to 150 frames per packet. |
 | Phone backgrounded | The edge keeps confirming. On return the phone jumps to the confirmed state, and its opponent saw "reconnecting" after 2 s. |
 | Phone silent for longer than the seat hold | Forfeit, as before. |
-| API restart mid-match | Rooms are in memory, so live matches end. The edge reaps orphaned matches after 2 min. |
+| API restart mid-match | Rooms are in memory, so live matches end. On a clean stop the API sends `EndMatch` for every edge match before closing. After a crash the edge reaps orphans: a running round nobody streams after 2 min, an idle match after 10 min. The edge drain only waits for matches that still have a player or a stream. |
 
 ## Local development
 

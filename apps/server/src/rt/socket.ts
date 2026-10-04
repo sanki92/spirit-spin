@@ -27,7 +27,7 @@ const Msg = z.discriminatedUnion('k', [
 ])
 
 
-export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; speed?: number; edge?: EdgeApi | null; netlog?: NetLog }
+export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
 
 export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opts: RealtimeOpts = {}) {
   await app.register(websocket, { options: { maxPayload: NET.maxMessageBytes } })
@@ -43,7 +43,10 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     const code = rooms.size < NET.maxRooms ? newCode() : null
     return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, log: o => { app.log.info(o); opts.netlog?.add(o) }, edge: opts.edge ?? null, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
   }
-  app.addHook('onClose', async () => { for (const r of rooms.values()) r.close() })
+  app.addHook('onClose', async () => {
+    await Promise.all([...rooms.values()].map(r => r.close()))
+    opts.closeEdge?.()
+  })
   const owned = new Map<string, Room>()
 
   app.get('/rt', { websocket: true }, (socket, req) => {

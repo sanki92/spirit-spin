@@ -74,3 +74,43 @@ describe('edge link refresh', () => {
     vi.useRealTimers()
   })
 })
+
+describe('edge link transport choice', () => {
+  it('a WebTransport attempt that fails while the network is down is retried once the network is back', async () => {
+    vi.useFakeTimers()
+    let up = false
+    const wtUrls: string[] = []
+    class FakeWT {
+      ready: Promise<void>
+      closed: Promise<void>
+      datagrams = { writable: { getWriter: () => ({ write: async () => undefined }) }, readable: { getReader: () => ({ read: () => new Promise(() => undefined) }) } }
+      constructor(url: string) {
+        wtUrls.push(url)
+        this.ready = up ? Promise.resolve() : Promise.reject(new Error('net down'))
+        this.closed = new Promise(() => undefined)
+        this.ready.catch(() => undefined)
+      }
+      close() {}
+    }
+    class DownWS {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      constructor() { setTimeout(() => { this.onerror?.(); this.onclose?.() }, 1) }
+      send() {}
+      close() {}
+    }
+    const link = new EdgeLink({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 't', certHash: null }, { WT: FakeWT as unknown as typeof WebTransport, WS: DownWS as unknown as typeof WebSocket, location: { hostname: 'h', protocol: 'https:', host: 'h' } })
+    link.start()
+    await vi.advanceTimersByTimeAsync(100)
+    up = true
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(wtUrls.length).toBeGreaterThan(1)
+    expect(link.kind).toBe('wt')
+    link.close()
+    vi.useRealTimers()
+  })
+})
