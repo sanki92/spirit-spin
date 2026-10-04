@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func h(b []byte) string { return hex.EncodeToString(b) }
+func h(b []byte) string  { return hex.EncodeToString(b) }
 func uh(s string) []byte { b, _ := hex.DecodeString(s); return b }
 
 func TestGolden(t *testing.T) {

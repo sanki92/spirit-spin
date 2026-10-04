@@ -73,6 +73,15 @@ describe('sequencer', () => {
     expect(s.confirmed[0]![0]).toEqual(I(0))
   })
 
+  it('a far-future input does not stop later in-range inputs from counting as fresh', () => {
+    const s = new Sequencer(T0)
+    s.receive(0, 4_000_000_000, [I(1)], T0)
+    s.receive(0, 1, [I(2)], at(1) - 30)
+    expect(s.margin(0)).toBe(30)
+    s.due(at(1))
+    expect(s.confirmed[0]![0]).toEqual(I(2))
+  })
+
   it('lead-in covers the longest launch animation plus a one-way trip', () => {
     expect(SEQ.leadInMs).toBeGreaterThanOrEqual(910 + 150)
   })

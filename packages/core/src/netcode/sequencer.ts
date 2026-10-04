@@ -28,7 +28,7 @@ export class Sequencer {
       if (f < 1) continue
       const fresh = f > this.hi[side]
       if (fresh) {
-        this.hi[side] = f
+        if (f <= this.frame + SEQ.maxAhead) this.hi[side] = f
         const m = this.margins[side]
         m.push(this.deadline(f) - now)
         if (m.length > SEQ.marginWindow) m.shift()

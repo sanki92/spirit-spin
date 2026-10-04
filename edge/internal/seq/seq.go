@@ -41,7 +41,9 @@ func (s *Sequencer) Receive(side int, first uint32, in []wire.Input, now float64
 		}
 		fresh := f > s.hi[side]
 		if fresh {
-			s.hi[side] = f
+			if f <= s.Frame+MaxAhead {
+				s.hi[side] = f
+			}
 			s.margins[side] = append(s.margins[side], s.Deadline(f)-now)
 			if len(s.margins[side]) > MarginWindow {
 				s.margins[side] = s.margins[side][1:]
