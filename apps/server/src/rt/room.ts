@@ -1,8 +1,9 @@
 import {
-  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, InputTrack, NET, newMatch, stepBattle,
-  type BattleEvent, type BattleState, type MatchState, type MotionSample, type NetInput, type RipResult, type RipView, type ServerMsg,
-  type Side, type TopBuild, type TouchSample,
+  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch,
+  type BattleState, type MatchState, type MotionSample, type RipResult, type RipView, type ServerMsg,
+  type Side, type TopBuild, type TouchSample, type WireMsg,
 } from '@spirit/core'
+import { LiveMatch, type LiveDeps } from './live'
 
 export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000 }
 
@@ -16,36 +17,32 @@ export interface Seat {
   hold: ReturnType<typeof setTimeout> | null
   ready: boolean
   rip: RipResult | null
-  inputs: Map<number, NetInput>
-  last: NetInput
-  maxSeq: number
-  maxTick: number
-  track: InputTrack
+  bin: (b: Uint8Array) => void
   ripLog: RipView[]
   tiltSum: number
   tiltN: number
 }
 
 const FAIL = (): RipResult => composeRip(0.15, 0.3, 0.45, 0, 0)
-const clamp = (v: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0)
+const noop = () => undefined
 
 export class Room {
   readonly seats: [Seat | null, Seat | null] = [null, null]
   match: MatchState = newMatch()
   round = 0
   phase: 'wait' | 'launch' | 'battle' | 'between' | 'done' = 'wait'
-  battle: BattleState | null = null
+  live: LiveMatch | null = null
   launchAt = 0
   private views: [RipView | null, RipView | null] = [null, null]
   private seed = 0
   private timers: ReturnType<typeof setTimeout>[] = []
-  private loop: ReturnType<typeof setInterval> | null = null
-  private acc = 0
-  private lastAt = 0
-  private events: BattleEvent[] = []
-  readonly spectators = new Set<(m: ServerMsg) => void>()
+  readonly spectators = new Map<(m: ServerMsg) => void, (b: Uint8Array) => void>()
 
-  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number }) {}
+  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number; log?: (o: Record<string, unknown>) => void }) {}
+
+  get battle(): BattleState | null {
+    return this.live?.ver.tl.state ?? null
+  }
 
   private later(ms: number, fn: () => void): void {
     this.timers.push(setTimeout(fn, ms / (this.opts.speed ?? 1)))
@@ -53,22 +50,22 @@ export class Room {
 
   broadcast(m: ServerMsg): void {
     for (const s of this.seats) if (s?.online) s.send(m)
-    for (const w of this.spectators) w(m)
+    for (const w of this.spectators.keys()) w(m)
   }
 
   private seatsMsg(): ServerMsg {
     return { k: 'seats', seats: this.seats.map(s => (s ? { name: s.name, build: s.build, online: s.online } : null)) }
   }
 
-  watch(send: (m: ServerMsg) => void): boolean {
+  watch(send: (m: ServerMsg) => void, bin: (b: Uint8Array) => void = noop): boolean {
     if (this.spectators.size >= 4) return false
-    this.spectators.add(send)
+    this.spectators.set(send, bin)
     send({ k: 'watching', code: this.code })
     send(this.seatsMsg())
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
-    if (this.phase === 'battle' && this.battle) {
-      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick, t0: 0 })
-      send(this.snap())
+    if (this.phase === 'battle' && this.live) {
+      send(this.startMsg())
+      send(this.live.catchup(null))
     }
     return true
   }
@@ -80,17 +77,17 @@ export class Room {
 
   private seatsChanged(): void {
     const m = this.seatsMsg()
-    for (const w of this.spectators) w(m)
+    for (const w of this.spectators.keys()) w(m)
   }
 
-  seat(playerId: string, name: string, build: TopBuild, send: (m: ServerMsg) => void, close: () => void = () => undefined): Side | null {
+  seat(playerId: string, name: string, build: TopBuild, send: (m: ServerMsg) => void, close: () => void = noop, bin: (b: Uint8Array) => void = noop): Side | null {
     const existing = this.seats.findIndex(s => s?.playerId === playerId)
-    if (existing >= 0) return this.reconnect(existing as Side, send, close)
+    if (existing >= 0) return this.reconnect(existing as Side, send, close, bin)
     const free = this.seats.findIndex(s => !s)
     if (free < 0 || this.phase !== 'wait') return null
     const side = free as Side
     assembleTop(build)
-    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack(), ripLog: [], tiltSum: 0, tiltN: 0 }
+    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, bin, ripLog: [], tiltSum: 0, tiltN: 0 }
     send({ k: 'room', code: this.code, side })
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
@@ -113,7 +110,7 @@ export class Room {
     if (this.round === 0 && this.phase === 'wait' && this.seats.every(Boolean)) this.nextRound()
   }
 
-  private reconnect(side: Side, send: (m: ServerMsg) => void, close: () => void): Side {
+  private reconnect(side: Side, send: (m: ServerMsg) => void, close: () => void, bin: (b: Uint8Array) => void): Side {
     const s = this.seats[side]!
     if (s.hold) clearTimeout(s.hold)
     s.hold = null
@@ -121,6 +118,7 @@ export class Room {
     const previous = s.close
     s.send = send
     s.close = close
+    s.bin = bin
     if (previous !== close) previous()
     this.seatsChanged()
     send({ k: 'room', code: this.code, side })
@@ -130,9 +128,9 @@ export class Room {
       if (other.online) other.send({ k: 'peer', name: s.name, build: s.build, online: true })
     }
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
-    if (this.phase === 'battle' && this.battle) {
-      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick, t0: 0 })
-      send(this.snap())
+    if (this.phase === 'battle' && this.live) {
+      send(this.startMsg())
+      send(this.live.catchup(side))
     }
     return side
   }
@@ -160,7 +158,7 @@ export class Room {
     const winner = (1 - side) as Side
     this.match = { ...this.match, winner }
     this.seats[winner]?.send({ k: 'left', reason })
-    for (const w of this.spectators) w({ k: 'left', reason, winner })
+    for (const w of this.spectators.keys()) w({ k: 'left', reason, winner })
     this.finish()
   }
 
@@ -168,9 +166,10 @@ export class Room {
     if (this.phase === 'done') return
     this.round++
     this.phase = 'launch'
-    this.battle = null
+    this.live?.stop()
+    this.live = null
     this.views = [null, null]
-    for (const s of this.seats) if (s) { s.rip = null; s.inputs.clear(); s.maxTick = 0; s.last = { x: 0, y: 0, seq: s.maxSeq }; s.track = new InputTrack(s.maxSeq) }
+    for (const s of this.seats) if (s) s.rip = null
     this.launchAt = this.opts.now() + TIMING.countdownMs
     this.broadcast({ k: 'round', round: this.round, launchAt: this.launchAt })
     const round = this.round
@@ -193,69 +192,40 @@ export class Room {
     a.ripLog.push(this.views[0]!)
     b.ripLog.push(this.views[1]!)
     this.seed = Math.floor(Math.random() * 2 ** 31)
-    this.battle = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
+    const state = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
+    this.live = new LiveMatch(this.round, state, this.liveDeps())
     this.phase = 'battle'
-    this.broadcast({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: 0, t0: 0 })
-    this.acc = 0
-    this.lastAt = this.opts.now()
-    this.loop = setInterval(() => this.pump(), 8)
+    this.broadcast(this.startMsg())
   }
 
-  onInputs(side: Side, from: number, list: [number, number, number][]): void {
-    const s = this.seats[side], b = this.battle
-    if (!s || !b || this.phase !== 'battle') return
-    for (let i = 0; i < list.length; i++) {
-      const [x, y, seq] = list[i]!
-      const sq = Number.isInteger(seq) ? Math.max(0, seq) : 0
-      s.maxSeq = Math.max(s.maxSeq, sq)
-      const tick = from + i
-      const inp = { x: clamp(x, -1, 1), y: clamp(y, -1, 1), seq: sq }
-      if (tick > b.tick + NET.maxLead) s.maxTick = Math.max(s.maxTick, tick)
-      else if (tick > b.tick) {
-        s.inputs.set(tick, inp)
-        s.maxTick = Math.max(s.maxTick, tick)
-      } else if (tick <= b.tick && tick > b.tick - NET.lateCarry && !s.inputs.has(b.tick + 1)) s.inputs.set(b.tick + 1, inp)
+  private liveDeps(): LiveDeps {
+    const base = this.opts.now(), speed = this.opts.speed ?? 1
+    return {
+      now: () => base + (this.opts.now() - base) * speed,
+      every: (ms, fn) => { const h = setInterval(fn, ms); return () => clearInterval(h) },
+      send: (side, bytes) => { const s = this.seats[side]; if (s?.online) s.bin(bytes) },
+      watch: bytes => { for (const w of this.spectators.values()) w(bytes) },
+      resync: (side, m) => { const s = this.seats[side]; if (s?.online) s.send(m) },
+      end: () => this.endRound(),
+      log: o => this.opts.log?.({ code: this.code, ...o }),
     }
   }
 
-  private pump(): void {
-    const now = this.opts.now()
-    this.acc += Math.min(250, now - this.lastAt) * (this.opts.speed ?? 1)
-    this.lastAt = now
-    while (this.acc >= NET.tickMs && this.battle && this.phase === 'battle') {
-      this.acc -= NET.tickMs
-      this.step()
-    }
+  private startMsg(): ServerMsg {
+    return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: 0, t0: this.live!.t0 }
   }
 
-  step(): void {
-    const b = this.battle!
-    const t = b.tick + 1
-    const ins = this.seats.map(s => {
-      const got = s!.inputs.get(t)
-      s!.inputs.delete(t)
-      const inp = got ?? { ...s!.last, seq: s!.maxSeq }
-      s!.last = inp
-      s!.tiltSum += Math.min(1, Math.hypot(inp.x, inp.y))
-      s!.tiltN++
-      return s!.track.at(inp)
-    }) as [ReturnType<InputTrack['at']>, ReturnType<InputTrack['at']>]
-    this.events.length = 0
-    stepBattle(b, ins, this.events)
-    if (b.tick % NET.snapEvery === 0 || b.outcome) this.broadcast(this.snap())
-    if (b.outcome) this.endRound()
-  }
-
-  snap(): ServerMsg {
-    const s = this.seats as [Seat, Seat]
-    const t = this.battle!.tick
-    return { k: 'snap', tick: t, state: this.battle!, inputs: [{ ...s[0].last, seq: s[0].track.seq }, { ...s[1].last, seq: s[1].track.seq }], leads: [s[0].maxTick - t, s[1].maxTick - t] }
+  onWire(side: Side, m: WireMsg): void {
+    if (this.phase === 'battle') this.live?.onWire(side, m)
   }
 
   private endRound(): void {
-    if (this.loop) clearInterval(this.loop)
-    this.loop = null
-    const outcome = this.battle!.outcome!
+    const live = this.live!
+    for (const i of [0, 1] as const) {
+      const s = this.seats[i]
+      if (s) { s.tiltSum += live.ver.tilt.sum[i]; s.tiltN += live.ver.tilt.n[i] }
+    }
+    const outcome = live.ver.outcome!
     this.match = applyRound(this.match, outcome)
     this.phase = 'between'
     this.broadcast({ k: 'end', round: this.round, outcome, scores: this.match.scores, winner: this.match.winner })
@@ -266,7 +236,7 @@ export class Room {
   private finish(): void {
     if (this.phase === 'done') return
     this.phase = 'done'
-    if (this.loop) clearInterval(this.loop)
+    this.live?.stop()
     for (const t of this.timers) clearTimeout(t)
     for (const s of this.seats) if (s?.hold) clearTimeout(s.hold)
     if (this.match.winner !== null && this.seats[0] && this.seats[1]) this.opts.onResult?.(this)
@@ -275,7 +245,7 @@ export class Room {
 
   close(): void {
     this.phase = 'done'
-    if (this.loop) clearInterval(this.loop)
+    this.live?.stop()
     for (const t of this.timers) clearTimeout(t)
     for (const s of this.seats) if (s?.hold) clearTimeout(s.hold)
   }

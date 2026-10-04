@@ -1,5 +1,5 @@
 import websocket from '@fastify/websocket'
-import { assembleTop, COSMETICS, NET, type ServerMsg, type Side } from '@spirit/core'
+import { assembleTop, COSMETICS, decode, encode, NET, type ServerMsg, type Side } from '@spirit/core'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { cleanName, randomCode, type Tokens } from '../auth'
@@ -40,7 +40,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   }
   const make = () => {
     const code = rooms.size < NET.maxRooms ? newCode() : null
-    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
+    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, log: o => app.log.info(o), ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
   }
   app.addHook('onClose', async () => { for (const r of rooms.values()) r.close() })
   const owned = new Map<string, Room>()
@@ -68,14 +68,31 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       if (close) socket.close(4000, code)
     }
     const enter = (r: Room, build: Parameters<Room['seat']>[2]) => {
-      const s = r.seat(playerId!, name, build, send, replaced)
+      const s = r.seat(playerId!, name, build, send, replaced, bin)
       if (s === null) return fail('full', false)
       if (!rooms.has(r.code)) rooms.set(r.code, r)
       room = r
       side = s
     }
 
-    socket.on('message', async (raw: Buffer) => {
+    const bin = (b: Uint8Array) => { if (socket.readyState === socket.OPEN) socket.send(b) }
+    let binStart = Date.now(), binCount = 0
+    const onBinary = (raw: Buffer) => {
+      const now = Date.now()
+      if (now - binStart > 1000) { binStart = now; binCount = 0 }
+      if (++binCount > NET.maxBinPerSec) {
+        if (binCount > NET.maxBinPerSec * 4) fail('rate')
+        return
+      }
+      if (!playerId) return
+      const m = decode(raw)
+      if (!m) return
+      if (m.op === 'ping') return bin(encode({ op: 'pong', t: m.t, server: Date.now() }))
+      if (room && side !== null) room.onWire(side, m)
+    }
+
+    socket.on('message', async (raw: Buffer, isBinary: boolean) => {
+      if (isBinary) return onBinary(raw)
       const now = Date.now()
       if (now - windowStart > 1000) { windowStart = now; count = 0 }
       if (++count > NET.maxMsgsPerSec) {
@@ -107,7 +124,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           const r = make()
           if (!r) return fail('rate', false)
           rooms.set(r.code, r)
-          r.watch(send)
+          r.watch(send, bin)
           watching = r
           return
         }
@@ -115,7 +132,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           const r = rooms.get(m.code)
           if (!r) return fail('no-room', false)
           if (watching && watching !== r) watching.unwatch(send)
-          if (!r.watch(send)) return fail('full', false)
+          if (!r.watch(send, bin)) return fail('full', false)
           watching = r
           return
         }
@@ -146,7 +163,6 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           enter(r, build)
         } else if (room && side !== null) {
           if (m.k === 'rip') room.onRip(side, m)
-          else if (m.k === 'inputs') room.onInputs(side, m.from, m.list)
           else if (m.k === 'ready') room.onReady(side)
           else if (m.k === 'leave') { room.forfeit(side, 'quit'); room = null; side = null }
         } else if (m.k === 'leave' && watching) {

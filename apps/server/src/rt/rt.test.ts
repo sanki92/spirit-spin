@@ -1,4 +1,4 @@
-import type { ServerMsg } from '@spirit/core'
+import { decode, encode, type ServerMsg, type WireMsg } from '@spirit/core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp, type App } from '../app'
 
@@ -23,7 +23,25 @@ async function client() {
   const cursor: Record<string, number> = {}
   let wake: (() => void) | null = null
   let closed: number | null = null
-  ws.onmessage = e => { msgs.push(JSON.parse(String(e.data)) as ServerMsg); wake?.() }
+  ws.binaryType = 'arraybuffer'
+  const bins: WireMsg[] = []
+  ws.onmessage = e => {
+    if (typeof e.data === 'string') msgs.push(JSON.parse(e.data) as ServerMsg)
+    else { const m = decode(e.data as ArrayBuffer); if (m) bins.push(m) }
+    wake?.()
+  }
+  const sendBin = (m: WireMsg) => ws.send(encode(m))
+  const binCursor: Record<string, number> = {}
+  const waitBin = async <O extends WireMsg['op']>(op: O, ms = 8000, pred: (m: Extract<WireMsg, { op: O }>) => boolean = () => true): Promise<Extract<WireMsg, { op: O }>> => {
+    const end = Date.now() + ms
+    for (;;) {
+      const from = binCursor[op] ?? 0
+      const i = bins.findIndex((m, j) => j >= from && m.op === op && pred(m as Extract<WireMsg, { op: O }>))
+      if (i >= 0) { binCursor[op] = i + 1; return bins[i] as Extract<WireMsg, { op: O }> }
+      if (Date.now() > end) throw new Error(`timeout waiting for binary ${op}`)
+      await new Promise<void>(r => { wake = r; setTimeout(r, 50) })
+    }
+  }
   ws.onclose = e => { closed = e.code; wake?.() }
   await new Promise(r => { ws.onopen = r })
   const send = (m: unknown) => ws.send(typeof m === 'string' ? m : JSON.stringify(m))
@@ -37,7 +55,7 @@ async function client() {
       await new Promise<void>(r => { wake = r; setTimeout(r, 50) })
     }
   }
-  return { ws, token, msgs, send, wait, closed: () => closed }
+  return { ws, token, msgs, send, wait, closed: () => closed, bins, sendBin, waitBin }
 }
 
 async function pair(ready = true) {
@@ -81,9 +99,10 @@ describe('realtime', () => {
       expect(sa).toEqual(sb)
       expect(sa.rips[0]).toMatchObject({ ok: true })
       expect(sa.rips[1]).toMatchObject({ ok: false, reason: 'no-pull' })
-      a.send({ k: 'inputs', from: 1, list: [[0.5, 0, 0], [0.5, 0, 0], [0.5, 0, 1]] })
-      const s1 = await a.wait('snap')
-      expect(s1.tick % 3 === 0 || s1.state.outcome).toBeTruthy()
+      expect(sa.t0).toBeGreaterThan(0)
+      a.sendBin({ op: 'input', round: sa.round, first: 1, ack: 0, inputs: [{ x: 64, y: 0, sp: 0 }, { x: 64, y: 0, sp: 0 }, { x: 64, y: 0, sp: 1 }] })
+      const fr = await a.waitBin('frames', 8000, m => m.round === (sa.round & 255) && m.frames.length > 0)
+      expect(fr.frames[0]![0]).toEqual({ x: 64, y: 0, sp: 0 })
       const end = await a.wait('end', 20000)
       expect(await b.wait('end', 20000)).toEqual(end)
       rounds++
@@ -204,7 +223,7 @@ describe('realtime', () => {
     a.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
     b.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
     expect((await tv.wait('start')).round).toBe(1)
-    expect((await tv.wait('snap')).leads).toHaveLength(2)
+    expect((await tv.waitBin('frames', 8000, m => m.frames.length > 0)).op).toBe('frames')
     expect((await tv.wait('end', 20000)).round).toBe(1)
     a.ws.close(); b.ws.close(); tv.ws.close()
   })
@@ -273,5 +292,60 @@ describe('realtime', () => {
     b2.ws.close()
     expect((await a.wait('left', 5000)).reason).toBe('forfeit')
     a.ws.close()
+  })
+
+  it('binary ping is answered with server time', async () => {
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'P' })
+    await c.wait('welcome')
+    c.sendBin({ op: 'ping', t: 42.5 })
+    const p = await c.waitBin('pong')
+    expect(p.t).toBe(42.5)
+    expect(Math.abs(p.server - Date.now())).toBeLessThan(2000)
+    c.ws.close()
+  })
+
+  it('a binary burst is tolerated; a flood beyond 4x the limit closes the socket', async () => {
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'F' })
+    await c.wait('welcome')
+    for (let i = 0; i < 150; i++) c.sendBin({ op: 'ping', t: i })
+    await c.waitBin('pong', 4000, m => m.t === 149)
+    expect(c.closed()).toBeNull()
+    await new Promise(r => setTimeout(r, 1100))
+    for (let i = 0; i < 1000; i++) c.sendBin({ op: 'ping', t: i })
+    for (let i = 0; i < 40 && c.closed() === null; i++) await new Promise(r => setTimeout(r, 50))
+    expect(c.closed()).toBe(4000)
+  })
+
+  it('garbage binary is ignored without closing', async () => {
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'G' })
+    await c.wait('welcome')
+    c.ws.send(new Uint8Array([9, 9, 9]))
+    c.ws.send(new Uint8Array([1, 0]))
+    c.sendBin({ op: 'ping', t: 1 })
+    expect((await c.waitBin('pong')).t).toBe(1)
+    expect(c.closed()).toBeNull()
+    c.ws.close()
+  })
+
+  it('rejoin mid-battle gets start + catchup, and frames continue right after the catchup frame', async () => {
+    const { a, b, room } = await pair()
+    const r = await a.wait('round')
+    a.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
+    b.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
+    await a.wait('start')
+    await a.waitBin('frames', 8000, m => m.frames.length > 0)
+    a.ws.close()
+    const a2 = await client()
+    a2.send({ k: 'hello', token: a.token, name: 'Aki' })
+    await a2.wait('welcome')
+    a2.send({ k: 'rejoin', code: room.code })
+    await a2.wait('start')
+    const c = await a2.wait('catchup')
+    const f = await a2.waitBin('frames', 8000)
+    expect(f.first).toBe(c.tl.frame + 1)
+    a2.ws.close(); b.ws.close()
   })
 })
