@@ -41,9 +41,11 @@ export class TopMesh {
   private angle = 0
   private precess = 0
   private faded = 1
+  readonly radius: number
 
   constructor(tex: TopTextures, physicsRadius: number, type: string) {
     const radius = physicsRadius * VISUAL_SCALE
+    this.radius = radius
     const tint = TYPE_TINT[type] ?? 0xffffff
     const body = new Mesh(
       new CylinderGeometry(radius * 0.9, radius * 0.7, 0.05, 32),
@@ -61,6 +63,8 @@ export class TopMesh {
       this.spinner.add(b)
     }
     this.glow = disc(radius * 1.7, tex.emblem, 0.03, { opacity: 0, additive: true, color: tint })
+    ;(this.glow.material as MeshBasicMaterial).depthTest = false
+    this.glow.renderOrder = 2
     this.group.add(this.spinner, this.glow)
   }
 

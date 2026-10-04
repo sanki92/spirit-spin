@@ -126,6 +126,16 @@ export class Fx {
     if (energy > 1.4) this.rings.spawn(x, h - 0.05, -y, 0, 0, 0, 0.45, 0.2, 0.6 + energy * 0.25)
   }
 
+  grind(x: number, y: number, nx: number, ny: number, amount: number): void {
+    const h = bowlHeight(Math.min(1, Math.hypot(x, y))) + 0.06
+    for (let i = 0; i < 3; i++) {
+      const dir = Math.random() < 0.5 ? 1 : -1
+      const sp = (0.9 + Math.random() * 1.4) * (0.6 + amount * 0.6)
+      const tx = -ny * dir + nx * (Math.random() - 0.5) * 0.6, ty = nx * dir + ny * (Math.random() - 0.5) * 0.6
+      this.sparks.spawn(x, h, -y, tx * sp, 0.3 + Math.random() * 0.9, -ty * sp, 0.16 + Math.random() * 0.18, 0.035 + Math.random() * 0.04)
+    }
+  }
+
   burst(x: number, y: number): void {
     const h = bowlHeight(Math.min(1, Math.hypot(x, y))) + 0.08
     this.sparks.spawn(x, h, -y, 0, 0.2, 0, 0.5, 0.9)

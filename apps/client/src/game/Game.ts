@@ -10,6 +10,7 @@ import { buildStadium, type StadiumView } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
+import { keepInside, separate } from './contact'
 import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
@@ -44,6 +45,7 @@ export class Game {
   private armed = false
   private anim: LaunchAnim | null = null
   private clockS = 0
+  private grindT = 0
   private prev: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private corr: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private removeResize: (() => void) | null = null
@@ -247,6 +249,7 @@ export class Game {
     const fi = u * (c.frames.length - 1), i0 = Math.floor(fi), a = fi - i0
     const A = c.frames[i0]!, B = c.frames[Math.min(c.frames.length - 1, i0 + 1)]!
     const pos: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
+    const look: { spin: number; wobble: number; spirit: boolean; vis: boolean; out: boolean }[] = []
     for (let i = 0; i < 2; i++) {
       const fa = A.t[i as 0 | 1], fb = B.t[i as 0 | 1]
       let x = fa.x + (fb.x - fa.x) * a, y = fa.y + (fb.y - fa.y) * a, vis = !fa.out
@@ -259,8 +262,18 @@ export class Game {
         vis = n < 45
       }
       pos[i] = { x, y }
-      this.tops[i as 0 | 1].fade(1, dt)
-      this.tops[i as 0 | 1].update(x, y, fa.spin, fa.wobble + (fa.out ? 0.6 : 0), fa.spirit, dt * 0.3, vis)
+      look[i] = { spin: fa.spin, wobble: fa.wobble + (fa.out ? 0.6 : 0), spirit: fa.spirit, vis, out: fa.out }
+    }
+    if (!look[0]!.out && !look[1]!.out) {
+      const sp = separate(pos[0], pos[1], this.tops[0].radius, this.tops[1].radius)
+      pos[0] = sp.a
+      pos[1] = sp.b
+    }
+    for (let i = 0; i < 2; i++) {
+      const l = look[i]!, top = this.tops[i as 0 | 1]
+      if (!l.out) pos[i] = keepInside(pos[i]!, top.radius)
+      top.fade(1, dt)
+      top.update(pos[i]!.x, pos[i]!.y, l.spin, l.wobble, l.spirit, dt * 0.3, l.vis)
     }
     for (; c.fired <= i0; c.fired++) {
       const cl = c.frames[c.fired]!.clash
@@ -282,6 +295,27 @@ export class Game {
       c.hold += ms
       if (c.hold > 520) this.skipCine()
     }
+  }
+
+  private settle(b: BattleState, pos: Snap[], dt: number): void {
+    if (!this.tops) return
+    const [t0, t1] = b.tops, [m0, m1] = this.tops
+    const solid = !t0.out && !t1.out && t0.phaseTicks <= 0 && t1.phaseTicks <= 0
+    if (solid) {
+      const s = separate(pos[0]!, pos[1]!, m0.radius, m1.radius)
+      pos[0] = s.a
+      pos[1] = s.b
+      const spin = Math.min(t0.spin, t1.spin)
+      if (s.touching && spin > 0.08 && dt > 0) {
+        this.grindT += dt
+        if (this.grindT > 0.045) {
+          this.grindT = 0
+          this.fx.grind(pos[0]!.x + s.nx * m0.radius, pos[0]!.y + s.ny * m0.radius, s.nx, s.ny, spin)
+        }
+      } else this.grindT = 0
+    }
+    if (!t0.out) pos[0] = keepInside(pos[0]!, m0.radius)
+    if (!t1.out) pos[1] = keepInside(pos[1]!, m1.radius)
   }
 
   private drawHold(dt: number): void {
@@ -360,12 +394,16 @@ export class Game {
         const mx = live.reduce((a, t) => a + t.x, 0) / (live.length || 1), my = live.reduce((a, t) => a + t.y, 0) / (live.length || 1)
         this.stage.follow(mx * 0.22, -my * 0.22, 1)
       }
-      for (let i = 0; i < 2; i++) {
+      const pos: Snap[] = [0, 1].map(i => {
         const t = b.tops[i as 0 | 1], p = this.prev[i] as Snap
         const c = this.corr[i] as Snap, k = Math.exp(-dt * 12)
         c.x *= k
         c.y *= k
-        const x = p.x + (t.x - p.x) * alpha + c.x, y = p.y + (t.y - p.y) * alpha + c.y
+        return { x: p.x + (t.x - p.x) * alpha + c.x, y: p.y + (t.y - p.y) * alpha + c.y }
+      })
+      this.settle(b, pos, scaled)
+      for (let i = 0; i < 2; i++) {
+        const t = b.tops[i as 0 | 1], { x, y } = pos[i]!
         const top = this.tops[i as 0 | 1]
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out)
         const o = b.tops[(1 - i) as 0 | 1]
