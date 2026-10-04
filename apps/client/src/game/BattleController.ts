@@ -336,9 +336,12 @@ export class BattleController {
         buzz(heavy ? 35 : 10)
         break
       }
-      case 'wall':
+      case 'wall': {
         s.play('wall', { volume: 0.35 })
+        const t = g.battle?.tops[e.side]
+        if (t) g.stadium?.hitWall(t.x, t.y, Math.min(1.6, 0.5 + Math.hypot(t.vx, t.vy)))
         break
+      }
       case 'spirit': {
         log('spirit', { side: e.side, tick: e.tick, via: e.side === 0 ? (this.lastSpiritVia ?? 'button') : 'bot' })
         this.spiritCalls += e.side === 0 ? 1 : 0

@@ -6,7 +6,7 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { buildStadium } from './render/Stadium'
+import { buildStadium, type StadiumView } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
@@ -32,6 +32,7 @@ export class Game {
   readonly stage: Stage
   readonly stepper: Stepper
   readonly fx: Fx
+  stadium: StadiumView | null = null
   techFx: TechFx | null = null
   tops: [TopMesh, TopMesh] | null = null
   spirits: [SpiritBillboard, SpiritBillboard] | null = null
@@ -80,7 +81,8 @@ export class Game {
     ])
     const quality = detectQuality()
     const g = new Game(canvas, new Fx({ spark, shock, crack, hits: { lightning, crystal, water, fire, wind, shadow } }, quality === 'low' ? 60 : 140))
-    g.stage.world.add(buildStadium(bowl, floor, rim, THEME_ACCENT[theme]))
+    g.stadium = buildStadium(bowl, floor, rim, THEME_ACCENT[theme])
+    g.stage.world.add(g.stadium.group)
     g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow })
     g.stage.world.add(g.techFx.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
@@ -183,6 +185,7 @@ export class Game {
       this.last = now
       this.stepper.scale = now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
       const alpha = this.battle && !this.anim ? this.stepper.advance(dtMs) : 0
+      this.stadium?.update(dtMs / 1000, this.battle && !this.anim ? this.battle.tops : null)
       this.draw(alpha, dtMs / 1000)
       this.stage.adapt(dtMs)
       this.onFrame?.(dtMs / 1000)
