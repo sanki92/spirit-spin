@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"spiritspin/edge/internal/metrics"
 	"spiritspin/edge/internal/seq"
 	"spiritspin/edge/internal/wire"
 )
@@ -78,6 +79,9 @@ func (m *Match) EndRound(round uint32) Stats {
 		st.Frames, st.Late, st.Missing = m.seq.Frame, m.seq.Late, m.seq.Missing
 		st.Margins = [2]int{m.seq.Margin(0), m.seq.Margin(1)}
 		m.seq = nil
+		metrics.Rounds.Inc()
+		metrics.Late.Add(float64(st.Late[0] + st.Late[1]))
+		metrics.Missing.Add(float64(st.Missing[0] + st.Missing[1]))
 	}
 	return st
 }
@@ -108,6 +112,7 @@ func (m *Match) OnPacket(side int, b []byte) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.in++
+	metrics.In.Inc()
 	switch msg.Op {
 	case wire.OpPing:
 		if p := m.peers[side]; p != nil {
@@ -147,6 +152,7 @@ func (m *Match) Tick() {
 			hi := min(lo+window, total)
 			p.Send(wire.EncodeFrames(uint8(m.round), uint32(lo)+1, m.seq.Margin(side), m.seq.Confirmed[lo:hi]))
 			m.out++
+			metrics.Out.Inc()
 		}
 	}
 	if m.sub != nil && (m.streamed < m.seq.Frame || len(m.hashes) > 0) {

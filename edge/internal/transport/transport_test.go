@@ -78,7 +78,9 @@ func TestEdgeDropsGarbageDatagrams(t *testing.T) {
 	l, _ := net.ListenPacket("udp", "127.0.0.1:0")
 	addr := l.LocalAddr().String()
 	l.Close()
-	go func() { _ = ServeWT(ctx, addr, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, secret, Faults{}) }()
+	go func() {
+		_ = ServeWT(ctx, addr, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, secret, Faults{})
+	}()
 	time.Sleep(300 * time.Millisecond)
 	cl := &webtransport.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true, NextProtos: []string{http3.NextProtoH3}},
