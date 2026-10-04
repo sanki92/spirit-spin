@@ -1,0 +1,82 @@
+import { readFileSync, writeFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import { roundHalfUp, SEQ, Sequencer, sequencerTrace } from './sequencer'
+import { WIRE, type WireInput } from './wire'
+
+const I = (x: number, sp = 0): WireInput => ({ x, y: 0, sp })
+const T0 = 1000
+const at = (f: number) => T0 + f * WIRE.tickMs + SEQ.graceMs
+
+describe('sequencer', () => {
+  it('confirms a frame as soon as both inputs arrive, before its deadline', () => {
+    const s = new Sequencer(T0)
+    s.receive(0, 1, [I(5), I(6)], T0)
+    expect(s.due(T0)).toBe(0)
+    s.receive(1, 1, [I(-5)], T0)
+    expect(s.due(T0)).toBe(1)
+    expect(s.confirmed[0]).toEqual([I(5), I(-5)])
+    expect(s.frame).toBe(1)
+  })
+
+  it('at the deadline a missing side repeats its last confirmed input', () => {
+    const s = new Sequencer(T0)
+    s.receive(0, 1, [I(5)], T0)
+    s.receive(1, 1, [I(-5, 2)], T0)
+    s.due(T0)
+    s.receive(0, 2, [I(7)], T0)
+    expect(s.due(at(2) - 1)).toBe(0)
+    expect(s.due(at(2))).toBe(1)
+    expect(s.confirmed[1]).toEqual([I(7), I(-5, 2)])
+    expect(s.missing).toEqual([0, 1])
+  })
+
+  it('drops and counts a late input once, even when it is resent', () => {
+    const s = new Sequencer(T0)
+    s.due(at(3))
+    s.receive(0, 1, [I(9), I(9), I(9)], at(3) + 5)
+    s.receive(0, 1, [I(9), I(9), I(9)], at(3) + 20)
+    expect(s.late).toEqual([3, 0])
+    expect(s.confirmed.map(f => f[0].x)).toEqual([0, 0, 0])
+  })
+
+  it('late spirit press fires once on the next confirmed frame', () => {
+    const s = new Sequencer(T0)
+    for (let f = 1; f <= 3; f++) { s.receive(0, f, [I(0)], T0); s.receive(1, f, [I(0)], T0) }
+    s.due(T0)
+    s.receive(1, 4, [I(0), I(0), I(0)], T0)
+    s.due(at(4))
+    s.receive(0, 4, [I(0, 1), I(0, 1), I(0, 1)], at(4) + 30)
+    s.due(at(6))
+    const sp = s.confirmed.map(f => f[0].sp)
+    expect(sp).toEqual([0, 0, 0, 0, 1, 1])
+    expect(sp.filter((v, i) => v !== (sp[i - 1] ?? 0)).length).toBe(1)
+  })
+
+  it('reports the worst margin of recent first arrivals, negative when late', () => {
+    const s = new Sequencer(T0)
+    s.receive(0, 1, [I(0)], at(1) - 20)
+    s.receive(0, 1, [I(0), I(0)], at(2) - 3)
+    expect(s.margin(0)).toBe(3)
+    s.due(at(3))
+    s.receive(0, 3, [I(0)], at(3) + 7.4)
+    expect(s.margin(0)).toBe(-7)
+    expect(s.margin(1)).toBe(0)
+  })
+
+  it('does not store frames too far ahead but still reports their margin', () => {
+    const s = new Sequencer(T0)
+    const f = SEQ.maxAhead + 5
+    s.receive(0, f, [I(1)], T0)
+    expect(s.margin(0)).toBe(roundHalfUp(at(f) - T0))
+    s.receive(1, 1, [I(0)], T0)
+    s.due(at(1))
+    expect(s.confirmed[0]![0]).toEqual(I(0))
+  })
+
+  it('matches the golden trace shared with the Go edge', () => {
+    const file = new URL('./fixtures/seq-trace.json', import.meta.url)
+    const t = sequencerTrace(99, 1500)
+    if (process.env.UPDATE_GOLDEN) writeFileSync(file, JSON.stringify(t))
+    expect(t).toEqual(JSON.parse(readFileSync(file, 'utf8')))
+  })
+})
