@@ -131,6 +131,19 @@ describe('realtime', () => {
     a.ws.close(); b.ws.close()
   })
 
+  it('a burst of messages is dropped, not kicked; only a flood closes the socket', async () => {
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'C' })
+    await c.wait('welcome')
+    for (let i = 0; i < 200; i++) c.send({ k: 'ping', t: i })
+    await new Promise(r => setTimeout(r, 300))
+    expect(c.msgs.some(m => m.k === 'error')).toBe(false)
+    expect(c.closed()).toBeFalsy()
+    for (let i = 0; i < 600; i++) c.send({ k: 'ping', t: i })
+    expect((await c.wait('error')).code).toBe('rate')
+    c.ws.close()
+  })
+
   it('a create with unknown parts leaves no room behind', async () => {
     const before = ((await app.inject({ method: 'GET', url: '/healthz' })).json() as { rooms: number }).rooms
     expect(typeof before).toBe('number')

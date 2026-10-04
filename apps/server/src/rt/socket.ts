@@ -78,7 +78,10 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     socket.on('message', async (raw: Buffer) => {
       const now = Date.now()
       if (now - windowStart > 1000) { windowStart = now; count = 0 }
-      if (++count > NET.maxMsgsPerSec) return fail('rate')
+      if (++count > NET.maxMsgsPerSec) {
+        if (count > NET.maxMsgsPerSec * 4) return fail('rate')
+        return
+      }
       let parsed: z.infer<typeof Msg>
       try {
         const r = Msg.safeParse(JSON.parse(String(raw)))

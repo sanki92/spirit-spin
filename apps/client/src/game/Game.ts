@@ -127,7 +127,10 @@ export class Game {
     for (const t of [b0, d0, e0, b1, d1, e1, c0, c1]) this.stage.renderer.initTexture(t)
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
+    const hidden = [...this.spirits.map(s => s.group), ...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
+    for (const o of hidden) o.visible = true
     await this.stage.renderer.compileAsync(this.stage.scene, this.stage.camera)
+    for (const o of hidden) o.visible = false
     for (let i = 0; i < 2; i++) this.stage.render(0)
   }
 

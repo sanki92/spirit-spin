@@ -17,6 +17,7 @@ export class OnlineController extends BattleController {
   private seq = 0
   private batch: [number, number, number][] = []
   private batchFrom = 1
+  private sentAt = 0
   private snapTick = 0
   private snapAt = 0
   private ripRound = 0
@@ -163,9 +164,11 @@ export class OnlineController extends BattleController {
     p.step(n, this.events)
     for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(this.side === 1 && e.k === 'wall' ? { ...e, side: (1 - e.side) as Side } : e)
     this.events.length = 0
-    if (this.batch.length >= 2) {
+    const now = performance.now()
+    if (this.batch.length >= 12 || (this.batch.length >= 2 && now - this.sentAt >= 33)) {
       rt.send({ k: 'inputs', from: this.batchFrom, list: this.batch })
       this.batch = []
+      this.sentAt = now
     }
     this.game.battle = view(p.state, this.side)
     this.transitions()
