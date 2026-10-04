@@ -4,7 +4,7 @@ import {
   type Side, type TopBuild, type TouchSample,
 } from '@spirit/core'
 
-export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, firstRoundDelayMs: 2500 }
+export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000 }
 
 export interface Seat {
   playerId: string
@@ -14,6 +14,7 @@ export interface Seat {
   close: () => void
   online: boolean
   hold: ReturnType<typeof setTimeout> | null
+  ready: boolean
   rip: RipResult | null
   inputs: Map<number, NetInput>
   last: NetInput
@@ -89,16 +90,27 @@ export class Room {
     if (free < 0 || this.phase !== 'wait') return null
     const side = free as Side
     assembleTop(build)
-    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack(), ripLog: [], tiltSum: 0, tiltN: 0 }
+    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, inputs: new Map(), last: { x: 0, y: 0, seq: 0 }, maxSeq: 0, maxTick: 0, track: new InputTrack(), ripLog: [], tiltSum: 0, tiltN: 0 }
     send({ k: 'room', code: this.code, side })
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
     if (other) {
       send({ k: 'peer', name: other.name, build: other.build, online: other.online })
       other.send({ k: 'peer', name, build, online: true })
-      this.later(TIMING.firstRoundDelayMs, () => this.nextRound())
+      this.later(TIMING.readyTimeoutMs, () => this.kickoff())
     }
     return side
+  }
+
+  onReady(side: Side): void {
+    const s = this.seats[side]
+    if (!s || s.ready) return
+    s.ready = true
+    if (this.seats.every(x => x?.ready)) this.later(TIMING.readyGapMs, () => this.kickoff())
+  }
+
+  private kickoff(): void {
+    if (this.round === 0 && this.phase === 'wait' && this.seats.every(Boolean)) this.nextRound()
   }
 
   private reconnect(side: Side, send: (m: ServerMsg) => void, close: () => void): Side {

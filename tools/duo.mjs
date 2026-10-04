@@ -1,4 +1,4 @@
-import { chromium, devices } from 'playwright'
+import { chromium, webkit, devices } from 'playwright'
 import { writeFileSync, mkdirSync } from 'node:fs'
 
 const URL = process.env.LOOK_URL ?? 'https://localhost:5173'
@@ -7,10 +7,20 @@ mkdirSync(OUT, { recursive: true })
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] })
 const results = []
+let wkb = null
+const wkBrowser = async () => (wkb ??= await webkit.launch())
+const AUDIO_STUB = () => {
+  if (window.AudioContext) return
+  const param = () => ({ value: 1, setTargetAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} })
+  const node = () => new Proxy({}, { get(t, k) { if (k in t) return t[k]; if (['gain', 'playbackRate', 'frequency', 'Q', 'detune', 'pan'].includes(k)) return (t[k] = param()); if (k === 'buffer' || k === 'onended') return null; if (k === 'frequencyBinCount') return 128; return () => node() }, set(t, k, v) { t[k] = v; return true } })
+  class Ctx { state = 'running'; currentTime = 0; sampleRate = 48000; destination = node(); baseLatency = 0; resume() { return Promise.resolve() } suspend() { return Promise.resolve() } close() { return Promise.resolve() } decodeAudioData() { return Promise.resolve({ duration: 1, length: 48000, numberOfChannels: 1, sampleRate: 48000, getChannelData: () => new Float32Array(48000) }) } createGain() { return node() } createBufferSource() { return node() } createAnalyser() { return node() } createBiquadFilter() { return node() } createMediaStreamSource() { return node() } createDynamicsCompressor() { return node() } createStereoPanner() { return node() } createOscillator() { return node() } addEventListener() {} removeEventListener() {} }
+  window.AudioContext = Ctx
+}
 const ROOKIE = { voltfang: ['spark', 'compact', 'rookie-flat'], aegiron: ['pebble', 'rim', 'rookie-ball'], nagara: ['ripple', 'standard', 'rookie-needle'], agnyx: ['ember', 'heavy', 'rookie-semi'] }
 
-async function device(label, { beast, launcher, name, swipe = false, skewMs = 0, lagMs = 0 }) {
-  const ctx = await browser.newContext({ ...devices['Pixel 7'], deviceScaleFactor: 1, ignoreHTTPSErrors: true })
+async function device(label, { beast, launcher, name, swipe = false, skewMs = 0, lagMs = 0, engine = 'chromium' }) {
+  const ctx = await (engine === 'webkit' ? await wkBrowser() : browser).newContext({ ...devices[engine === 'webkit' ? 'iPhone 13' : 'Pixel 7'], deviceScaleFactor: 1, ignoreHTTPSErrors: true })
+  if (engine === 'webkit') await ctx.addInitScript(AUDIO_STUB)
   if (skewMs) await ctx.addInitScript(ms => { const o = Date.now; Date.now = () => o() + ms }, skewMs)
   if (lagMs) await ctx.addInitScript(ms => {
     const W = window.WebSocket
@@ -396,7 +406,45 @@ await scenario(23, 'B on a laggy connection (150 ms each way): launches count an
   check(sc, 'positions agree within 0.25 despite lag', ds.length >= 3 && mean < 0.25, `${ds.length} samples, mean ${mean.toFixed(3)}`)
 })
 
+
+await scenario(30, 'Visual proof: Chromium phone (A) vs WebKit iPhone (B), both screens at every stage', async (sc, mk) => {
+  const A = await mk('A', { beast: 'voltfang', launcher: 'launcher-aegiron', name: 'Aki' })
+  const B = await mk('B', { beast: 'nagara', launcher: 'launcher-voltfang', name: 'Bea', engine: 'webkit' })
+  const both = async tag => { await Promise.all([shot(A, `proof-${tag}`), shot(B, `proof-${tag}`)]) }
+  await go(A, { k: 'friends' }); await go(B, { k: 'friends' }); await sleep(1500)
+  await both('1-lobby')
+  await A.page.getByRole('button', { name: /Create battle/i }).click()
+  await until(A, () => document.querySelector('.lb-codebox .room-code')?.textContent?.length === 4)
+  const code = await A.page.evaluate(() => document.querySelector('.lb-codebox .room-code').textContent)
+  await B.page.getByLabel('Battle code').fill(code)
+  await B.page.getByRole('button', { name: /^Go$/ }).click()
+  await until(A, () => document.querySelector('.lb-lobby.found'), null, 15000)
+  await both('2-found')
+  await Promise.all([until(A, () => window.__hud.getState().banner === 'vs' && window.__nav.getState().stack.at(-1).k === 'live', null, 20000), until(B, () => window.__nav.getState().stack.at(-1).k === 'live', null, 20000)])
+  await sleep(500)
+  await both('3-vs')
+  await Promise.all([until(A, () => window.__hud.getState().countdown === '2', null, 20000), until(B, () => window.__hud.getState().countdown === '2', null, 20000)])
+  await both('4-countdown')
+  await Promise.all([atLaunch(A, 20, 'pull', 28), atLaunch(B, 20, 'pull', 18)]).catch(() => {})
+  await Promise.all([until(A, () => window.__hud.getState().phase === 'launch', null, 15000), until(B, () => window.__hud.getState().phase === 'launch', null, 15000)])
+  await sleep(250)
+  await both('5-launch')
+  await Promise.all([until(A, () => window.__hud.getState().phase === 'battle', null, 15000), until(B, () => window.__hud.getState().phase === 'battle', null, 15000)])
+  await sleep(1500)
+  await both('6-battle')
+  const [va, vb] = await Promise.all([view(A), view(B)])
+  check(sc, 'A HUD shows Aki vs Bea', JSON.stringify(va.names) === '["Aki","Bea"]', JSON.stringify(va.names))
+  check(sc, 'B (WebKit) HUD shows Bea vs Aki', JSON.stringify(vb.names) === '["Bea","Aki"]', JSON.stringify(vb.names))
+  check(sc, 'B (WebKit) launchers [own voltfang, A aegiron]', JSON.stringify(vb.launchers) === '["voltfang.webp","aegiron.webp"]', JSON.stringify(vb.launchers))
+  await Promise.all([until(A, () => window.__hud.getState().phase === 'roundEnd', null, 60000), until(B, () => window.__hud.getState().phase === 'roundEnd', null, 60000)])
+  await sleep(300)
+  await both('7-roundend')
+  const [ra, rb] = await Promise.all([view(A), view(B)])
+  check(sc, 'round-end scores mirror across engines', JSON.stringify(ra.scores) === JSON.stringify(flip(rb.scores)), `${ra.scores} vs ${rb.scores}`)
+})
+
 writeFileSync(`${OUT}/report.json`, JSON.stringify(results, null, 1))
 await browser.close()
+await wkb?.close()
 const failed = results.filter(r => !r.pass).length
 console.log(`\n${results.length - failed}/${results.length} scenarios passed`)

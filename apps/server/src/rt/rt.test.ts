@@ -40,7 +40,7 @@ async function client() {
   return { ws, token, msgs, send, wait, closed: () => closed }
 }
 
-async function pair() {
+async function pair(ready = true) {
   const a = await client(), b = await client()
   a.send({ k: 'hello', token: a.token, name: 'Aki' })
   b.send({ k: 'hello', token: b.token, name: 'Bo<script>' })
@@ -48,10 +48,24 @@ async function pair() {
   a.send({ k: 'create', build: BUILD_A })
   const room = await a.wait('room')
   b.send({ k: 'join', code: room.code.toLowerCase(), build: BUILD_B })
+  if (ready) { a.send({ k: 'ready' }); b.send({ k: 'ready' }) }
   return { a, b, room }
 }
 
 describe('realtime', () => {
+  it('round 1 waits until both phones have loaded the battle (ready)', async () => {
+    const { a, b } = await pair(false)
+    await a.wait('peer'); await b.wait('peer')
+    await new Promise(r => setTimeout(r, 1400))
+    expect(a.msgs.some(m => m.k === 'round')).toBe(false)
+    a.send({ k: 'ready' })
+    await new Promise(r => setTimeout(r, 500))
+    expect(a.msgs.some(m => m.k === 'round')).toBe(false)
+    b.send({ k: 'ready' })
+    expect((await a.wait('round', 1000)).round).toBe(1)
+    a.ws.close(); b.ws.close()
+  })
+
   it('pairs two players, judges rips server-side, streams snapshots and finishes a match', async () => {
     const { a, b, room } = await pair()
     expect(room.side).toBe(0)

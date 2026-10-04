@@ -13,6 +13,7 @@ export type ClientMsg =
   | { k: 'create'; build: TopBuild }
   | { k: 'join'; code: string; build: TopBuild }
   | { k: 'rejoin'; code: string }
+  | { k: 'ready' }
   | { k: 'rip'; round: number; motion?: MotionSample[]; swipe?: { points: TouchSample[]; h: number }; pull100: number }
   | { k: 'inputs'; from: number; list: [number, number, number][] }
   | { k: 'ping'; t: number }

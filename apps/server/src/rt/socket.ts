@@ -20,6 +20,7 @@ const Msg = z.discriminatedUnion('k', [
   z.object({ k: z.literal('inputs'), from: z.number().int().min(0).max(1e6), list: z.array(z.tuple([num, num, z.number().int().min(0).max(1000)])).max(12) }),
   z.object({ k: z.literal('ping'), t: num }),
   z.object({ k: z.literal('leave') }),
+  z.object({ k: z.literal('ready') }),
   z.object({ k: z.literal('stadium') }),
   z.object({ k: z.literal('watch'), code: Code }),
 ])
@@ -143,6 +144,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
         } else if (room && side !== null) {
           if (m.k === 'rip') room.onRip(side, m)
           else if (m.k === 'inputs') room.onInputs(side, m.from, m.list)
+          else if (m.k === 'ready') room.onReady(side)
           else if (m.k === 'leave') { room.forfeit(side, 'quit'); room = null; side = null }
         } else if (m.k === 'leave' && watching) {
           watching.unwatch(send)

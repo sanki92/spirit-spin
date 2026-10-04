@@ -44,6 +44,7 @@ export class OnlineController extends BattleController {
       const m = rt.last(k)
       if (m) this.onNet(m)
     }
+    rt.send({ k: 'ready' })
   }
 
   override dispose(): void {
