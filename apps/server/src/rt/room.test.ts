@@ -26,4 +26,20 @@ describe('room', () => {
     expect(snap.inputs[0].x).toBe(0.77)
     expect(snap.leads).toEqual([0 - 6, 10 - 6])
   })
+
+  it('reports the true lead of a client running too far ahead, so it slows down instead of speeding up', () => {
+    const got: ServerMsg[] = []
+    room = new Room('TEST', { seatHoldMs: 1000, now: () => 0, onDone: () => undefined, speed: 1e-9 })
+    room.seat('a', 'A', BUILD, m => got.push(m))
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    for (let i = 0; i < 5; i++) room.step()
+    room.onInputs(0, 80, [[0.5, 0, 0], [0.5, 0, 0]])
+    room.step()
+    const snap = got.filter((m): m is Extract<ServerMsg, { k: 'snap' }> => m.k === 'snap').at(-1)!
+    expect(snap.leads[0]).toBe(81 - snap.tick)
+    expect(snap.inputs[0].x).toBe(0)
+  })
 })

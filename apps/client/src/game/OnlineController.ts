@@ -141,7 +141,8 @@ export class OnlineController extends BattleController {
     const p = this.pred
     if (!p || p.state.outcome || !rt.connected) return
     let steps: number
-    if (this.lead === null) {
+    if (p.state.tick - this.snapTick > NET.maxLead - 4) steps = 0
+    else if (this.lead === null) {
       const lag = this.snapTick + (performance.now() - this.snapAt + rt.rtt) / NET.tickMs + 4 - p.state.tick
       steps = lag > 2 ? 2 : lag < -4 ? 0 : 1
     } else {
@@ -179,7 +180,7 @@ export class OnlineController extends BattleController {
     if (!p) return
     const before = view(p.state, this.side).tops.map(t => ({ x: t.x, y: t.y }))
     if (!p.reconcile(m.tick, m.state, m.inputs)) return
-    if (p.state.tick > m.tick) this.lead = m.leads[this.side]
+    this.lead = m.leads[this.side]
     this.snapTick = m.tick
     this.snapAt = performance.now()
     const after = view(p.state, this.side)

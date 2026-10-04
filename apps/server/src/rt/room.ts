@@ -210,7 +210,8 @@ export class Room {
       s.maxSeq = Math.max(s.maxSeq, sq)
       const tick = from + i
       const inp = { x: clamp(x, -1, 1), y: clamp(y, -1, 1), seq: sq }
-      if (tick > b.tick && tick <= b.tick + NET.maxLead) {
+      if (tick > b.tick + NET.maxLead) s.maxTick = Math.max(s.maxTick, tick)
+      else if (tick > b.tick) {
         s.inputs.set(tick, inp)
         s.maxTick = Math.max(s.maxTick, tick)
       } else if (tick <= b.tick && tick > b.tick - NET.lateCarry && !s.inputs.has(b.tick + 1)) s.inputs.set(b.tick + 1, inp)

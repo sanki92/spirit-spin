@@ -443,6 +443,20 @@ await scenario(30, 'Visual proof: Chromium phone (A) vs WebKit iPhone (B), both 
   check(sc, 'round-end scores mirror across engines', JSON.stringify(ra.scores) === JSON.stringify(flip(rb.scores)), `${ra.scores} vs ${rb.scores}`)
 })
 
+
+await scenario(24, 'B freezes for 1.5 s mid-battle: it catches back up and its steering reaches the server again', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  await sleep(1200)
+  await B.page.evaluate(() => { const t = performance.now(); while (performance.now() - t < 1500) {} })
+  await sleep(3000)
+  const lead = await B.page.evaluate(() => window.__ctrl?.lead ?? null)
+  const [a, b] = await Promise.all([view(A), view(B)])
+  check(sc, 'B input lead back in the healthy band after the freeze', lead !== null && lead >= -6 && lead <= 12, `lead ${lead}`)
+  if (a.phase === 'battle' && b.phase === 'battle') check(sc, 'B tick within 15 of A tick', Math.abs(a.tick - b.tick) <= 15, `A ${a.tick} B ${b.tick}`)
+})
+
 writeFileSync(`${OUT}/report.json`, JSON.stringify(results, null, 1))
 await browser.close()
 await wkb?.close()
