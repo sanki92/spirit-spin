@@ -67,4 +67,9 @@ describe('shop', () => {
     expect(new Set(a.map(i => i.id)).size).toBe(a.length)
     for (const i of a) expect(i.price).toBe(PART_PRICE[i.rarity])
   })
+
+  it('never sells rookie starter blades or tips', () => {
+    const rookie = ['blade:spark', 'blade:pebble', 'blade:ripple', 'blade:ember', 'tip:rookie-flat', 'tip:rookie-ball', 'tip:rookie-needle', 'tip:rookie-semi']
+    for (let d = 1; d <= 28; d++) for (const it of shopRotation(`2026-10-${String(d).padStart(2, '0')}`, 40)) expect(rookie).not.toContain(it.id)
+  })
 })

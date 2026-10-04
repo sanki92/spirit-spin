@@ -1,4 +1,4 @@
-import { BLADES, DISCS, TIPS, type Rarity } from './parts'
+import { BLADES, DISCS, ROOKIE_BUILDS, STARTER_BEASTS, TIPS, type Rarity } from './parts'
 import { createRng, rngNext } from './rng'
 import { dropFloor } from './tower'
 
@@ -6,11 +6,13 @@ export const PART_PRICE: Record<Rarity, number> = { common: 100, rare: 250, epic
 
 export interface ShopItem { id: string; kind: 'blade' | 'disc' | 'tip'; partId: string; rarity: Rarity; price: number }
 
+const ROOKIE = new Set(STARTER_BEASTS.flatMap(b => [`blade:${ROOKIE_BUILDS[b].bladeId}`, `tip:${ROOKIE_BUILDS[b].tipId}`]))
+
 const ALL: Omit<ShopItem, 'price'>[] = [
   ...Object.values(BLADES).map(b => ({ id: `blade:${b.id}`, kind: 'blade' as const, partId: b.id, rarity: b.rarity })),
   ...Object.values(DISCS).map(d => ({ id: `disc:${d.id}`, kind: 'disc' as const, partId: d.id, rarity: d.rarity })),
   ...Object.values(TIPS).map(t => ({ id: `tip:${t.id}`, kind: 'tip' as const, partId: t.id, rarity: t.rarity })),
-]
+].filter(it => !ROOKIE.has(it.id))
 
 export function shopRotation(dateKey: string, size = 6, tower = Infinity): ShopItem[] {
   let seed = 0x5f3759df
