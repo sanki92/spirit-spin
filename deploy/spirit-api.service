@@ -1,0 +1,18 @@
+[Unit]
+Description=Spirit Spin API
+After=network-online.target spirit-edge.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/spirit/api.env
+WorkingDirectory=/opt/spirit/app
+ExecStart=/usr/bin/npm start -w apps/server
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=always
+RestartSec=2
+User=spirit
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

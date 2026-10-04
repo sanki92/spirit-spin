@@ -1,0 +1,20 @@
+[Unit]
+Description=Spirit Spin realtime edge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/spirit/edge.env
+ExecStart=/opt/spirit/edge -wt :4433 -ws 127.0.0.1:4434 -grpc 127.0.0.1:4435 -metrics 127.0.0.1:4436 -cert /etc/letsencrypt/live/play.example.com/fullchain.pem -key /etc/letsencrypt/live/play.example.com/privkey.pem -drain 10m
+KillSignal=SIGTERM
+TimeoutStopSec=660
+Restart=always
+RestartSec=2
+User=spirit
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

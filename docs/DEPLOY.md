@@ -2,6 +2,8 @@
 
 One container serves everything: the PWA (static files), the REST API (`/v1`), the realtime socket (`/rt`) and the health check (`/healthz`). Postgres holds players, saves, ghosts, tournaments and entitlements.
 
+Live battles can also run on the Go realtime edge (QUIC datagrams, no Docker): see [deploy/realtime.md](deploy/realtime.md).
+
 ## 1. Build the assets (once per art change)
 
 The generated art and audio live in `assets/` and are compiled into `apps/client/public/assets` (git-ignored):

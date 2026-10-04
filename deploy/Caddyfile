@@ -1,0 +1,22 @@
+play.example.com {
+	encode zstd gzip
+	handle /edge/* {
+		uri strip_prefix /edge
+		reverse_proxy 127.0.0.1:4434
+	}
+	handle {
+		reverse_proxy 127.0.0.1:8787
+	}
+	log {
+		output file /var/log/caddy/spirit.log
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace t REDACTED
+					replace key REDACTED
+				}
+			}
+		}
+	}
+}
