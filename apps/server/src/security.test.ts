@@ -73,3 +73,14 @@ describe('security', () => {
     if (r.statusCode >= 500) expect(r.json()).toEqual({ error: 'internal error' })
   })
 })
+
+describe('rate limits behind carrier NAT', () => {
+  it('signed-in players sharing one IP do not throttle each other, while one player is still limited', async () => {
+    const players = await Promise.all(Array.from({ length: 3 }, () => guest()))
+    const hit = (t: string) => app.inject({ method: 'GET', url: '/v1/me', headers: h(t), remoteAddress: '100.64.0.7' })
+    for (let i = 0; i < 100; i++) for (const p of players) expect((await hit(p.token)).statusCode, `round ${i}`).toBe(200)
+    let limited = false
+    for (let i = 0; i < 60 && !limited; i++) limited = (await hit(players[0]!.token)).statusCode === 429
+    expect(limited).toBe(true)
+  })
+})

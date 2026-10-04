@@ -80,7 +80,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   })
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
-  await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
+  await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKey })
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const netlog = new NetLog()
   const rooms = await registerRealtime(app, tokens, {
@@ -147,7 +147,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     })
   }
 
-  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 60, timeWindow: '1 minute' } } }, async () => {
+  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 120, timeWindow: '1 minute' } } }, async () => {
     const code = newRecoveryCode()
     const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
@@ -322,6 +322,22 @@ async function assignFriendCode(db: Db, id: string): Promise<string> {
 
 export async function befriend(db: Db, a: string, b: string): Promise<void> {
   await db.insert(friendships).values([{ playerId: a, friendId: b }, { playerId: b, friendId: a }]).onConflictDoNothing()
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function rateKey(req: FastifyRequest): string {
+  const auth = req.headers.authorization
+  const part = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).split('.')[1] : undefined
+  if (part) {
+    try {
+      const sub = (JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as { sub?: unknown }).sub
+      if (typeof sub === 'string' && UUID.test(sub)) return `${sub}|${req.ip}`
+    } catch {
+      return req.ip
+    }
+  }
+  return req.ip
 }
 
 export async function sanitizeSave(db: Db, playerId: string, raw: Record<string, unknown>): Promise<Record<string, unknown>> {

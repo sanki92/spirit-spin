@@ -75,15 +75,18 @@ sudo chown -R spirit:spirit /opt/spirit
 sudo chmod 600 /etc/spirit/*.env
 ```
 
-Each release:
+Each release. The game art and audio are generated from `assets/` and are not in git, so build the client on your machine (Python with Pillow, NumPy and SciPy for the art) and upload the finished `dist`:
 
 ```bash
+python tools/build_assets.py
+python tools/build_audio.py
+npm run build -w @spirit/client
 GOOS=linux GOARCH=amd64 npm run edge:build
 scp dist/edge vm:/opt/spirit/edge
+rsync -a --delete apps/client/dist/ vm:/opt/spirit/app/apps/client/dist/
 
 ssh vm
 cd /opt/spirit/app && git pull && npm ci
-npm run build -w @spirit/client
 sudo cp deploy/spirit-edge.service deploy/spirit-api.service /etc/systemd/system/
 sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
 sudo systemctl daemon-reload
@@ -115,6 +118,7 @@ Stop the API with `systemctl stop spirit-api` (SIGTERM). It closes PGlite cleanl
 | Phone loses the edge briefly | It reconnects with backoff (5 attempts; a link that stays up 2 s earns a fresh budget). The edge resends from the phone's last ack, up to 150 frames per packet; a stalled phone keeps acking, so it catches up. |
 | Phone backgrounded | The edge keeps confirming. On return the phone jumps to the confirmed state, then straight to the frame the server clock says it should be on (about two round trips after a 5 s freeze). Its opponent saw "reconnecting" after 2 s. |
 | Phone silent for longer than the seat hold | Forfeit, as before. |
+| Many players behind one carrier IP (CGNAT) | API rate limits are per player per IP, so they do not throttle each other. Guest sign-up allows 120 per minute per IP. |
 | API restart mid-match | Rooms are in memory, so live matches end. On a clean stop the API sends `EndMatch` for every edge match before closing. After a crash the edge reaps orphans: a running round nobody streams after 2 min, an idle match after 10 min. The edge drain only waits for matches that still have a player or a stream. |
 
 ## Local development

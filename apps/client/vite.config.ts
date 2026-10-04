@@ -1,6 +1,6 @@
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa'
@@ -57,6 +57,17 @@ function devPwa(): Plugin {
   }
 }
 
+function dropDevPages(): Plugin {
+  return {
+    name: 'drop-dev-pages',
+    apply: 'build',
+    closeBundle() {
+      const dist = resolve(__dirname, 'dist')
+      for (const f of readdirSync(dist)) if (/^__.*\.html$/.test(f) || f === 'devices.html') rmSync(resolve(dist, f))
+    },
+  }
+}
+
 function deviceLogs(): Plugin {
   return {
     name: 'device-logs',
@@ -98,6 +109,7 @@ export default defineConfig({
     },
     react(),
     deviceLogs(),
+    dropDevPages(),
     devPwa(),
     ...(process.env.HTTP_ONLY ? [] : [basicSsl({ name: 'spirit-spin-dev', domains: ['*.sslip.io', 'localhost'] })]),
     VitePWA({
