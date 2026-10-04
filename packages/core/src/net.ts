@@ -2,10 +2,12 @@ import { stepBattle, type BattleEvent, type BattleState, type RoundOutcome, type
 import type { TopBuild } from './parts'
 import type { MotionSample, RipResult } from './rip'
 import type { TouchSample } from './rip-swipe'
+import type { Timeline } from './netcode/replay'
 
-export const NET = { snapEvery: 3, maxLead: 30, lateCarry: 6, swipeRpmCap: 13500, maxRooms: 5000, heartbeatMs: 10000, seatHoldMs: 15000, tickMs: 1000 / 60, maxMessageBytes: 16384, maxMsgsPerSec: 120 } as const
+export const NET = { snapEvery: 3, maxLead: 30, lateCarry: 6, swipeRpmCap: 13500, maxRooms: 5000, heartbeatMs: 10000, seatHoldMs: 15000, tickMs: 1000 / 60, maxMessageBytes: 16384, maxMsgsPerSec: 120, maxBinPerSec: 200 } as const
 
 export interface NetInput { x: number; y: number; seq: number }
+export interface EdgeInfo { wt: string; ws: string; ticket: string; certHash: string | null }
 export type RipView = Pick<RipResult, 'rpm' | 'quality' | 'overspin' | 'style' | 'bankDir' | 'timing' | 'straightness' | 'pullRatio'> & { ok: boolean; reason: string | null }
 
 export type ClientMsg =
@@ -26,7 +28,7 @@ export type ServerMsg =
   | { k: 'room'; code: string; side: Side }
   | { k: 'peer'; name: string; build: TopBuild; online: boolean }
   | { k: 'round'; round: number; launchAt: number }
-  | { k: 'start'; round: number; seed: number; rips: [RipView, RipView]; tick: number }
+  | { k: 'start'; round: number; seed: number; rips: [RipView, RipView]; tick: number; t0: number; edge?: EdgeInfo }
   | { k: 'snap'; tick: number; state: BattleState; inputs: [NetInput, NetInput]; leads: [number, number] }
   | { k: 'end'; round: number; outcome: RoundOutcome; scores: [number, number]; winner: Side | null }
   | { k: 'pong'; t: number; server: number }
@@ -34,6 +36,8 @@ export type ServerMsg =
   | { k: 'error'; code: 'auth' | 'bad-message' | 'no-room' | 'full' | 'rate' }
   | { k: 'watching'; code: string }
   | { k: 'seats'; seats: ({ name: string; build: TopBuild; online: boolean } | null)[] }
+  | { k: 'catchup'; round: number; tl: Timeline }
+  | { k: 'resync'; round: number; tl: Timeline }
 
 const IDLE: NetInput = { x: 0, y: 0, seq: 0 }
 

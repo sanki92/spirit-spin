@@ -67,7 +67,7 @@ export class Room {
     send(this.seatsMsg())
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
     if (this.phase === 'battle' && this.battle) {
-      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick })
+      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick, t0: 0 })
       send(this.snap())
     }
     return true
@@ -131,7 +131,7 @@ export class Room {
     }
     if (this.phase === 'launch') send({ k: 'round', round: this.round, launchAt: this.launchAt })
     if (this.phase === 'battle' && this.battle) {
-      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick })
+      send({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: this.battle.tick, t0: 0 })
       send(this.snap())
     }
     return side
@@ -195,7 +195,7 @@ export class Room {
     this.seed = Math.floor(Math.random() * 2 ** 31)
     this.battle = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
     this.phase = 'battle'
-    this.broadcast({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: 0 })
+    this.broadcast({ k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: 0, t0: 0 })
     this.acc = 0
     this.lastAt = this.opts.now()
     this.loop = setInterval(() => this.pump(), 8)
