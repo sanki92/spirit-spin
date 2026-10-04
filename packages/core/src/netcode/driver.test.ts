@@ -120,8 +120,8 @@ describe('net driver clock steering', () => {
     const d = steer(0)
     for (let i = 0; i < 10; i++) d.step(0, 0, false, [])
     const now = 100 * WIRE.tickMs
-    d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames: idle(10) })
-    expect(d.steer(now)).toBe(Math.min(clockFrame(now, 0, 100, 20, 2) - 10, ROLL.maxPredict))
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames: idle(90) })).toBe('jump')
+    expect(d.steer(now)).toBe(clockFrame(now, 0, 100, 20, 2) - 90)
   })
 
   it('pauses when the clock says it is far ahead, and leaves small errors to time dilation', () => {
@@ -153,5 +153,25 @@ describe('net driver clock steering', () => {
     expect(d.steer(10 * WIRE.tickMs)).toBeLessThan(0)
     d.resync(startTimeline(fresh()))
     expect(d.step(0, 0, false, [])).toBe(true)
+  })
+})
+
+describe('net driver resume ordering (iOS runs a frame before the buffered packets)', () => {
+  const idle = (n: number) => Array.from({ length: n }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+
+  it('does not predict into frames the server already decided when its confirmed state is stale', () => {
+    const sent: WireMsg[] = []
+    const d = new NetDriver(startTimeline(fresh()), 0, 3, 1, 20, { send: m => sent.push(m) }, 0)
+    d.rtt = 10
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 30, frames: idle(234) })
+    const now = 504 * WIRE.tickMs
+    expect(d.steer(now)).toBe(0)
+    const n0 = sent.length
+    expect(d.step(0, 0, false, [])).toBe(false)
+    expect(sent.length).toBe(n0 + 1)
+    d.onFrames({ op: 'frames', round: 3, first: 235, margin: 30, frames: idle(266) })
+    const n = d.steer(now)
+    expect(n).toBeGreaterThan(0)
+    expect(n).toBeLessThanOrEqual(8)
   })
 })

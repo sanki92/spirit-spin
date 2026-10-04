@@ -1,6 +1,6 @@
 import { WIRE } from './wire'
 
-export const CLOCK = { band: 5, small: 0.01, big: 0.03, leapFrames: 6 } as const
+export const CLOCK = { band: 5, small: 0.01, big: 0.03, leapFrames: 6, slackFrames: 3 } as const
 
 const median = (xs: readonly number[]): number => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : 0)
 

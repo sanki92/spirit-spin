@@ -12,7 +12,7 @@ export interface SoakResult { frames: number; finished: boolean; synced: boolean
 
 interface Client { side: Side; fps: number; rng: RngState; rtt: RttStats; driver: NetDriver | null; acc: number; lastRender: number; nextRender: number; nextPing: number }
 
-export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [NetProfile, NetProfile]; fps?: [number, number]; maxMs?: number; freeze?: { side: Side; from: number; to: number } }): SoakResult {
+export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [NetProfile, NetProfile]; fps?: [number, number]; maxMs?: number; freeze?: { side: Side; from: number; to: number; recvLagMs?: number } }): SoakResult {
   const p = o.profile
   const ps: [NetProfile, NetProfile] = o.profiles ?? [p, p]
   const battle = fresh(o.seed)
@@ -73,8 +73,9 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       for (const side of [0, 1] as Side[]) sendFrames(side, acked[side] + 1, 0, WIRE.maxFrames, now)
     }
     for (const c of clients) {
-      if (o.freeze && c.side === o.freeze.side && now >= o.freeze.from && now < o.freeze.to) continue
-      for (const b of down[c.side]!.recv(now)) {
+      const frozen = o.freeze && c.side === o.freeze.side && now >= o.freeze.from
+      if (frozen && now < o.freeze!.to) continue
+      for (const b of frozen && now < o.freeze!.to + (o.freeze!.recvLagMs ?? 0) ? [] : down[c.side]!.recv(now)) {
         const m = decode(b)
         if (!m) continue
         if (m.op === 'pong') { c.rtt.add(now - m.t); if (c.driver && c.rtt.count >= 5) { c.driver.clock.target = targetMargin(c.rtt.jitter); c.driver.rtt = c.rtt.rtt } continue }

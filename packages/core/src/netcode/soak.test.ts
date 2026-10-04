@@ -42,13 +42,27 @@ describe(`soak (${per} matches per profile)`, () => {
       expect(r, `seed ${seed}`).toMatchObject({ finished: true, synced: true, desyncs: 0, stalls: 0, ownReplaced: 0 })
     }
   })
+  for (const name of ['criteria', 'lan'] as const) {
+    it(`${name}: on resume the screen runs before buffered packets are read (iOS), and own inputs are not overridden`, () => {
+      const profile = PROFILES[name]
+      for (const seed of seeds(7100)) {
+        const r = runMatch({ seed, profile, freeze: { side: 0, from: 2500, to: 7500, recvLagMs: 120 } })
+        expect(r, `seed ${seed}`).toMatchObject({ finished: true, synced: true, desyncs: 0 })
+        expect(r.ownReplaced, `seed ${seed} own inputs overridden after resume`).toBeLessThanOrEqual(12)
+        expect(Math.max(7500, ...r.lateAt[0].filter(t => t < 9500)) - 7500, `seed ${seed} recovery`).toBeLessThan(800)
+      }
+    })
+  }
   for (const name of ['criteria', 'lan', 'tcp'] as const) {
-    it(`${name}: a phone backgrounded for 5 s returns to normal play within 0.4 s and stays in sync`, () => {
+    it(`${name}: a phone backgrounded for 5 s is back on time within 0.6 s, own top barely corrected, in sync`, () => {
       const profile = PROFILES[name]
       for (const seed of seeds(7000)) {
         const r = runMatch({ seed, profile, freeze: { side: 0, from: 2500, to: 7500 } })
         expect(r, `seed ${seed}`).toMatchObject({ finished: true, synced: true, desyncs: 0 })
-        if (!profile.ordered) expect(Math.max(7500, ...r.lateAt[0].filter(t => t < 9500)) - 7500, `seed ${seed} recovery`).toBeLessThan(400)
+        if (!profile.ordered) {
+          expect(Math.max(7500, ...r.lateAt[0].filter(t => t < 9500)) - 7500, `seed ${seed} recovery`).toBeLessThan(600)
+          expect(r.ownReplaced, `seed ${seed} own inputs overridden after resume`).toBeLessThanOrEqual(12)
+        }
       }
     })
   }
