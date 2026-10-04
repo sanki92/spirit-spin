@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import WebSocket from 'ws'
 import { assembleTop, beginAt, chooseDelay, createBattle, decode, encode, NetDriver, startTimeline, targetMargin, type RipResult, type ServerMsg, type TopBuild, type WireMsg } from '../packages/core/src/index'
 
@@ -24,6 +24,8 @@ async function tokens(n: number): Promise<string[]> {
   }
   return have.slice(0, n)
 }
+
+class StaleTokens extends Error {}
 
 type Summary = { summary: { counts: { rounds: number; desyncs: number; fallbacks: number; lost: number; streamDrops: number }; byMode: Record<string, number> } }
 
@@ -52,7 +54,8 @@ class Bot {
     await new Promise((res, rej) => { this.ws.once('open', res); this.ws.once('error', rej) })
     this.ws.on('error', () => undefined)
     this.send({ k: 'hello', token, name: this.name })
-    await Promise.race([this.wait('welcome'), new Promise((_, rej) => setTimeout(() => rej(new Error(`${this.name}: no welcome`)), 10000))])
+    const first = await Promise.race([this.wait('welcome'), this.wait('error'), new Promise<never>((_, rej) => setTimeout(() => rej(new Error(`${this.name}: no welcome`)), 10000))])
+    if (first.k === 'error') throw new StaleTokens()
     const t = Date.now()
     this.send({ k: 'ping', t })
     const p = (await this.wait('pong')) as Extract<ServerMsg, { k: 'pong' }>
@@ -142,11 +145,17 @@ async function match(i: number, pool: string[]): Promise<string> {
 const dash = async () => (await (await fetch(`${API}/__dev/net.json`)).json()) as Summary
 const pool = await tokens(MATCHES * 2)
 const before = await dash()
-const results = await Promise.all(Array.from({ length: MATCHES }, (_, i) => new Promise<string>(r => setTimeout(r, i * 150)).then(() => match(i, pool))))
+const results = await Promise.all(Array.from({ length: MATCHES }, (_, i) => new Promise<string>(r => setTimeout(r, i * 150)).then(() => match(i, pool)))).catch(e => {
+  if (!(e instanceof StaleTokens)) throw e
+  rmSync(POOL, { force: true })
+  console.error(`the server rejected pooled tokens (new JWT secret?); removed ${POOL}, run again`)
+  process.exit(1)
+})
 for (const r of results) console.log(r)
 await new Promise(r => setTimeout(r, 1500))
 const after = await dash()
 const c0 = before.summary.counts, c1 = after.summary.counts
 const out = { matches: MATCHES, finished: results.filter(r => r.includes('end/end')).length, rounds: c1.rounds - c0.rounds, desyncs: c1.desyncs - c0.desyncs, fallbacks: c1.fallbacks - c0.fallbacks, lost: c1.lost - c0.lost, streamDrops: c1.streamDrops - c0.streamDrops, byMode: after.summary.byMode }
 console.log(JSON.stringify(out))
-process.exit(out.desyncs === 0 && out.finished === MATCHES && out.lost === 0 ? 0 : 1)
+const EDGE_ONLY = process.env.EDGE === '1'
+process.exit(out.desyncs === 0 && out.finished === MATCHES && out.lost === 0 && (!EDGE_ONLY || out.fallbacks === 0) ? 0 : 1)

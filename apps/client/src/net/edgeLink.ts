@@ -19,14 +19,13 @@ export function hexBytes(hex: string): Uint8Array<ArrayBuffer> {
 
 const within = <T>(p: Promise<T>, ms: number): Promise<T> => Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
 
-export const EDGE = { wtTimeoutMs: 1500, wsTimeoutMs: 4000, maxBackoffMs: 3000, fastPingMs: 2000, maxRetries: 5 } as const
+export const EDGE = { wtTimeoutMs: 1500, wsTimeoutMs: 4000, maxBackoffMs: 3000, fastPingMs: 2000, maxRetries: 5, stableMs: 2000 } as const
 
 export class EdgeLink implements WireLink {
   kind: 'wt' | 'ws' | 'none' = 'none'
   readonly net = new RttStats()
   private handlers = new Set<(m: WireMsg) => void>()
   private offset: number
-  private synced = false
   private wt: WebTransport | null = null
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null
   private ws: WebSocket | null = null
@@ -50,10 +49,10 @@ export class EdgeLink implements WireLink {
   refresh(info: EdgeInfo): void {
     this.info = info
     this.wtBroken = false
-    if (this.closed || this.wt || this.ws || this.opening) return
+    this.retry = 0
     if (this.timer) clearTimeout(this.timer)
     this.timer = 0
-    this.retry = 0
+    if (this.closed || this.wt || this.ws || this.opening) return
     this.start()
   }
 
@@ -96,7 +95,6 @@ export class EdgeLink implements WireLink {
   private up(kind: 'wt' | 'ws'): void {
     if (this.closed) return this.shut()
     this.kind = kind
-    this.retry = 0
     this.opened = performance.now()
     this.pings = 0
     if (this.pingTimer) clearInterval(this.pingTimer)
@@ -150,6 +148,7 @@ export class EdgeLink implements WireLink {
     this.ws = null
     if (this.pingTimer) clearInterval(this.pingTimer)
     this.pingTimer = 0
+    if (performance.now() - this.opened > EDGE.stableMs) this.retry = 0
     log('edge.drop', { kind: this.kind })
     this.schedule()
   }
@@ -174,7 +173,7 @@ export class EdgeLink implements WireLink {
       const rtt = performance.now() - m.t
       this.net.add(rtt)
       const o = m.server + rtt / 2 - Date.now()
-      if (!this.synced) { this.offset = o; this.synced = true }
+      if (this.net.count <= 3) { if (rtt <= this.net.min) this.offset = o }
       else if (rtt <= this.net.min + 5) this.offset += (o - this.offset) * 0.25
       return
     }

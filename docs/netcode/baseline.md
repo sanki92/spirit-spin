@@ -52,3 +52,17 @@ Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+
 | full stack via Go edge, 40 bot matches | 40/40 finished, 87 rounds, 0 desyncs, 0 fallbacks, 0 lost, 0 stream drops |
 | full stack via Go edge with faults (5% drop, +60 ms, ±30 ms jitter on edge→phone) | 20/20 finished, 58 rounds, 0 desyncs, 0 late inputs |
 | full stack in-process (no edge), 20 bot matches | 20/20 finished, 45 rounds, 0 desyncs |
+
+## Full review pass (2026-10-04)
+
+| Run | Result |
+|---|---|
+| `npm run check` | 298/298 |
+| `npm run edge:test` (vet, race, load) | green |
+| core soak, 250 matches per profile, incl. 750 five-second freezes | 9/9 tests, 0 desyncs; freeze recovery under 0.4 s (unordered profiles) |
+| soak-stack edge (`EDGE=1`) | 20/20, 43 rounds, 0 desyncs, 0 fallbacks, 0 lost |
+| soak-stack in-process | 20/20, 51 rounds, 0 desyncs |
+| duo edge set (Chromium + WebKit) | 12/12 |
+| duo plain set | 22/22 (#10 sampling flake fixed) |
+| duo netcode behind netproxy 150/30 | 5/5, depth ≤ 15, own inputs never replaced |
+| Playwright live + stadium | 2/2 |

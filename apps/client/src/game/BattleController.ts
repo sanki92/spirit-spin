@@ -1,6 +1,6 @@
 import {
   applyRound, botInput, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
-  type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState,
+  type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState, type Side,
   type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
 import type { Sound } from '../audio/sound'
@@ -326,6 +326,19 @@ export class BattleController {
     stepBattle(b, [input, botInput(b, 1, this.setup.bot, this.botRng)], this.events)
     for (const e of this.events) this.onEvent(e)
     this.events.length = 0
+  }
+
+  protected spiritSeen: [boolean, boolean] = [false, false]
+
+  protected transitions(): void {
+    const b = this.game.battle
+    if (!b) return
+    for (let i = 0; i < 2; i++) {
+      const on = b.tops[i]!.spiritTicks > 0
+      if (on === this.spiritSeen[i]) continue
+      this.spiritSeen[i] = on
+      this.onEvent(on ? { k: 'spirit', tick: b.tick, side: i as Side } : { k: 'spiritEnd', tick: b.tick, side: i as Side })
+    }
   }
 
   protected onEvent(e: BattleEvent): void {

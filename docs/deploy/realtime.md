@@ -59,7 +59,7 @@ RT_EDGE_SECRET=<same shared secret>
 RT_EDGE_WT=https://play.example.com:4433/wt
 RT_EDGE_WS=/edge/ws
 RT_EDGE_METRICS=http://127.0.0.1:4436/metrics
-NET_DASH_KEY=<random, to open the dashboard remotely>
+NET_DASH_KEY=<random, 16+ chars, to open the dashboard remotely>
 ```
 
 If `RT_EDGE_GRPC` is unset, the API runs every round in-process over the `/rt` WebSocket. That is the same netcode with TCP instead of UDP.
@@ -111,26 +111,28 @@ Stop the API with `systemctl stop spirit-api` (SIGTERM). It closes PGlite cleanl
 | Edge down at round start | The round runs in-process on the API: same game over TCP. `edge.fallback` is logged. |
 | Edge crash mid-round | The stream errors at once and is retried 20 times (~5 s); if the edge is still gone that match ends with "Connection lost. The match ended without a result." and `edge.lost` is logged. A hung edge (no errors, no frames) is detected by the 2 s stall watchdog and takes about 45 s of retries before the same outcome. |
 | Planned edge restart | It drains, so no round is cut. |
-| UDP blocked on a player's network | Their phone falls back to the edge WebSocket within 1.5 s. |
-| Phone loses the edge briefly | It reconnects with backoff. The edge resends from the phone's last ack, up to 150 frames per packet. |
-| Phone backgrounded | The edge keeps confirming. On return the phone jumps to the confirmed state, and its opponent saw "reconnecting" after 2 s. |
+| UDP blocked on a player's network | Their phone falls back to the edge WebSocket after the 1.5 s WebTransport timeout plus the WebSocket connect. |
+| Phone loses the edge briefly | It reconnects with backoff (5 attempts; a link that stays up 2 s earns a fresh budget). The edge resends from the phone's last ack, up to 150 frames per packet; a stalled phone keeps acking, so it catches up. |
+| Phone backgrounded | The edge keeps confirming. On return the phone jumps to the confirmed state, then straight to the frame the server clock says it should be on (about two round trips after a 5 s freeze). Its opponent saw "reconnecting" after 2 s. |
 | Phone silent for longer than the seat hold | Forfeit, as before. |
 | API restart mid-match | Rooms are in memory, so live matches end. On a clean stop the API sends `EndMatch` for every edge match before closing. After a crash the edge reaps orphans: a running round nobody streams after 2 min, an idle match after 10 min. The edge drain only waits for matches that still have a player or a stream. |
 
 ## Local development
 
+Both the edge and the API exit unless `RT_EDGE_SECRET` (16+ chars) is set. Keep it in the git-ignored `.env` and load it per command:
+
 ```bash
-npm run edge -- -hosts localhost,127.0.0.1,<LAN IP>
-RT_EDGE_GRPC=127.0.0.1:4435 DEV_TOOLS=1 npm start -w apps/server
+set -a && . ./.env && set +a && npm run edge -- -hosts localhost,127.0.0.1,<LAN IP>
+set -a && . ./.env && set +a && RT_EDGE_GRPC=127.0.0.1:4435 DEV_TOOLS=1 npm start -w apps/server
 npm run dev -w @spirit/client
 ```
 
 - Vite proxies `/rt` to the API and `/edge` to the edge WebSocket.
-- `RT_TARGET=ws://localhost:8788` routes `/rt` through `tools/netproxy.mjs` to add latency, jitter, loss and spikes.
+- To add latency, jitter, loss and spikes, start `node tools/netproxy.mjs` (`LAT`, `JIT`, `LOSS`, `SPIKE_EVERY`, `SPIKE_MS`) and start Vite with `RT_TARGET=ws://localhost:8788` so `/rt` goes through it.
 - Stop the dev API with `curl -X POST localhost:8787/__dev/shutdown`.
 - Useful checks:
   - `npm run check`
   - `npm run edge:test`
   - `npm run soak -w @spirit/core`
   - `node tools/duo.mjs`
-  - `MATCHES=20 npx tsx tools/soak-stack.ts`
+  - `MATCHES=20 npx tsx tools/soak-stack.ts` (`EDGE=1` also fails the run if any round fell back to in-process)

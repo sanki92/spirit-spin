@@ -1,4 +1,4 @@
-import { beginAt, chooseDelay, createBattle, NetDriver, startTimeline, targetMargin, type BattleEvent, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
+import { beginAt, chooseDelay, createBattle, NetDriver, startTimeline, targetMargin, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
 import { EdgeLink } from '../net/edgeLink'
 import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
@@ -24,7 +24,6 @@ export class OnlineController extends BattleController {
   private statsAt = 0
   private ripRound = 0
   private ended = false
-  private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
   protected override earlyResolve = false
   protected override finishCamOk = false
@@ -230,17 +229,5 @@ export class OnlineController extends BattleController {
     if (!d || d.done || this.disposed || !this.game.battle || this.link.serverNow() < this.beginServer) return
     d.rtt = this.rttNow()
     for (let n = d.steer(this.link.serverNow()); n > 0; n--) this.stepOnce(d)
-  }
-
-  private transitions(): void {
-    const b = this.game.battle
-    if (!b) return
-    for (let i = 0; i < 2; i++) {
-      const on = b.tops[i]!.spiritTicks > 0
-      if (on === this.spiritSeen[i]) continue
-      this.spiritSeen[i] = on
-      const e: BattleEvent = on ? { k: 'spirit', tick: b.tick, side: i as Side } : { k: 'spiritEnd', tick: b.tick, side: i as Side }
-      this.onEvent(e)
-    }
   }
 }

@@ -1,4 +1,4 @@
-import { createBattle, PLAYOUT, playoutSteps, Replayer, startTimeline, type BattleEvent, type RipResult, type ServerMsg, type Side, type WireMsg } from '@spirit/core'
+import { createBattle, holdEnd, PLAYOUT, playoutSteps, Replayer, startTimeline, type RipResult, type ServerMsg, type WireMsg } from '@spirit/core'
 import { mainLink } from '../net/link'
 import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
@@ -12,9 +12,9 @@ export class SpectatorController extends BattleController {
   private ripRound = 0
   private startedRound = 0
   private unwire: () => void
-  private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
   private done = false
+  private pendingEnd: Extract<ServerMsg, { k: 'end' }> | null = null
 
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private names: [string, string]) {
     super(game, setup, deps)
@@ -44,6 +44,8 @@ export class SpectatorController extends BattleController {
   private onNet(m: ServerMsg): void {
     if (this.disposed || this.done) return
     if (m.k === 'round' && m.round > this.ripRound) {
+      if (this.pendingEnd) this.applyEnd(this.pendingEnd)
+      if (this.done) return
       this.ripRound = m.round
       this.rp = null
       this.countdown(Math.max(performance.now() + 600, rt.toLocalPerf(m.launchAt)))
@@ -64,13 +66,11 @@ export class SpectatorController extends BattleController {
       this.rp = new Replayer(m.tl)
       this.primed = false
     } else if (m.k === 'end' && m.round === this.ripRound) {
-      if (!this.game.battle && this.rp) this.game.setBattle(this.rp.tl.state)
-      this.finishRound({ k: 'finish', tick: this.rp?.tl.state.tick ?? 0, outcome: m.outcome })
-      this.match = { ...this.match, scores: m.scores, winner: m.winner }
-      useHud.getState().set({ scores: m.scores })
-      if (m.winner !== null) this.done = true
+      if (holdEnd(this.rp)) this.pendingEnd = m
+      else this.applyEnd(m)
     } else if (m.k === 'left') {
       this.done = true
+      this.pendingEnd = null
       this.rp = null
       this.match = { ...this.match, winner: m.winner ?? this.match.winner ?? 0 }
       this.concludeMatch()
@@ -78,6 +78,15 @@ export class SpectatorController extends BattleController {
       const off = m.seats.findIndex(x => x && !x.online)
       useHud.getState().set({ notice: off >= 0 ? `${m.seats[off]!.name} is reconnecting…` : null })
     }
+  }
+
+  private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
+    this.pendingEnd = null
+    if (!this.game.battle && this.rp) this.game.setBattle(this.rp.tl.state)
+    if (this.game.battle) this.finishRound({ k: 'finish', tick: this.rp?.tl.state.tick ?? 0, outcome: m.outcome })
+    this.match = { ...this.match, scores: m.scores, winner: m.winner }
+    useHud.getState().set({ scores: m.scores })
+    if (m.winner !== null) this.done = true
   }
 
   protected override concludeMatch(): void {
@@ -96,7 +105,7 @@ export class SpectatorController extends BattleController {
     const rp = this.rp
     if (!rp || this.done) return
     if (!this.primed) {
-      if (rp.backlog < PLAYOUT.prime) return
+      if (rp.backlog < PLAYOUT.prime && !this.pendingEnd) return
       this.primed = true
     }
     for (let i = playoutSteps(rp.backlog); i > 0; i--) {
@@ -106,18 +115,6 @@ export class SpectatorController extends BattleController {
     }
     this.game.battle = rp.tl.state
     this.transitions()
-  }
-
-
-  private transitions(): void {
-    const b = this.game.battle
-    if (!b) return
-    for (let i = 0; i < 2; i++) {
-      const on = b.tops[i]!.spiritTicks > 0
-      if (on === this.spiritSeen[i]) continue
-      this.spiritSeen[i] = on
-      const e: BattleEvent = on ? { k: 'spirit', tick: b.tick, side: i as Side } : { k: 'spiritEnd', tick: b.tick, side: i as Side }
-      this.onEvent(e)
-    }
+    if (this.pendingEnd && !holdEnd(rp)) this.applyEnd(this.pendingEnd)
   }
 }

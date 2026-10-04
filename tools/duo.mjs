@@ -251,12 +251,12 @@ await scenario(10, 'Top positions agree between the two phones during battle', a
   const [A, B] = await mkAB(mk, {}, { beast: 'agnyx', launcher: 'launcher-agnyx' })
   await hostJoin(A, B)
   await round1(A, B, { a: { peak: 28 }, b: { peak: 22 } })
-  await sleep(1500)
+  await until(A, () => window.__hud.getState().phase === 'battle' && !!window.__game.battle, null, 10000).catch(() => undefined)
   const ds = []
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20 && ds.length < 12; i++) {
     const [a, b] = await Promise.all([view(A), view(B)])
     if (a.tops && b.tops && a.phase === 'battle' && b.phase === 'battle') ds.push(Math.max(Math.hypot(a.tops[0].x - b.tops[1].x, a.tops[0].y - b.tops[1].y), Math.hypot(a.tops[1].x - b.tops[0].x, a.tops[1].y - b.tops[0].y)))
-    await sleep(250)
+    await sleep(150)
   }
   const mean = ds.reduce((x, y) => x + y, 0) / Math.max(1, ds.length)
   check(sc, 'sampled during battle', ds.length >= 4, `${ds.length} samples`)
@@ -471,7 +471,7 @@ await scenario(40, 'Netcode: own top is never corrected and nothing stalls (run 
   const [A, B] = await mkAB(mk)
   await hostJoin(A, B)
   await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
-  await sleep(4000)
+  await until(A, () => (window.__ctrl?.driver?.session.confirmed.frame ?? 0) > 180, null, 15000).catch(() => undefined)
   const [sa, sb] = await Promise.all([netStats(A), netStats(B)])
   check(sc, 'A own inputs never replaced', sa && sa.ownReplaced === 0, JSON.stringify(sa))
   check(sc, 'B own inputs never replaced', sb && sb.ownReplaced === 0, JSON.stringify(sb))
@@ -491,9 +491,13 @@ await scenario(42, 'Netcode: spirit called during a 400 ms freeze still fires on
   await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
   const filled = await until(A, () => window.__hud.getState().gauge[0] >= 1 && window.__hud.getState().phase === 'battle', null, 45000).then(() => true).catch(() => false)
   if (!filled) { check(sc, 'spirit gauge filled (skipped)', true, 'gauge never filled'); return }
+  await A.page.evaluate(() => { window.__cuts = 0; window.__hud.subscribe((h, p) => { if (h.cutin && !h.cutin.hesitate && h.cutin.side === 0 && h.cutin !== p.cutin) window.__cuts++ }) })
   await A.page.evaluate(() => { window.__ctrl.requestSpirit(); const t = performance.now(); while (performance.now() - t < 400) {} })
   check(sc, 'A sees own spirit', await until(A, () => window.__game.battle?.tops[0].spiritTicks > 0, null, 4000).then(() => true).catch(() => false))
   check(sc, 'B sees A spirit', await until(B, () => window.__game.battle?.tops[1].spiritTicks > 0, null, 4000).then(() => true).catch(() => false))
+  await sleep(1500)
+  const cuts = await A.page.evaluate(() => window.__cuts)
+  check(sc, 'A spirit fired exactly once', cuts === 1, `cut-ins ${cuts}`)
 })
 
 await scenario(43, 'Netcode: B drops its socket mid-round, rejoins and ends on the server state', async (sc, mk) => {

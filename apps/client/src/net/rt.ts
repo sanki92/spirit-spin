@@ -19,7 +19,7 @@ class Realtime {
   watchCode: string | null = null
   side: Side | null = null
   peer: { name: string; build: TopBuild; online: boolean } | null = null
-  readonly net = new RttStats()
+  net = new RttStats()
   private wireHandlers = new Set<(m: WireMsg) => void>()
   private pingTimer = 0
 
@@ -105,6 +105,7 @@ class Realtime {
         if (m.k === 'welcome') {
           welcomed = true
           this.welcomed = true
+          this.net = new RttStats()
           this.retry = 0
           void this.sync().then(() => {
             if (this.code) this.send({ k: 'rejoin', code: this.code })

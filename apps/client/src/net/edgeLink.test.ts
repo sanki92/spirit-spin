@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { encode } from '@spirit/core'
 import { EDGE, EdgeLink, edgeUrls, hexBytes } from './edgeLink'
 
 vi.mock('../telemetry', () => ({ log: () => undefined }))
@@ -110,6 +111,80 @@ describe('edge link transport choice', () => {
     await vi.advanceTimersByTimeAsync(5000)
     expect(wtUrls.length).toBeGreaterThan(1)
     expect(link.kind).toBe('wt')
+    link.close()
+    vi.useRealTimers()
+  })
+})
+
+describe('edge link review fixes', () => {
+  const loc = { hostname: 'h', protocol: 'https:', host: 'h' }
+  const info = (ticket = 't') => ({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket, certHash: null })
+  type Behaviour = 'fail' | 'open' | 'bounce'
+  const fakeWS = (mode: () => Behaviour, failMs = 1) => {
+    const made: { ws: InstanceType<ReturnType<typeof make>> }[] = []
+    const make = () => class {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      constructor() {
+        made.push({ ws: this })
+        const m = mode()
+        setTimeout(() => {
+          if (m === 'fail') { this.onerror?.(); this.onclose?.(); return }
+          this.readyState = 1
+          this.onopen?.()
+          if (m === 'bounce') setTimeout(() => { this.readyState = 3; this.onclose?.() }, 5)
+        }, m === 'fail' ? failMs : 1)
+      }
+      send() {}
+      close() {}
+    }
+    return { WS: make(), made }
+  }
+
+  it('an edge that accepts and then drops at once is not retried forever', async () => {
+    vi.useFakeTimers()
+    const { WS, made } = fakeWS(() => 'bounce')
+    const link = new EdgeLink(info(), { WT: undefined, WS: WS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    for (let i = 0; i < 60; i++) await vi.advanceTimersByTimeAsync(5000)
+    expect(made.length).toBeLessThanOrEqual(1 + EDGE.maxRetries)
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('a fresh start that lands during the last allowed attempt still gets a full retry budget', async () => {
+    vi.useFakeTimers()
+    let ok = false
+    const { WS, made } = fakeWS(() => (ok ? 'open' : 'fail'), 1000)
+    const link = new EdgeLink(info('old'), { WT: undefined, WS: WS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    for (let i = 0; i < 400 && made.length < 1 + EDGE.maxRetries; i++) await vi.advanceTimersByTimeAsync(50)
+    expect(made.length).toBe(1 + EDGE.maxRetries)
+    link.refresh(info('new'))
+    ok = true
+    for (let i = 0; i < 10; i++) await vi.advanceTimersByTimeAsync(1000)
+    expect(link.kind).toBe('ws')
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('the clock offset comes from the fastest of the first pongs, not the first one', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+    const { WS, made } = fakeWS(() => 'open')
+    const link = new EdgeLink(info(), { WT: undefined, WS: WS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(5)
+    const ws = made[0]!.ws
+    const pong = (rtt: number, server: number) => ws.onmessage?.({ data: encode({ op: 'pong', t: performance.now() - rtt, server }).buffer } as MessageEvent)
+    pong(300, 2_000_000)
+    pong(20, 3_000_000)
+    pong(120, 2_500_000)
+    expect(Math.abs(link.serverNow() - (3_000_000 + 10))).toBeLessThan(2)
     link.close()
     vi.useRealTimers()
   })
