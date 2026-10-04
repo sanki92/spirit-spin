@@ -9,6 +9,7 @@ export interface RollStats { rollbacks: number; resimFrames: number; maxDepth: n
 export class RollbackSession {
   confirmed: Timeline
   predicted: Timeline
+  onConfirmed: ((state: BattleState, events: readonly BattleEvent[], from: number) => void) | null = null
   readonly stats: RollStats = { rollbacks: 0, resimFrames: 0, maxDepth: 0, ownReplaced: 0, stalls: 0, jumps: 0, gaps: 0 }
   private local = new Map<number, WireInput>()
   private used = new Map<number, Frame>()
@@ -59,7 +60,9 @@ export class RollbackSession {
     if (own && !sameInput(own, fr[this.side])) this.stats.ownReplaced++
     const u = this.used.get(f)
     const mismatch = f <= this.predicted.frame && (!u || !sameInput(u[0], fr[0]) || !sameInput(u[1], fr[1]))
+    const from = this.scratch.length
     stepTimeline(this.confirmed, fr, this.scratch)
+    this.onConfirmed?.(this.confirmed.state, this.scratch, from)
     if (this.confirmed.frame % WIRE.hashEvery === 0) this.checkpoints.push({ frame: this.confirmed.frame, hash: timelineHash(this.confirmed) })
     this.used.delete(f)
     this.local.delete(f)

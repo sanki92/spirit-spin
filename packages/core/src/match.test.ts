@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyRound, newMatch, MAX_ROUNDS, HARD_ROUND_CAP } from './match'
+import { applyRound, newMatch, MAX_ROUNDS, HARD_ROUND_CAP, replaysFinish } from './match'
 
 const spin0 = { winner: 0 as const, finish: 'spin' as const, points: 1 as const }
 describe('match', () => {
@@ -38,5 +38,15 @@ describe('match', () => {
     let m = newMatch()
     for (let i = 0; i < HARD_ROUND_CAP && m.winner === null; i++) m = applyRound(m, { winner: null, finish: 'draw', points: 0 })
     expect(m.winner).not.toBeNull()
+  })
+})
+
+describe('finish replay', () => {
+  it('replays ringouts, shatters and spirit finishes, and a spin-out only when it decides the match', () => {
+    const o = (finish: 'ringout' | 'shatter' | 'spirit' | 'spin' | 'draw') => ({ winner: 0 as const, finish, points: 1 as const })
+    for (const f of ['ringout', 'shatter', 'spirit'] as const) expect(replaysFinish(o(f), false)).toBe(true)
+    expect(replaysFinish(o('spin'), false)).toBe(false)
+    expect(replaysFinish(o('spin'), true)).toBe(true)
+    expect(replaysFinish({ winner: null, finish: 'draw', points: 0 }, false)).toBe(false)
   })
 })

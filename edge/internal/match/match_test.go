@@ -236,8 +236,45 @@ func TestReattachReplacesPeerAndEndRoundStops(t *testing.T) {
 	}
 	*now = at(t0, 10)
 	m.Tick()
+	if m.seq != nil && m.seq.Frame != 3 {
+		t.Fatalf("an ended round kept confirming: frame %d", m.seq.Frame)
+	}
+	*now += drainMs + 1
+	m.Tick()
 	if m.seq != nil {
-		t.Fatal("sequencer still running")
+		t.Fatal("sequencer still running after the drain")
+	}
+}
+
+func TestEndedRoundResendsItsFinalFramesForTheDrainThenStops(t *testing.T) {
+	m, a, _, now := setup()
+	t0 := m.StartRound(1, 0)
+	*now = at(t0, 20)
+	m.Tick()
+	st := m.EndRound(1)
+	if st.Frames != 20 || st.Missing != [2]uint32{20, 20} {
+		t.Fatalf("stats must be taken when the round ends: %+v", st)
+	}
+	a.mu.Lock()
+	a.got = nil
+	a.mu.Unlock()
+	*now = at(t0, 60)
+	m.OnPacket(0, wire.EncodeInput(1, 21, 0, []wire.Input{in(9)}))
+	m.Tick()
+	fs := a.withFrames()
+	if len(fs) == 0 || fs[len(fs)-1].First != 1 || len(fs[len(fs)-1].Frames) != 20 {
+		t.Fatalf("final frames not resent to a phone that has not acked them: %+v", fs)
+	}
+	if m.seq.Frame != 20 || m.seq.Late != [2]uint32{} {
+		t.Fatalf("an ended round confirmed or judged more input: frame %d late %v", m.seq.Frame, m.seq.Late)
+	}
+	if st := m.EndRound(1); st != (Stats{}) {
+		t.Fatalf("a repeated EndRound must report nothing: %+v", st)
+	}
+	*now += drainMs + 1
+	m.Tick()
+	if m.seq != nil {
+		t.Fatal("drain never ended")
 	}
 }
 

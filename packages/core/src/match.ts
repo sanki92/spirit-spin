@@ -31,3 +31,5 @@ export function applyRound(m: MatchState, o: RoundOutcome): MatchState {
   const suddenDeath = winner === null && history.length >= MAX_ROUNDS
   return { round: m.round + 1, scores, history, winner, suddenDeath }
 }
+
+export const replaysFinish = (o: RoundOutcome, matchOver: boolean): boolean => o.finish === 'ringout' || o.finish === 'shatter' || o.finish === 'spirit' || (o.finish === 'spin' && matchOver)

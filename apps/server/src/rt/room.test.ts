@@ -1,6 +1,6 @@
-import { decode, type ServerMsg, type WireMsg } from '@spirit/core'
+import { decode, NET, type ServerMsg, type WireMsg } from '@spirit/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { EdgeApi, EdgeBatch } from './edge'
+import { REMOTE, type EdgeApi, type EdgeBatch } from './edge'
 import type { LiveMatch } from './live'
 import { Room } from './room'
 
@@ -243,6 +243,46 @@ describe('room', () => {
     room.forfeit(1, 'quit')
     await vi.advanceTimersByTimeAsync(200)
     expect(logs.filter(l => l.msg === 'edge.fallback')).toHaveLength(0)
+  })
+
+  it('a decisive finish holds the next round back long enough for the finish replay; a plain spin-out does not', () => {
+    const roundAt = (finish: 'ringout' | 'spin') => {
+      const { room, got } = battle()
+      for (let i = 0; i < 100 && !room.live; i++) vi.advanceTimersByTime(100)
+      ;(room.live as LiveMatch).stop()
+      ;(room as unknown as { live: unknown }).live = { ver: { outcome: { winner: 0, finish, points: finish === 'spin' ? 1 : 2 }, tilt: { sum: [0, 0], n: [0, 0] } }, stop: () => undefined }
+      ;(room as unknown as { endRound(): void }).endRound()
+      const before = got.filter(m => m.k === 'round').length
+      let ms = 0
+      while (got.filter(m => m.k === 'round').length === before && ms < 20000) { vi.advanceTimersByTime(100); ms += 100 }
+      room.close()
+      return ms
+    }
+    expect(roundAt('spin')).toBe(3200)
+    expect(roundAt('ringout')).toBe(3200 + NET.finishReplayMs)
+  })
+
+  it('edge mode: the match-deciding round ends the edge match only after a linger, so phones still receive the final frames; a shutdown does not wait', async () => {
+    const play = async () => {
+      const { edge, subs, calls } = fakeEdge()
+      room = new Room('LAST', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+      room.seat('a', 'A', BUILD, () => undefined)
+      room.seat('b', 'B', BUILD, () => undefined)
+      ;(room as unknown as { match: { scores: [number, number] } }).match.scores = [3, 0]
+      ;(room as unknown as { nextRound(): void }).nextRound()
+      room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+      room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+      await vi.advanceTimersByTimeAsync(10)
+      const idle = { x: 0, y: 0, sp: 0 }
+      subs[0]!({ round: 1, first: 1, frames: Array.from({ length: 3000 }, () => [idle, idle] as const), hashes: [], inputHi: [0, 0] })
+      return calls
+    }
+    const calls = await play()
+    expect(room!.phase).toBe('done')
+    await vi.advanceTimersByTimeAsync(REMOTE.lingerMs - 100)
+    expect(calls.filter(c => c === 'endMatch')).toHaveLength(0)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(calls.slice(-2)).toEqual(['endRound', 'endMatch'])
   })
 
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {

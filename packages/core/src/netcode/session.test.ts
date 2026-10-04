@@ -141,3 +141,18 @@ describe('rollback session catch-up', () => {
     expect(s.stats.jumps).toBe(0)
   })
 })
+
+describe('rollback session confirmed-frame hook', () => {
+  it('reports every confirmed frame once, in order, with the events that frame produced', () => {
+    const s = new RollbackSession(startTimeline(fresh()), 0, 2)
+    const seen: { tick: number; events: number }[] = []
+    s.onConfirmed = (st, ev, from) => seen.push({ tick: st.tick, events: ev.length - from })
+    const idle = Array.from({ length: 30 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+    s.confirm(1, idle.slice(0, 10))
+    s.confirm(5, idle.slice(4, 20))
+    s.confirm(25, idle.slice(24, 30))
+    s.confirm(21, idle.slice(20, 24))
+    expect(seen.map(x => x.tick)).toEqual(Array.from({ length: 30 }, (_, i) => fresh().tick + i + 1))
+    expect(seen.every(x => x.events >= 0)).toBe(true)
+  })
+})

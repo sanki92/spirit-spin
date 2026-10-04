@@ -49,7 +49,10 @@ async function device(label, { beast, launcher, name, swipe = false, skewMs = 0,
     window.__sim.auto = false
     window.__pull = (peak = 28, ms = 140) => { const st = window.__sim; const t0 = performance.now(); const id = setInterval(() => { const u = performance.now() - t0; st.lin = u < ms ? -peak * Math.sin(Math.PI * u / ms) : u < ms + 110 ? peak * 0.8 * Math.sin(Math.PI * (u - ms) / 110) : 0; if (u > ms + 120) { st.lin = 0; clearInterval(id) } }, 8) }
     window.__ev = []
+    window.__cines = 0
     const seen = { k: '' }
+    window.__cineFull = []
+    window.__hud.subscribe((h, p) => { if (h.cine && !p?.cine) { window.__cines++; window.__cineFull.push(!!window.__ctrl?.driver?.session?.confirmed?.state?.outcome) } })
     window.__hud.subscribe(h => { const k = `${h.phase}|${h.round}|${h.scores}|${h.banner}|${h.callout?.quality ?? ''}${h.callout?.note ?? ''}|${h.notice ?? ''}`; if (k !== seen.k) { seen.k = k; window.__ev.push({ t: Math.round(performance.now()), phase: h.phase, round: h.round, scores: [...h.scores], banner: h.banner, callout: h.callout && { ...h.callout }, notice: h.notice }) } })
   }, { beast, launcher, name, swipe, bladeId, discId, tipId })
   await sleep(1500)
@@ -197,6 +200,10 @@ await scenario(1, 'Full match: both phones agree on rounds, scores, finishes, wi
   check(sc, 'A launch verdict never flips after the server answers', flips(ea).length === 0, flips(ea).join(' '))
   check(sc, 'B launch verdict never flips after the server answers', flips(eb).length === 0, flips(eb).join(' '))
   check(sc, 'both reached the result screen', (await route(A)) === 'result' && (await route(B)) === 'result')
+  const replays = d => d.page.evaluate(() => { const h = window.__nav.getState().stack.at(-1)?.result?.match?.history ?? []; const want = h.filter((r, i) => ['ringout', 'shatter', 'spirit'].includes(r.finish) || (r.finish === 'spin' && i === h.length - 1)).length; return { want, got: window.__cines, full: window.__cineFull, finishes: h.map(r => r.finish) } })
+  const [rpa, rpb] = await Promise.all([replays(A), replays(B)])
+  check(sc, 'every decisive finish played the finish replay on both phones', rpa.want > 0 && rpa.got === rpa.want && rpb.got === rpb.want, `A ${JSON.stringify(rpa)} B ${JSON.stringify(rpb)}`)
+  check(sc, 'every replay included the decisive moment (confirmed outcome before it started)', [...rpa.full, ...rpb.full].every(Boolean), `A ${rpa.full} B ${rpb.full}`)
   await sleep(1500)
   const c1 = [(await view(A)).coins, (await view(B)).coins]
   check(sc, 'each player paid exactly once (coins rose by a single match reward)', c1[0] - coins0[0] > 0 && c1[0] - coins0[0] < 200 && c1[1] - coins0[1] > 0 && c1[1] - coins0[1] < 200, `A +${c1[0] - coins0[0]}, B +${c1[1] - coins0[1]}`)

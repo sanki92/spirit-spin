@@ -1,5 +1,5 @@
 import {
-  applyRound, botInput, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
+  applyRound, botInput, replaysFinish, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState, type Side,
   type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
@@ -426,7 +426,7 @@ export class BattleController {
       })
     }
     const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
-    const decisive = o.finish === 'ringout' || o.finish === 'shatter' || o.finish === 'spirit' || (o.finish === 'spin' && this.match.winner !== null)
+    const decisive = replaysFinish(o, this.match.winner !== null)
     if (!still && decisive && this.finishCamOk && g.finishCam(loser, impact)) {
       s.play('clashHeavy', { volume: 0.5, rate: 0.55 })
       useHud.getState().set({ phase: 'roundEnd', banner: null, cine: { skip: () => g.skipCine() } })

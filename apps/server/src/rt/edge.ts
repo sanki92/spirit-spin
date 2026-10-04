@@ -50,7 +50,7 @@ export type EdgeApi = Pick<EdgeClient, 'cfg' | 'createMatch' | 'startRound' | 'e
 
 interface RemoteDeps { watch(b: Uint8Array): void; resync(side: Side, m: ServerMsg): void; end(): void; lost(): void; heard(side: Side): void; log(o: Record<string, unknown>): void }
 
-export const REMOTE = { retries: 20, retryMs: 200, resyncGapMs: 500, stallMs: 2000 } as const
+export const REMOTE = { retries: 20, retryMs: 200, resyncGapMs: 500, stallMs: 2000, lingerMs: 1000 } as const
 
 export class RemoteRound implements RoundRunner {
   readonly ver: Verifier

@@ -20,9 +20,14 @@ const THEME_ACCENT: Record<StadiumTheme, number> = { classic: 0x3be6ff, volcano:
 
 interface Snap { x: number; y: number }
 interface TopF { x: number; y: number; vx: number; vy: number; spin: number; wobble: number; spirit: boolean; out: boolean }
-interface Frame { t: [TopF, TopF]; clash: { x: number; y: number; energy: number } | null }
-interface Cine { frames: Frame[]; t: number; dur: number; fired: number; impact: boolean; hold: number; loser: 0 | 1 | null; done: () => void }
-const REPLAY_TICKS = 80
+export interface ReplayFrame { t: [TopF, TopF]; clash: { x: number; y: number; energy: number } | null }
+interface Cine { frames: ReplayFrame[]; t: number; dur: number; fired: number; impact: boolean; hold: number; loser: 0 | 1 | null; done: () => void }
+export const REPLAY_TICKS = 80
+
+export function replayFrame(b: BattleState, clash: ReplayFrame['clash']): ReplayFrame {
+  const f = (i: 0 | 1): TopF => { const t = b.tops[i]; return { x: t.x, y: t.y, vx: t.vx, vy: t.vy, spin: t.spin, wobble: t.wobble, spirit: t.spiritTicks > 0, out: t.out } }
+  return { t: [f(0), f(1)], clash }
+}
 const HOLD: [Snap, Snap] = [{ x: 0, y: -0.52 }, { x: 0, y: 0.52 }]
 interface LaunchAnim { t: number; dur: number; plans: [LaunchPlan, LaunchPlan]; tiers: [LaunchTier, LaunchTier]; landed: [boolean, boolean] }
 
@@ -61,8 +66,8 @@ export class Game {
   private slowUntil = 0
   private slowScale = 1
   private onTick: (() => void) | null = null
-  private hist: Frame[] = []
-  private pendingClash: Frame['clash'] = null
+  private hist: ReplayFrame[] = []
+  private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
   private onFrame: ((dt: number) => void) | null = null
 
@@ -249,10 +254,14 @@ export class Game {
   private record(): void {
     const b = this.battle
     if (!b) return
-    const f = (i: 0 | 1): TopF => { const t = b.tops[i]; return { x: t.x, y: t.y, vx: t.vx, vy: t.vy, spin: t.spin, wobble: t.wobble, spirit: t.spiritTicks > 0, out: t.out } }
-    this.hist.push({ t: [f(0), f(1)], clash: this.pendingClash })
+    this.hist.push(replayFrame(b, this.pendingClash))
     this.pendingClash = null
     if (this.hist.length > REPLAY_TICKS) this.hist.shift()
+  }
+
+  useReplay(frames: readonly ReplayFrame[]): void {
+    this.hist = frames.slice(-REPLAY_TICKS)
+    this.pendingClash = null
   }
 
   noteClash(x: number, y: number, energy: number): void {

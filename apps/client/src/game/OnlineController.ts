@@ -5,10 +5,12 @@ import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
 import { log } from '../telemetry'
 import { BattleController, type MatchSetup } from './BattleController'
-import type { Game } from './Game'
+import { REPLAY_TICKS, replayFrame, type Game, type ReplayFrame } from './Game'
 import { tierOf } from './launchPlan'
 import { bestPayload, calloutOf, judged } from './ripPayload'
 
+const END_WAIT_MS = 500
+const MIN_REPLAY = 24
 const flipWinner = (w: Side | null) => (w === null ? null : ((1 - w) as Side))
 const view = (s: BattleState, side: Side): BattleState =>
   side === 0 ? s : { ...s, tops: [s.tops[1], s.tops[0]], specs: [s.specs[1], s.specs[0]], outcome: s.outcome && { ...s.outcome, winner: flipWinner(s.outcome.winner) } }
@@ -26,8 +28,9 @@ export class OnlineController extends BattleController {
   private ended = false
   private unsub: () => void
   protected override earlyResolve = false
-  protected override finishCamOk = false
   private sent: RipPayload | null = null
+  private replay: (ReplayFrame & { over: boolean })[] = []
+  private pendingEnd: Extract<ServerMsg, { k: 'end' }> | null = null
   private pendingRip: ClientMsg | null = null
   private startedRound = 0
 
@@ -73,6 +76,7 @@ export class OnlineController extends BattleController {
     if (this.disposed) return
     if (m.k === 'start' && m.edge && this.link instanceof EdgeLink) this.link.refresh(m.edge)
     if (m.k === 'round' && m.round > this.ripRound) {
+      this.flushEnd()
       this.ripRound = m.round
       this.driver = null
       this.beginServer = Infinity
@@ -87,20 +91,11 @@ export class OnlineController extends BattleController {
       log('net.resync', { round: m.round, frame: m.tl.frame })
       this.driver.resync(m.tl)
     }
-    else if (m.k === 'end' && m.round === this.ripRound && !this.ended) {
-      const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
-      const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
-      const winner = this.side === 0 ? m.winner : flipWinner(m.winner)
-      if (!this.game.battle && this.driver) this.game.setBattle(view(this.driver.view(), this.side))
-      if (this.game.battle) this.finishRound({ k: 'finish', tick: this.driver?.session.confirmed.state.tick ?? 0, outcome })
-      if (this.driver) log('net.round', this.roundStats())
-      this.match = { ...this.match, scores, winner }
-      useHud.getState().set({ scores })
-      if (winner !== null) {
-        this.ended = true
-        this.useLink(mainLink)
-        if (!this.game.battle) this.later(1500, () => this.concludeMatch())
-      }
+    else if (m.k === 'end' && m.round === this.ripRound && !this.ended && !this.pendingEnd) {
+      if (this.driver && !this.driver.done) {
+        this.pendingEnd = m
+        this.later(END_WAIT_MS, () => this.flushEnd())
+      } else this.applyEnd(m)
     } else if (m.k === 'error' && m.code === 'no-room' && !this.ended) {
       log('net.room-lost', { round: this.ripRound })
       this.ended = true
@@ -164,6 +159,32 @@ export class OnlineController extends BattleController {
     this.enterBattlePhase()
   }
 
+  private flushEnd(): void {
+    const m = this.pendingEnd
+    if (!m) return
+    this.pendingEnd = null
+    if (!this.ended) this.applyEnd(m)
+  }
+
+  private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
+    const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
+    const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
+    const winner = this.side === 0 ? m.winner : flipWinner(m.winner)
+    const d = this.driver
+    if (!this.game.battle && d) this.game.setBattle(view(d.view(), this.side))
+    if (this.game.battle && d?.done) this.game.battle = view(d.session.confirmed.state, this.side)
+    if (this.replay.length >= MIN_REPLAY) this.game.useReplay(this.replay)
+    if (this.game.battle) this.finishRound({ k: 'finish', tick: d?.session.confirmed.state.tick ?? 0, outcome })
+    if (d) log('net.round', this.roundStats())
+    this.match = { ...this.match, scores, winner }
+    useHud.getState().set({ scores })
+    if (winner !== null) {
+      this.ended = true
+      this.useLink(mainLink)
+      if (!this.game.battle) this.later(1500, () => this.concludeMatch())
+    }
+  }
+
   private rttNow(): number {
     return this.link.net.count >= 3 ? this.link.net.rtt : rt.rtt
   }
@@ -171,6 +192,14 @@ export class OnlineController extends BattleController {
   private makeDriver(round: number, tl: Timeline): void {
     const jitter = this.link.net.count >= 3 ? this.link.net.jitter : 15
     this.driver = new NetDriver(tl, this.side, round, chooseDelay(this.rttNow(), jitter), targetMargin(jitter), this.link, this.t0)
+    this.replay = []
+    this.driver.session.onConfirmed = (st, events, from) => {
+      if (this.replay.at(-1)?.over) return
+      let clash: ReplayFrame['clash'] = null
+      for (let i = from; i < events.length; i++) { const e = events[i]!; if (e.k === 'clash') clash = { x: e.x, y: e.y, energy: e.energy } }
+      this.replay.push({ ...replayFrame(view(st, this.side), clash), over: !!st.outcome })
+      if (this.replay.length > REPLAY_TICKS) this.replay.shift()
+    }
     this.statsAt = performance.now()
   }
 
@@ -196,6 +225,7 @@ export class OnlineController extends BattleController {
       this.game.battle = after
       this.transitions()
     }
+    if (this.pendingEnd && d.done) this.flushEnd()
     if (performance.now() - this.statsAt > 5000) {
       log('net.stats', this.roundStats())
       this.statsAt = performance.now()

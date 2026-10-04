@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import {
-  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch, SEQ,
+  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch, NET, replaysFinish, SEQ,
   type BattleState, type MatchState, type MotionSample, type RipResult, type RipView, type ServerMsg,
   type Side, type TopBuild, type TouchSample, type WireMsg,
 } from '@spirit/core'
-import { RemoteRound, type EdgeApi, type RoundRunner } from './edge'
+import { REMOTE, RemoteRound, type EdgeApi, type RoundRunner } from './edge'
 import { LiveMatch, type LiveDeps } from './live'
 import { signTicket } from './tickets'
 
@@ -336,13 +336,13 @@ export class Room {
     this.phase = 'between'
     this.broadcast({ k: 'end', round: this.round, outcome, scores: this.match.scores, winner: this.match.winner })
     if (this.match.winner !== null) return this.finish()
-    this.later(TIMING.betweenRoundsMs, () => this.nextRound())
+    this.later(TIMING.betweenRoundsMs + (replaysFinish(outcome, false) ? NET.finishReplayMs : 0), () => this.nextRound())
   }
 
   private finish(): void {
     if (this.phase === 'done') return
     this.phase = 'done'
-    void this.endEdgeMatch()
+    void this.endEdgeMatch(REMOTE.lingerMs)
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
@@ -351,14 +351,14 @@ export class Room {
     this.opts.onDone(this)
   }
 
-  private endEdgeMatch(): Promise<void> {
+  private endEdgeMatch(lingerMs = 0): Promise<void> {
     const e = this.opts.edge
     if (!this.edgeUsed || !e) return Promise.resolve()
     this.edgeUsed = false
     this.edgeMatch = null
     const last = this.live instanceof RemoteRound ? this.live.ended : Promise.resolve()
-    const done = last.finally(() => e.endMatch(this.matchId)).then(() => undefined, () => undefined)
-    return Promise.race([done, new Promise<void>(r => setTimeout(r, 1500))])
+    const done = last.finally(() => new Promise<void>(r => setTimeout(r, lingerMs))).finally(() => e.endMatch(this.matchId)).then(() => undefined, () => undefined)
+    return Promise.race([done, new Promise<void>(r => setTimeout(r, 1500 + lingerMs))])
   }
 
   close(): Promise<void> {
