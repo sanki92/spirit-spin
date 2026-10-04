@@ -28,9 +28,12 @@ describe('swipePlausible', () => {
   it('accepts a real swipe sampled at touch rate', () => {
     expect(swipePlausible(pts(11, 16))).toBe(true)
   })
+  it('accepts a swipe from a phone dropping to ~12 fps (80 ms between touch points)', () => {
+    expect(swipePlausible(pts(8, 80))).toBe(true)
+  })
   it('rejects forged two-point or sparse swipes', () => {
     expect(swipePlausible([{ t: 0, x: 0, y: 0 }, { t: 120, x: 0, y: 900 }])).toBe(false)
-    expect(swipePlausible(pts(8, 90))).toBe(false)
+    expect(swipePlausible(pts(6, 150))).toBe(false)
     expect(swipePlausible(pts(8, 0))).toBe(false)
   })
 })

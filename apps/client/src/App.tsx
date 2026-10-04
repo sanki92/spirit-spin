@@ -156,7 +156,8 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
     [route, nav],
   )
   const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, { ...d, onAbort: () => nav.replace({ k: 'friends' }) }, route.side), [route, nav])
-  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
+  const names = useMemo<[string, string]>(() => [s.name || 'You', route.peer.name || 'Rival'], [route])
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} names={names} />
 }
 
 function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {

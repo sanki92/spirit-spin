@@ -2,9 +2,9 @@ import { judgeRip, type MotionSample, type RipFail, type RipPayload, type RipRes
 import type { Callout } from '../state/hud'
 import { FAIL_TEXT } from './BattleController'
 
-export const RIP_BEFORE_MS = 400
+export const RIP_BEFORE_MS = 1000
 export const RIP_AFTER_MS = 850
-const MIN_GAP_MS = 8
+const MIN_GAP_MS = 12
 const r2 = (v: number) => Math.round(v * 100) / 100
 
 function motionPart(t0: number, motion: readonly MotionSample[]): MotionSample[] {

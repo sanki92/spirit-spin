@@ -100,7 +100,8 @@ export class OnlineController extends BattleController {
 
   protected override adjudicate(_res: RipResult | RipFail, motion: MotionSample[] | null, swipe: TouchSample[] | null, preferSwipe: boolean): RipResult | RipFail {
     this.sent = bestPayload(this.launchAt, motion, swipe, this.deps.calibration.pull100, preferSwipe)
-    return judged(this.sent).res
+    const r = judged(this.sent).res
+    return r.ok ? { ...r, startT: r.startT + this.launchAt } : r
   }
 
   protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {

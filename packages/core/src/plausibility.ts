@@ -44,7 +44,7 @@ export function swipePlausible(points: readonly TouchSample[]): boolean {
   if (points.length < 6) return false
   for (let i = 1; i < points.length; i++) {
     const dt = (points[i] as TouchSample).t - (points[i - 1] as TouchSample).t
-    if (!(dt > 0) || dt > 60) return false
+    if (!(dt > 0) || dt > 120) return false
   }
   const span = (points[points.length - 1] as TouchSample).t - (points[0] as TouchSample).t
   return span >= 50 && span <= 900

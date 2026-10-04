@@ -5,10 +5,15 @@ export function captureSwipe(el: HTMLElement, onDone: (pts: TouchSample[]) => vo
   let active = false
   const down = (e: PointerEvent) => {
     active = true
-    pts = [{ t: performance.now(), x: e.clientX, y: e.clientY }]
+    pts = [{ t: e.timeStamp || performance.now(), x: e.clientX, y: e.clientY }]
   }
   const move = (e: PointerEvent) => {
-    if (active) pts.push({ t: performance.now(), x: e.clientX, y: e.clientY })
+    if (!active) return
+    const all = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : []
+    for (const c of all.length ? all : [e]) {
+      const t = c.timeStamp || performance.now()
+      if (t > (pts[pts.length - 1]?.t ?? -Infinity)) pts.push({ t, x: c.clientX, y: c.clientY })
+    }
   }
   const up = () => {
     if (!active) return

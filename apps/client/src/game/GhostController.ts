@@ -39,7 +39,8 @@ export class GhostController extends BattleController {
     const t0 = this.launchAt
     const trace = this.deps.sensors?.window(t0 - RIP_BEFORE_MS, t0 + RIP_AFTER_MS) ?? motion ?? []
     this.payload = ripPayload(t0, trace, swipe, this.deps.calibration.pull100, this.issued.pool === 'motion' ? 'motion' : 'swipe')
-    return judged(this.payload).res
+    const r = judged(this.payload).res
+    return r.ok ? { ...r, startT: r.startT + t0 } : r
   }
 
   protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {
