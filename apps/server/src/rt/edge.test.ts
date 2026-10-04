@@ -31,7 +31,7 @@ describe('edge over gRPC', () => {
     expect(t0).toBeGreaterThan(Date.now() - 5000)
     const watched: Uint8Array[] = []
     let ended = 0
-    const rr = new RemoteRound(1, battle(), t0, edge, 'M1', { watch: b => watched.push(b), resync: () => undefined, end: () => ended++, lost: () => undefined, log: () => undefined })
+    const rr = new RemoteRound(1, battle(), t0, edge, 'M1', { watch: b => watched.push(b), resync: () => undefined, end: () => ended++, lost: () => undefined, heard: () => undefined, log: () => undefined })
     await new Promise(r => setTimeout(r, 1500))
     expect(rr.ver.frame).toBeGreaterThan(30)
     expect(watched.length).toBeGreaterThan(0)
@@ -45,7 +45,7 @@ describe('edge over gRPC', () => {
   it('a dropped stream resubscribes from the verified frame and stays contiguous', async () => {
     await edge.createMatch('M2')
     const t0 = await edge.startRound('M2', 1, 0)
-    const rr = new RemoteRound(1, battle(), t0, edge, 'M2', { watch: () => undefined, resync: () => undefined, end: () => undefined, lost: () => undefined, log: () => undefined })
+    const rr = new RemoteRound(1, battle(), t0, edge, 'M2', { watch: () => undefined, resync: () => undefined, end: () => undefined, lost: () => undefined, heard: () => undefined, log: () => undefined })
     await new Promise(r => setTimeout(r, 600))
     ;(rr as unknown as { cancel: () => void }).cancel()
     ;(rr as unknown as { subscribe: () => void }).subscribe()

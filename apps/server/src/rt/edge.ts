@@ -6,21 +6,21 @@ import { Verifier } from './verifier'
 
 export interface RoundRunner { readonly t0: number; readonly ver: Verifier; onWire(side: Side, m: WireMsg): void; catchup(side: Side | null): Extract<ServerMsg, { k: 'catchup' }>; stop(): void }
 export interface EdgeConfig { grpc: string; secret: string; wt: string; ws: string }
-export interface EdgeBatch { round: number; first: number; frames: Frame[]; hashes: { side: Side; frame: number; hash: number }[] }
+export interface EdgeBatch { round: number; first: number; frames: Frame[]; hashes: { side: Side; frame: number; hash: number }[]; inputHi: [number, number] }
 
-type RawBatch = { round: number; first: number; inputs: Buffer; hashes: { side: number; frame: number; hash: number }[] }
+type RawBatch = { round: number; first: number; inputs: Buffer; hashes: { side: number; frame: number; hash: number }[]; inputHi?: number[] }
 type Unary = (req: object, md: grpc.Metadata, opts: grpc.CallOptions, cb: (e: grpc.ServiceError | null, r: unknown) => void) => void
 type Svc = grpc.Client & Record<string, Unary> & { StreamFrames(req: object, md: grpc.Metadata): grpc.ClientReadableStream<RawBatch> }
 
 const def = loader.loadSync(fileURLToPath(new URL('../../../../proto/edge.proto', import.meta.url)), { longs: Number, defaults: true })
-const Edge = (grpc.loadPackageDefinition(def) as unknown as { spirit: { edge: { v1: { Edge: new (addr: string, cred: grpc.ChannelCredentials) => Svc } } } }).spirit.edge.v1.Edge
+const Edge = (grpc.loadPackageDefinition(def) as unknown as { spirit: { edge: { v1: { Edge: new (addr: string, cred: grpc.ChannelCredentials, opts?: grpc.ChannelOptions) => Svc } } } }).spirit.edge.v1.Edge
 
 export class EdgeClient {
   private c: Svc
   private md = new grpc.Metadata()
 
   constructor(readonly cfg: EdgeConfig) {
-    this.c = new Edge(cfg.grpc, grpc.credentials.createInsecure())
+    this.c = new Edge(cfg.grpc, grpc.credentials.createInsecure(), { 'grpc.keepalive_time_ms': 10000, 'grpc.keepalive_timeout_ms': 5000, 'grpc.keepalive_permit_without_calls': 1 })
     this.md.set('authorization', `Bearer ${cfg.secret}`)
   }
 
@@ -37,8 +37,8 @@ export class EdgeClient {
     const s = this.c.StreamFrames({ matchId: id, round, after }, this.md)
     let done = false
     const finish = (err: unknown) => { if (!done) { done = true; onEnd(err) } }
-    s.on('data', (b: RawBatch) => onBatch({ round: b.round, first: b.first, frames: unpackFrames(new Uint8Array(b.inputs)), hashes: b.hashes.map(h => ({ side: (h.side === 1 ? 1 : 0) as Side, frame: h.frame, hash: h.hash })) }))
-    s.on('error', e => { if ((e as grpc.ServiceError).code !== grpc.status.CANCELLED) finish(e) })
+    s.on('data', (b: RawBatch) => onBatch({ round: b.round, first: b.first, frames: unpackFrames(new Uint8Array(b.inputs)), hashes: b.hashes.map(h => ({ side: (h.side === 1 ? 1 : 0) as Side, frame: h.frame, hash: h.hash })), inputHi: [b.inputHi?.[0] ?? 0, b.inputHi?.[1] ?? 0] }))
+    s.on('error', e => finish(e))
     s.on('end', () => finish(null))
     return () => { done = true; s.cancel() }
   }
@@ -48,9 +48,9 @@ export class EdgeClient {
 
 export type EdgeApi = Pick<EdgeClient, 'cfg' | 'createMatch' | 'startRound' | 'endRound' | 'endMatch' | 'stream'>
 
-export interface RemoteDeps { watch(b: Uint8Array): void; resync(side: Side, m: ServerMsg): void; end(): void; lost(): void; log(o: Record<string, unknown>): void }
+export interface RemoteDeps { watch(b: Uint8Array): void; resync(side: Side, m: ServerMsg): void; end(): void; lost(): void; heard(side: Side): void; log(o: Record<string, unknown>): void }
 
-export const REMOTE = { retries: 20, retryMs: 200, resyncGapMs: 500 } as const
+export const REMOTE = { retries: 20, retryMs: 200, resyncGapMs: 500, stallMs: 2000 } as const
 
 export class RemoteRound implements RoundRunner {
   readonly ver: Verifier
@@ -58,28 +58,48 @@ export class RemoteRound implements RoundRunner {
   private done = false
   private retries = 0
   private lastResync: [number, number] = [-Infinity, -Infinity]
+  private hi: [number, number] = [0, 0]
+  private lastBatch = Date.now()
+  private watchdog: ReturnType<typeof setInterval>
   ended: Promise<void> = Promise.resolve()
 
   constructor(readonly round: number, state: BattleState, readonly t0: number, private edge: EdgeApi, private matchId: string, private d: RemoteDeps) {
     this.ver = new Verifier(state)
     this.subscribe()
+    this.watchdog = setInterval(() => {
+      const now = Date.now()
+      if (now > this.t0 + REMOTE.stallMs && now - this.lastBatch > REMOTE.stallMs) this.fail('stalled')
+    }, 500)
   }
 
   private subscribe(): void {
-    this.cancel = this.edge.stream(this.matchId, this.round, this.ver.frame, b => this.onBatch(b), err => {
-      if (this.done) return
-      this.d.log({ msg: 'edge.stream-end', round: this.round, err: String(err) })
-      if (this.retries++ < REMOTE.retries) setTimeout(() => { if (!this.done) this.subscribe() }, REMOTE.retryMs)
-      else {
-        this.stop()
-        this.d.lost()
-      }
-    })
+    this.lastBatch = Date.now()
+    this.cancel = this.edge.stream(this.matchId, this.round, this.ver.frame, b => this.onBatch(b), err => this.fail(err))
+  }
+
+  private fail(err: unknown): void {
+    if (this.done) return
+    this.cancel()
+    this.cancel = () => undefined
+    this.lastBatch = Infinity
+    this.d.log({ msg: 'edge.stream-end', round: this.round, err: String(err) })
+    if (this.retries++ < REMOTE.retries) setTimeout(() => { if (!this.done) this.subscribe() }, REMOTE.retryMs)
+    else {
+      this.stop()
+      this.d.lost()
+    }
   }
 
   private onBatch(b: EdgeBatch): void {
     if (this.done || b.round !== this.round) return
     this.retries = 0
+    this.lastBatch = Date.now()
+    for (const s of [0, 1] as const) {
+      if (b.inputHi[s] > this.hi[s]) {
+        this.hi[s] = b.inputHi[s]
+        this.d.heard(s)
+      }
+    }
     const before = this.ver.frame
     this.ver.apply(b.first, b.frames)
     const after = this.ver.frame
@@ -113,6 +133,7 @@ export class RemoteRound implements RoundRunner {
 
   stop(): void {
     this.done = true
+    clearInterval(this.watchdog)
     this.cancel()
   }
 }

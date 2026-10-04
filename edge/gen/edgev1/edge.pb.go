@@ -607,6 +607,7 @@ type FrameBatch struct {
 	First         uint32                 `protobuf:"varint,2,opt,name=first,proto3" json:"first,omitempty"`
 	Inputs        []byte                 `protobuf:"bytes,3,opt,name=inputs,proto3" json:"inputs,omitempty"`
 	Hashes        []*ClientHash          `protobuf:"bytes,4,rep,name=hashes,proto3" json:"hashes,omitempty"`
+	InputHi       []uint32               `protobuf:"varint,5,rep,packed,name=input_hi,json=inputHi,proto3" json:"input_hi,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -665,6 +666,13 @@ func (x *FrameBatch) GetInputs() []byte {
 func (x *FrameBatch) GetHashes() []*ClientHash {
 	if x != nil {
 		return x.Hashes
+	}
+	return nil
+}
+
+func (x *FrameBatch) GetInputHi() []uint32 {
+	if x != nil {
+		return x.InputHi
 	}
 	return nil
 }
@@ -801,13 +809,14 @@ const file_edge_proto_rawDesc = "" +
 	"ClientHash\x12\x12\n" +
 	"\x04side\x18\x01 \x01(\rR\x04side\x12\x14\n" +
 	"\x05frame\x18\x02 \x01(\rR\x05frame\x12\x12\n" +
-	"\x04hash\x18\x03 \x01(\rR\x04hash\"\x84\x01\n" +
+	"\x04hash\x18\x03 \x01(\rR\x04hash\"\x9f\x01\n" +
 	"\n" +
 	"FrameBatch\x12\x14\n" +
 	"\x05round\x18\x01 \x01(\rR\x05round\x12\x14\n" +
 	"\x05first\x18\x02 \x01(\rR\x05first\x12\x16\n" +
 	"\x06inputs\x18\x03 \x01(\fR\x06inputs\x122\n" +
-	"\x06hashes\x18\x04 \x03(\v2\x1a.spirit.edge.v1.ClientHashR\x06hashes\"\x0f\n" +
+	"\x06hashes\x18\x04 \x03(\v2\x1a.spirit.edge.v1.ClientHashR\x06hashes\x12\x19\n" +
+	"\binput_hi\x18\x05 \x03(\rR\ainputHi\"\x0f\n" +
 	"\rHealthRequest\"F\n" +
 	"\x0eHealthResponse\x12\x18\n" +
 	"\amatches\x18\x01 \x01(\rR\amatches\x12\x1a\n" +

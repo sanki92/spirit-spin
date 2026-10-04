@@ -87,6 +87,8 @@ func (s *Sequencer) Due(now float64) int {
 	}
 }
 
+func (s *Sequencer) Hi(side int) uint32 { return s.hi[side] }
+
 func (s *Sequencer) Margin(side int) int {
 	m := s.margins[side]
 	if len(m) == 0 {

@@ -72,7 +72,7 @@ func TestConfirmsAndSendsAckWindow(t *testing.T) {
 	*now = at(t0, 40)
 	m.Tick()
 	last := a.withFrames()[len(a.withFrames())-1]
-	if last.First != 1 || len(last.Frames) != 16 {
+	if last.First != 1 || len(last.Frames) != 40 {
 		t.Fatalf("window %d+%d", last.First, len(last.Frames))
 	}
 	m.OnPacket(0, wire.EncodeInput(1, 41, 30, nil))
@@ -81,6 +81,45 @@ func TestConfirmsAndSendsAckWindow(t *testing.T) {
 	last = a.withFrames()[len(a.withFrames())-1]
 	if last.First != 31 || len(last.Frames) != 11 {
 		t.Fatalf("after ack %d+%d", last.First, len(last.Frames))
+	}
+}
+
+func TestWindowCoversAHighRTTOrReturningClient(t *testing.T) {
+	m, a, _, now := setup()
+	t0 := m.StartRound(1, 600)
+	*now = at(t0, 100)
+	m.Tick()
+	last := a.withFrames()[len(a.withFrames())-1]
+	if last.First != 1 || len(last.Frames) != 100 {
+		t.Fatalf("a client 100 frames behind got %d+%d in one send", last.First, len(last.Frames))
+	}
+	*now = at(t0, 400)
+	m.Tick()
+	last = a.withFrames()[len(a.withFrames())-1]
+	if len(last.Frames) != window || len(wire.EncodeFrames(1, 1, 0, last.Frames)) > 1200 {
+		t.Fatalf("window must cap at %d frames and fit a datagram, got %d", window, len(last.Frames))
+	}
+}
+
+func TestLatestAckWinsEvenWhenItMovesBack(t *testing.T) {
+	m, a, _, now := setup()
+	t0 := m.StartRound(1, 600)
+	*now = at(t0, 60)
+	m.Tick()
+	m.OnPacket(0, wire.EncodeInput(1, 61, 50, nil))
+	m.OnPacket(0, wire.EncodeInput(1, 61, 40, nil))
+	*now = at(t0, 61)
+	m.Tick()
+	last := a.withFrames()[len(a.withFrames())-1]
+	if last.First != 41 {
+		t.Fatalf("after a resync to 40 the next send must start at 41, got %d", last.First)
+	}
+	a2 := &fakePeer{}
+	m.Attach(0, a2)
+	*now = at(t0, 62)
+	m.Tick()
+	if f := a2.withFrames(); len(f) == 0 || f[0].First != 1 {
+		t.Fatalf("a reattached peer must restart from frame 1 until it acks, got %+v", f)
 	}
 }
 
@@ -119,6 +158,57 @@ func TestStreamCarriesFramesHashesAndBacklog(t *testing.T) {
 	b := <-ch
 	if b.First != 11 || len(b.Hashes) != 1 || b.Hashes[0] != (Hash{1, 60, 7}) {
 		t.Fatalf("batch %+v", b)
+	}
+}
+
+func TestRegistryReapsOrphanedMatches(t *testing.T) {
+	now := 0.0
+	reg := NewRegistry(func() float64 { return now })
+	live := reg.Create("LIVE")
+	live.StartRound(1, 0)
+	_, cancel := live.Subscribe(1, 0)
+	defer cancel()
+	orphan := reg.Create("ORPHAN")
+	orphan.StartRound(1, 0)
+	idle := reg.Create("IDLE")
+	now = 3 * 60 * 1000
+	reg.Reap()
+	if reg.Get("ORPHAN") != nil {
+		t.Fatal("a running round nobody streams for 3 min must be reaped")
+	}
+	if reg.Get("LIVE") == nil || reg.Get("IDLE") == nil {
+		t.Fatal("reaped a streamed match or a recently idle one")
+	}
+	now = 11 * 60 * 1000
+	reg.Reap()
+	if reg.Get("IDLE") != nil {
+		t.Fatal("a match idle for 11 min must be reaped")
+	}
+	_ = idle
+}
+
+func TestRunawayRoundStopsAtTheFrameCap(t *testing.T) {
+	m, _, _, now := setup()
+	t0 := m.StartRound(1, 0)
+	*now = at(t0, maxFrames+10)
+	m.Tick()
+	if m.seq != nil {
+		t.Fatal("round kept confirming past the frame cap")
+	}
+}
+
+func TestBatchCarriesEachSidesNewestInputFrame(t *testing.T) {
+	m, _, _, now := setup()
+	t0 := m.StartRound(1, 600)
+	ch, cancel := m.Subscribe(1, 0)
+	defer cancel()
+	*now = t0
+	m.OnPacket(0, wire.EncodeInput(1, 1, 0, []wire.Input{in(1), in(1), in(1)}))
+	*now = at(t0, 2)
+	m.Tick()
+	b := <-ch
+	if b.InputHi != [2]uint32{3, 0} {
+		t.Fatalf("input hi %v", b.InputHi)
 	}
 }
 

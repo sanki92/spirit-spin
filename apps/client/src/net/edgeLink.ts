@@ -22,7 +22,7 @@ const within = <T>(p: Promise<T>, ms: number): Promise<T> => Promise.race([p, ne
 export const EDGE = { wtTimeoutMs: 1500, wsTimeoutMs: 4000, maxBackoffMs: 3000, fastPingMs: 2000, maxRetries: 5 } as const
 
 export class EdgeLink implements WireLink {
-  kind: 'wt' | 'ws' = 'ws'
+  kind: 'wt' | 'ws' | 'none' = 'none'
   readonly net = new RttStats()
   private handlers = new Set<(m: WireMsg) => void>()
   private offset: number
@@ -31,8 +31,11 @@ export class EdgeLink implements WireLink {
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null
   private ws: WebSocket | null = null
   private closed = false
+  private opening = false
+  private wtBroken = false
   private retry = 0
-  private pingTimer = 0
+  private timer: ReturnType<typeof setTimeout> | 0 = 0
+  private pingTimer: ReturnType<typeof setInterval> | 0 = 0
   private opened = 0
   private pings = 0
 
@@ -40,24 +43,52 @@ export class EdgeLink implements WireLink {
     this.offset = deps.baseOffset ?? 0
   }
 
+  start(): void {
+    void this.open().catch(() => this.schedule())
+  }
+
+  refresh(info: EdgeInfo): void {
+    const certChanged = info.certHash !== this.info.certHash
+    this.info = info
+    if (certChanged) this.wtBroken = false
+    if (this.closed || this.wt || this.ws || this.opening) return
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = 0
+    this.retry = 0
+    this.start()
+  }
+
   async open(): Promise<void> {
-    if (this.closed) return
-    const urls = edgeUrls(this.info, this.deps.location ?? location)
-    const WT = 'WT' in this.deps ? this.deps.WT : (globalThis as { WebTransport?: typeof WebTransport }).WebTransport
-    if (WT) {
-      try {
-        await within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs)
-        return this.up('wt')
-      } catch (e) {
-        log('edge.wt-fail', { err: String(e).slice(0, 120) })
-        const t = this.wt
-        this.wt = null
-        this.writer = null
-        try { t?.close() } catch { }
+    if (this.closed || this.opening) return
+    this.opening = true
+    try {
+      const urls = edgeUrls(this.info, this.deps.location ?? location)
+      const WT = 'WT' in this.deps ? this.deps.WT : (globalThis as { WebTransport?: typeof WebTransport }).WebTransport
+      if (WT && !this.wtBroken) {
+        try {
+          await within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs)
+          return this.up('wt')
+        } catch (e) {
+          this.wtBroken = true
+          log('edge.wt-fail', { err: String(e).slice(0, 120) })
+          const t = this.wt
+          this.wt = null
+          this.writer = null
+          try { t?.close() } catch { }
+        }
       }
+      try {
+        await within(this.openWS(urls.ws), EDGE.wsTimeoutMs)
+      } catch (e) {
+        const w = this.ws
+        this.ws = null
+        try { w?.close() } catch { }
+        throw e
+      }
+      this.up('ws')
+    } finally {
+      this.opening = false
     }
-    await within(this.openWS(urls.ws), EDGE.wsTimeoutMs)
-    this.up('ws')
   }
 
   private up(kind: 'wt' | 'ws'): void {
@@ -65,8 +96,10 @@ export class EdgeLink implements WireLink {
     this.kind = kind
     this.retry = 0
     this.opened = performance.now()
-    clearInterval(this.pingTimer)
-    this.pingTimer = window.setInterval(() => {
+    this.pings = 0
+    if (this.pingTimer) clearInterval(this.pingTimer)
+    this.send({ op: 'ping', t: performance.now() })
+    this.pingTimer = setInterval(() => {
       if (performance.now() - this.opened > EDGE.fastPingMs && this.pings++ % 2) return
       this.send({ op: 'ping', t: performance.now() })
     }, 250)
@@ -97,10 +130,14 @@ export class EdgeLink implements WireLink {
       const ws = new WS(url)
       ws.binaryType = 'arraybuffer'
       this.ws = ws
-      ws.onopen = () => resolve()
-      ws.onerror = () => reject(new Error('ws error'))
+      let opened = false
+      ws.onopen = () => { opened = true; resolve() }
+      ws.onerror = () => { if (!opened) reject(new Error('ws error')) }
       ws.onmessage = e => { if (typeof e.data !== 'string') this.onBytes(new Uint8Array(e.data as ArrayBuffer)) }
-      ws.onclose = () => { reject(new Error('ws closed')); this.drop(ws) }
+      ws.onclose = () => {
+        if (!opened) return reject(new Error('ws closed'))
+        this.drop(ws)
+      }
     })
   }
 
@@ -109,18 +146,23 @@ export class EdgeLink implements WireLink {
     this.wt = null
     this.writer = null
     this.ws = null
-    clearInterval(this.pingTimer)
+    if (this.pingTimer) clearInterval(this.pingTimer)
+    this.pingTimer = 0
     log('edge.drop', { kind: this.kind })
-    this.reconnect()
+    this.schedule()
   }
 
-  private reconnect(): void {
+  private schedule(): void {
+    if (this.closed || this.timer || this.opening || this.wt || this.ws) return
     if (this.retry >= EDGE.maxRetries) {
       log('edge.gave-up', { kind: this.kind })
       return
     }
     const wait = Math.min(EDGE.maxBackoffMs, 300 * 2 ** this.retry++)
-    setTimeout(() => { if (!this.closed && !this.wt && !this.ws) this.open().catch(() => this.reconnect()) }, wait)
+    this.timer = setTimeout(() => {
+      this.timer = 0
+      this.start()
+    }, wait)
   }
 
   private onBytes(b: Uint8Array): void {
@@ -151,7 +193,10 @@ export class EdgeLink implements WireLink {
   serverNow(): number { return Date.now() + this.offset }
 
   private shut(): void {
-    clearInterval(this.pingTimer)
+    if (this.pingTimer) clearInterval(this.pingTimer)
+    if (this.timer) clearTimeout(this.timer)
+    this.pingTimer = 0
+    this.timer = 0
     try { this.wt?.close() } catch { }
     this.ws?.close()
     this.wt = null

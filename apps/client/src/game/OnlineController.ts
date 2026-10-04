@@ -71,6 +71,7 @@ export class OnlineController extends BattleController {
 
   private onNet(m: ServerMsg): void {
     if (this.disposed) return
+    if (m.k === 'start' && m.edge && this.link instanceof EdgeLink) this.link.refresh(m.edge)
     if (m.k === 'round' && m.round > this.ripRound) {
       this.ripRound = m.round
       this.driver = null
@@ -142,7 +143,7 @@ export class OnlineController extends BattleController {
     if (m.edge && !(this.link instanceof EdgeLink)) {
       const l = new EdgeLink(m.edge, { baseOffset: rt.offset })
       this.useLink(l)
-      void l.open().catch(e => log('edge.open-failed', { err: String(e) }))
+      l.start()
     } else if (!m.edge) this.useLink(mainLink)
     this.pendingRip = null
     this.resolvedAt = this.launchAt

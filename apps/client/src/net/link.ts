@@ -2,7 +2,7 @@ import type { RttStats, WireMsg } from '@spirit/core'
 import { rt } from './rt'
 
 export interface WireLink {
-  readonly kind: 'main' | 'wt' | 'ws'
+  readonly kind: 'main' | 'wt' | 'ws' | 'none'
   readonly net: RttStats
   send(m: WireMsg): void
   on(fn: (m: WireMsg) => void): () => void

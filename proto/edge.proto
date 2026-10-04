@@ -22,6 +22,6 @@ message EndMatchRequest { string match_id = 1; }
 message EndMatchResponse {}
 message StreamFramesRequest { string match_id = 1; uint32 round = 2; uint32 after = 3; }
 message ClientHash { uint32 side = 1; uint32 frame = 2; uint32 hash = 3; }
-message FrameBatch { uint32 round = 1; uint32 first = 2; bytes inputs = 3; repeated ClientHash hashes = 4; }
+message FrameBatch { uint32 round = 1; uint32 first = 2; bytes inputs = 3; repeated ClientHash hashes = 4; repeated uint32 input_hi = 5; }
 message HealthRequest {}
 message HealthResponse { uint32 matches = 1; uint32 sessions = 2; }

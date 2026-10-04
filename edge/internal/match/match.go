@@ -22,6 +22,7 @@ type Batch struct {
 	Round, First uint32
 	Inputs       []byte
 	Hashes       []Hash
+	InputHi      [2]uint32
 }
 
 type Stats struct {
@@ -34,10 +35,13 @@ type Stats struct {
 }
 
 const (
-	window    = 16
+	window    = 150
 	keepAlive = 50.0
 	subBuffer = 4096
 	maxHashes = 64
+	maxFrames = 6000
+	orphanMs  = 2 * 60 * 1000
+	idleMs    = 10 * 60 * 1000
 )
 
 type Match struct {
@@ -53,14 +57,16 @@ type Match struct {
 	sub      chan Batch
 	lastSend float64
 	in, out  uint64
+	touched  float64
 }
 
-func New(id string, now func() float64) *Match { return &Match{ID: id, now: now} }
+func New(id string, now func() float64) *Match { return &Match{ID: id, now: now, touched: now()} }
 
 func (m *Match) StartRound(round uint32, leadInMs float64) float64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	t0 := m.now() + leadInMs
+	m.touched = m.now()
+	t0 := m.touched + leadInMs
 	m.round, m.seq = round, seq.New(t0)
 	m.acked, m.streamed, m.hashes, m.in, m.out, m.lastSend = [2]uint32{}, 0, nil, 0, 0, 0
 	return t0
@@ -69,6 +75,7 @@ func (m *Match) StartRound(round uint32, leadInMs float64) float64 {
 func (m *Match) EndRound(round uint32) Stats {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.touched = m.now()
 	st := Stats{In: m.in, Out: m.out}
 	for i, p := range m.peers {
 		if p != nil {
@@ -90,6 +97,7 @@ func (m *Match) Attach(side int, p Peer) {
 	m.mu.Lock()
 	old := m.peers[side]
 	m.peers[side] = p
+	m.acked[side] = 0
 	m.mu.Unlock()
 	if old != nil && old != p {
 		old.Close()
@@ -122,7 +130,7 @@ func (m *Match) OnPacket(side int, b []byte) {
 		if m.seq == nil || msg.Round != uint8(m.round) {
 			return
 		}
-		if msg.Ack > int32(m.acked[side]) && uint32(msg.Ack) <= m.seq.Frame {
+		if msg.Ack >= 0 && uint32(msg.Ack) <= m.seq.Frame {
 			m.acked[side] = uint32(msg.Ack)
 		}
 		m.seq.Receive(side, msg.First, msg.Inputs, m.now())
@@ -141,6 +149,10 @@ func (m *Match) Tick() {
 	}
 	now := m.now()
 	n := m.seq.Due(now)
+	if m.seq.Frame >= maxFrames {
+		m.seq = nil
+		return
+	}
 	if n > 0 || now-m.lastSend >= keepAlive {
 		m.lastSend = now
 		total := len(m.seq.Confirmed)
@@ -156,7 +168,7 @@ func (m *Match) Tick() {
 		}
 	}
 	if m.sub != nil && (m.streamed < m.seq.Frame || len(m.hashes) > 0) {
-		b := Batch{Round: m.round, First: m.streamed + 1, Inputs: wire.PackFrames(m.seq.Confirmed[m.streamed:m.seq.Frame]), Hashes: m.hashes}
+		b := Batch{Round: m.round, First: m.streamed + 1, Inputs: wire.PackFrames(m.seq.Confirmed[m.streamed:m.seq.Frame]), Hashes: m.hashes, InputHi: [2]uint32{m.seq.Hi(0), m.seq.Hi(1)}}
 		select {
 		case m.sub <- b:
 			m.streamed, m.hashes = m.seq.Frame, nil
@@ -173,12 +185,13 @@ func (m *Match) Subscribe(round, after uint32) (<-chan Batch, func()) {
 	if m.sub != nil {
 		close(m.sub)
 	}
+	m.touched = m.now()
 	ch := make(chan Batch, subBuffer)
 	m.sub = ch
 	if m.seq != nil && m.round == round {
 		after = min(after, m.seq.Frame)
 		if after < m.seq.Frame {
-			ch <- Batch{Round: round, First: after + 1, Inputs: wire.PackFrames(m.seq.Confirmed[after:m.seq.Frame])}
+			ch <- Batch{Round: round, First: after + 1, Inputs: wire.PackFrames(m.seq.Confirmed[after:m.seq.Frame]), InputHi: [2]uint32{m.seq.Hi(0), m.seq.Hi(1)}}
 		}
 		m.streamed = m.seq.Frame
 	}
@@ -253,6 +266,27 @@ func (r *Registry) Delete(id string) {
 	}
 }
 
+func (m *Match) reapable(now float64) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.sub != nil {
+		return false
+	}
+	if m.seq != nil {
+		return now-m.touched > orphanMs
+	}
+	return now-m.touched > idleMs
+}
+
+func (r *Registry) Reap() {
+	now := r.now()
+	for _, m := range r.all() {
+		if m.reapable(now) {
+			r.Delete(m.ID)
+		}
+	}
+}
+
 func (r *Registry) all() []*Match {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -275,10 +309,14 @@ func (r *Registry) Counts() (int, int) {
 func (r *Registry) Run(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
+	reap := time.NewTicker(time.Second)
+	defer reap.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-reap.C:
+			r.Reap()
 		case <-t.C:
 			for _, m := range r.all() {
 				m.Tick()

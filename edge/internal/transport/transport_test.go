@@ -133,3 +133,24 @@ func TestOutboxDropsWhenFullInsteadOfBlocking(t *testing.T) {
 	o.Send([]byte{1})
 	o.Close()
 }
+
+func TestLimiterAllowsABurstThenSheds(t *testing.T) {
+	now := time.Unix(0, 0)
+	l := newLimiter(now)
+	ok := 0
+	for i := 0; i < 1000; i++ {
+		if l.allow(now) {
+			ok++
+		}
+	}
+	if ok != limitBurst {
+		t.Fatalf("burst allowed %d, want %d", ok, limitBurst)
+	}
+	if l.flooding() != true {
+		t.Fatal("a 1000-packet instant burst must count as a flood")
+	}
+	later := now.Add(time.Second)
+	if !l.allow(later) {
+		t.Fatal("tokens must refill over time")
+	}
+}

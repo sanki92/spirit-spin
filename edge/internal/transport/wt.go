@@ -46,10 +46,17 @@ func ServeWT(ctx context.Context, addr string, tc *tls.Config, reg *match.Regist
 				m.Detach(c.S, p)
 				p.Close()
 			}()
+			lim := newLimiter(time.Now())
 			for {
 				b, err := sess.ReceiveDatagram(sess.Context())
 				if err != nil {
 					return
+				}
+				if !lim.allow(time.Now()) {
+					if lim.flooding() {
+						return
+					}
+					continue
 				}
 				if !f.dropIn() {
 					m.OnPacket(c.S, b)

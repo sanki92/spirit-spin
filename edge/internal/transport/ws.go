@@ -44,10 +44,17 @@ func WSHandler(reg *match.Registry, secret []byte, f Faults) http.Handler {
 			m.Detach(c.S, p)
 			p.Close()
 		}()
+		lim := newLimiter(time.Now())
 		for {
 			typ, b, err := conn.Read(ctx)
 			if err != nil {
 				return
+			}
+			if !lim.allow(time.Now()) {
+				if lim.flooding() {
+					return
+				}
+				continue
 			}
 			if typ == websocket.MessageBinary && !f.dropIn() {
 				m.OnPacket(c.S, b)

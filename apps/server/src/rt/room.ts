@@ -50,6 +50,7 @@ export class Room {
 
   private readonly matchId: string
   private edgeMatch: Promise<{ certHash: string }> | null = null
+  private edgeUsed = false
   private certHash: string | null = null
 
   get battle(): BattleState | null {
@@ -262,6 +263,7 @@ export class Room {
 
   private async runEdge(e: EdgeApi, round: number, state: BattleState): Promise<void> {
     try {
+      this.edgeUsed = true
       const { certHash } = await (this.edgeMatch ??= e.createMatch(this.matchId))
       this.certHash = certHash
       const t0 = await e.startRound(this.matchId, round, SEQ.leadInMs)
@@ -271,6 +273,7 @@ export class Room {
         resync: (side, m) => { const s = this.seats[side]; if (s?.online) s.send(m) },
         end: () => this.endRound(),
         lost: () => this.edgeLost(),
+        heard: side => this.heard(side),
         log: o => this.opts.log?.({ code: this.code, ...o }),
       })
       this.sendStart()
@@ -300,17 +303,19 @@ export class Room {
     return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], t0: this.live!.t0, ...(edge ? { edge } : {}) }
   }
 
+  private heard(side: Side): void {
+    const s = this.seats[side]
+    if (!s || this.phase !== 'battle') return
+    s.heard = this.opts.now()
+    if (!s.quiet) return
+    s.quiet = false
+    const other = this.seats[(1 - side) as Side]
+    if (other?.online && s.online) other.send({ k: 'peer', name: s.name, build: s.build, online: true })
+  }
+
   onWire(side: Side, m: WireMsg): void {
     if (this.phase !== 'battle') return
-    const s = this.seats[side]
-    if (s && m.op === 'input') {
-      s.heard = this.opts.now()
-      if (s.quiet) {
-        s.quiet = false
-        const other = this.seats[(1 - side) as Side]
-        if (other?.online && s.online) other.send({ k: 'peer', name: s.name, build: s.build, online: true })
-      }
-    }
+    if (m.op === 'input') this.heard(side)
     this.live?.onWire(side, m)
   }
 
@@ -343,7 +348,8 @@ export class Room {
 
   private endEdgeMatch(): void {
     const e = this.opts.edge
-    if (!this.edgeMatch || !e) return
+    if (!this.edgeUsed || !e) return
+    this.edgeUsed = false
     this.edgeMatch = null
     const last = this.live instanceof RemoteRound ? this.live.ended : Promise.resolve()
     void last.finally(() => e.endMatch(this.matchId).catch(() => undefined))

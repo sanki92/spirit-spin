@@ -104,7 +104,16 @@ func main() {
 		}
 		time.Sleep(time.Second)
 	}
-	g.GracefulStop()
+	stopped := make(chan struct{})
+	go func() {
+		g.GracefulStop()
+		close(stopped)
+	}()
+	select {
+	case <-stopped:
+	case <-time.After(5 * time.Second):
+		g.Stop()
+	}
 	stopRun()
 	sd, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

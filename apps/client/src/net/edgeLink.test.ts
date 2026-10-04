@@ -32,9 +32,44 @@ describe('edge link reconnects', () => {
       close() {}
     }
     const link = new EdgeLink({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 't', certHash: null }, { WT: undefined, WS: FailWS as unknown as typeof WebSocket, location: { hostname: 'h', protocol: 'https:', host: 'h' } })
-    void link.open().catch(() => undefined)
+    link.start()
     for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(5000)
     expect(attempts).toBe(1 + EDGE.maxRetries)
+    link.close()
+    vi.useRealTimers()
+  })
+})
+
+describe('edge link refresh', () => {
+  it('a link that gave up reopens with the fresh ticket from the next start', async () => {
+    vi.useFakeTimers()
+    const urls: string[] = []
+    let ok = false
+    class WS {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      constructor(url: string) {
+        urls.push(url)
+        setTimeout(() => { if (ok) { this.readyState = 1; this.onopen?.() } else { this.onerror?.(); this.onclose?.() } }, 1)
+      }
+      send() {}
+      close() {}
+    }
+    const loc = { hostname: 'h', protocol: 'https:', host: 'h' }
+    const link = new EdgeLink({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 'old', certHash: null }, { WT: undefined, WS: WS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(5000)
+    const gaveUpAt = urls.length
+    ok = true
+    link.refresh({ wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 'new', certHash: null })
+    await vi.advanceTimersByTimeAsync(100)
+    expect(urls.length).toBe(gaveUpAt + 1)
+    expect(urls.at(-1)).toContain('t=new')
+    expect(link.kind).toBe('ws')
     link.close()
     vi.useRealTimers()
   })

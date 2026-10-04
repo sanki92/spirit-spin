@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/subtle"
 	"sync/atomic"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
@@ -32,6 +34,8 @@ func authed(ctx context.Context, token string) error {
 
 func NewGRPC(s *Server, token string) *grpc.Server {
 	g := grpc.NewServer(
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 5 * time.Second, PermitWithoutStream: true}),
+		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second, Timeout: 5 * time.Second}),
 		grpc.UnaryInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) {
 			if err := authed(ctx, token); err != nil {
 				return nil, err
@@ -112,7 +116,7 @@ func (s *Server) StreamFrames(r *pb.StreamFramesRequest, st pb.Edge_StreamFrames
 			for i, h := range b.Hashes {
 				hs[i] = &pb.ClientHash{Side: h.Side, Frame: h.Frame, Hash: h.Hash}
 			}
-			if err := st.Send(&pb.FrameBatch{Round: b.Round, First: b.First, Inputs: b.Inputs, Hashes: hs}); err != nil {
+			if err := st.Send(&pb.FrameBatch{Round: b.Round, First: b.First, Inputs: b.Inputs, Hashes: hs, InputHi: b.InputHi[:]}); err != nil {
 				return err
 			}
 		}
