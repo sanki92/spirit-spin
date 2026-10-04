@@ -44,6 +44,7 @@ export class Game {
   playerLauncher: string | null = null
   onLand: ((side: 0 | 1, tier: LaunchTier) => void) | null = null
   private armed = false
+  timeWarp = true
   private anim: LaunchAnim | null = null
   private clockS = 0
   private grindT = 0
@@ -201,7 +202,7 @@ export class Game {
     this.stage.renderer.setAnimationLoop(now => {
       const dtMs = Math.min(100, now - this.last)
       this.last = now
-      this.stepper.scale = now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
+      this.stepper.scale = !this.timeWarp ? 1 : now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
       const alpha = this.battle && !this.anim ? this.stepper.advance(dtMs) : 0
       this.stadium?.update(dtMs / 1000, this.battle && !this.anim ? this.battle.tops : null)
       for (const s of this.shatters ?? []) s.update(dtMs / 1000 * (this.cine ? 0.35 : 1))

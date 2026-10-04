@@ -1,6 +1,6 @@
 import type { MotionSample } from '@spirit/core'
 import { describe, expect, it } from 'vitest'
-import { calloutOf, judged, ripPayload } from './ripPayload'
+import { bestPayload, calloutOf, judged, ripPayload } from './ripPayload'
 
 function trace(t0: number, until: number): MotionSample[] {
   const out: MotionSample[] = []
@@ -30,6 +30,29 @@ describe('networked rip judging', () => {
     const lo = judged(ripPayload(t0, trace(t0, t0 + 700), null, 2)).res
     const five = judged(ripPayload(t0, trace(t0, t0 + 700), null, 5)).res
     expect(lo).toEqual(five)
+  })
+
+  it('drops repeated timestamps (Safari rounds to 1 ms) instead of failing the trace', () => {
+    const t = trace(t0, t0 + 850)
+    const dup = t.flatMap((s, i) => (i % 9 === 0 ? [s, { ...s }] : [s]))
+    expect(judged(ripPayload(t0, dup, null, 7)).res.ok).toBe(true)
+  })
+
+  const swipe = (rest: number) => {
+    const pts = [] as { t: number; x: number; y: number }[]
+    for (let t = t0 - rest; t < t0 + 20; t += 16) pts.push({ t, x: 200, y: 300 })
+    for (let i = 0; i <= 10; i++) pts.push({ t: t0 + 20 + i * 14, x: 200, y: 300 + i * 45 })
+    return pts
+  }
+  it('trims a finger resting before LAUNCH so the swipe still counts', () => {
+    expect(judged(ripPayload(t0, null, swipe(380), 7)).res.ok).toBe(true)
+  })
+
+  it('falls back to the swipe when the motion trace fails', () => {
+    const flat = trace(t0, t0 + 850).map(s => ({ ...s, ay: (s.ay > 3 ? 0 : s.ay) }))
+    const p = bestPayload(t0, flat, swipe(100), 7, false)
+    expect(p.swipe).toBeDefined()
+    expect(judged(p).res.ok).toBe(true)
   })
 
   it('names the real reason for a miss', () => {

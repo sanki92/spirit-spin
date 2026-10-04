@@ -40,7 +40,7 @@ export interface MatchResult {
 
 const GRIP_MS = 1100
 const BEAT_MS = 650
-const CAPTURE_AFTER_MS = 700
+const CAPTURE_AFTER_MS = 850
 const FAIL_RIP = (t0: number) => composeRip(0.15, 0.3, 0.45, 0, t0)
 const RESOLVE_AFTER_START_MS = RIP.windowMs + 10
 const mag = (s: MotionSample) => Math.hypot(s.ax, s.ay, s.az)
@@ -71,6 +71,8 @@ export class BattleController {
   protected announcer: Announcer
   protected resolvedAt = -1
   protected earlyResolve = true
+  protected finishCamOk = true
+  protected concluded = false
   protected windowFrom = -Infinity
   protected coachSince = 0
   protected coached = false
@@ -80,7 +82,7 @@ export class BattleController {
   constructor(
     protected game: Game,
     protected setup: MatchSetup,
-    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void; onCalibrate?: (pulls: number[]) => Calibration },
+    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void; onCalibrate?: (pulls: number[]) => Calibration; onAbort?: () => void },
   ) {
     this.botRng = createRng(setup.seed ^ 0x9e3779b9)
     this.hesitationLeft = setup.playerHesitates
@@ -156,7 +158,7 @@ export class BattleController {
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
       const at = t0 - BEAT_MS * (3 - i)
       s.play('tick', { at: s.perfToAudio(at), volume: 0.8 })
-      this.later(at - performance.now(), () => useHud.getState().set({ phase: 'countdown', countdown: label }))
+      this.later(at - performance.now(), () => { if (this.resolvedAt !== t0) useHud.getState().set({ phase: 'countdown', countdown: label }) })
     }
     s.play('launch', { at: s.perfToAudio(t0) })
     this.later(t0 - performance.now(), () => {
@@ -186,7 +188,7 @@ export class BattleController {
     })
   }
 
-  protected adjudicate(res: RipResult | RipFail, _motion: MotionSample[] | null, _swipe: TouchSample[] | null): RipResult | RipFail {
+  protected adjudicate(res: RipResult | RipFail, _motion: MotionSample[] | null, _swipe: TouchSample[] | null, _preferSwipe: boolean): RipResult | RipFail {
     return res
   }
 
@@ -240,9 +242,11 @@ export class BattleController {
     const swiped = this.swipe ? scoreSwipe(this.swipe, t0, window.innerHeight) : null
     const usedSwipe = !!swiped?.ok && (!motion?.ok || swiped.rpm > motion.rpm)
     res = usedSwipe ? (swiped as RipResult) : motion ?? swiped ?? { ok: false, reason: 'no-pull' }
+    const swipeRaw = this.swipe
     if (!usedSwipe) this.swipe = null
-    const win = this.swipe ? null : this.deps.sensors?.window(from, t0 + CAPTURE_AFTER_MS) ?? []
-    res = this.adjudicate(res, win, this.swipe)
+    const motionWin = this.deps.sensors?.live ? this.deps.sensors.window(from, t0 + CAPTURE_AFTER_MS) : null
+    const win = this.swipe ? null : motionWin ?? []
+    res = this.adjudicate(res, motionWin, swipeRaw, usedSwipe)
     const rip = res.ok ? res : FAIL_RIP(t0)
     const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
@@ -410,7 +414,7 @@ export class BattleController {
     }
     const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
     const decisive = o.finish === 'ringout' || o.finish === 'shatter' || o.finish === 'spirit' || (o.finish === 'spin' && this.match.winner !== null)
-    if (!still && decisive && g.finishCam(loser, impact)) {
+    if (!still && decisive && this.finishCamOk && g.finishCam(loser, impact)) {
       s.play('clashHeavy', { volume: 0.5, rate: 0.55 })
       useHud.getState().set({ phase: 'roundEnd', banner: null, cine: { skip: () => g.skipCine() } })
       log('finishCam', { round: this.match.round, finish: o.finish })
@@ -421,6 +425,8 @@ export class BattleController {
   }
 
   protected concludeMatch(): void {
+    if (this.concluded) return
+    this.concluded = true
     const s = this.deps.sound
     const won = this.match.winner === 0
     this.announcer.say(won && this.maxDeficit >= 3 ? 'comeback' : won ? 'victory' : 'defeat', true)

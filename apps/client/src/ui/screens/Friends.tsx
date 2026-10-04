@@ -123,6 +123,15 @@ export function Friends({ join }: { join?: string | undefined }) {
       setFoe(peer)
       reveal.current = window.setTimeout(() => nav.replace({ k: 'live', side, peer }), REVEAL_MS)
     }
+    if (m.k === 'left' && reveal.current) {
+      clearTimeout(reveal.current)
+      reveal.current = 0
+      rt.leave()
+      rivalRef.current = null
+      setRival(null)
+      setFoe(null)
+      setPhase({ k: 'error', text: 'Your opponent left before the battle started.' })
+    }
     if (m.k === 'error') setPhase({ k: 'error', text: ERRORS[m.code] ?? 'The battle server refused that. Try again.' })
   }), [nav])
 

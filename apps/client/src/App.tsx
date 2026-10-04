@@ -155,7 +155,7 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
     },
     [route, nav],
   )
-  const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, d, route.side), [route])
+  const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, { ...d, onAbort: () => nav.replace({ k: 'friends' }) }, route.side), [route, nav])
   return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
 }
 
