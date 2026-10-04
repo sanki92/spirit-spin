@@ -35,3 +35,10 @@ Reading: on the phone the p95 correction is 0.69 arena units (a third of the are
 | measured RTT / jitter (ms) | 186 / 5 | 188 / 8 | |
 
 Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+ doubled or skipped ticks per 5 s): the player's own top is never corrected and time never jumps.
+
+## Phase-1 gate (commit 7415ee5)
+
+- `npm run check`: typecheck + 254 workspace tests pass.
+- Core soak `npm run soak`: 1,000+ simulated matches across lan, criteria (150 ms RTT, 30 ms jitter, 5% loss), 300 ms spikes, phone hotspot 30 vs 60 fps, uneven 85/320 ms one-way, ordered TCP: zero desyncs; zero own-input corrections and zero stalls on criteria.
+- duo through the 150/30 proxy: 18 scenarios incl. 40-43 pass.
+- duo on a plain connection: 23/23 pass, including the WebKit iPhone visual proof (#30).
