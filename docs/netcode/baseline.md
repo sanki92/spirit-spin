@@ -21,3 +21,17 @@ Measured with `tools/netreport.mjs` on real device logs (`.local/device-logs/202
 | skipped / 5 s | 0 | 2 | 18 |
 
 Reading: on the phone the p95 correction is 0.69 arena units (a third of the arena radius) and the client doubles or skips 130+ ticks per 5 s: the visible lag and "top moves on its own".
+
+## Rollback over WebSocket, 150 ms / 30 ms (tools/netproxy.mjs, two Chromium phones, duo 1,10,11,14,23 all pass)
+
+| metric | p50 | p95 | max |
+|---|---|---|---|
+| own inputs replaced | 0 | 0 | 0 |
+| stalls | 0 | 0 | 0 |
+| packet gaps | 0 | 0 | 0 |
+| prediction depth at round end (frames) | 8 | 8 | 8 |
+| max prediction depth (frames) | 19 | 29 | 29 |
+| margin (ms, target 64-70) | 83 | 98 | 98 |
+| measured RTT / jitter (ms) | 186 / 5 | 188 / 8 | |
+
+Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+ doubled or skipped ticks per 5 s): the player's own top is never corrected and time never jumps.

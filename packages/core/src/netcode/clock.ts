@@ -1,6 +1,8 @@
 import { WIRE } from './wire'
 
-export const CLOCK = { band: 5, small: 0.01, big: 0.03, jumpBelowMs: 0, holdMs: 400 } as const
+export const CLOCK = { band: 5, small: 0.01, big: 0.03, jumpBelowMs: 0, holdMs: 1000 } as const
+
+const median = (xs: readonly number[]): number => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : 0)
 
 export class RttStats {
   private xs: number[] = []
@@ -13,15 +15,10 @@ export class RttStats {
 
   get count(): number { return this.xs.length }
   get min(): number { return this.xs.length ? Math.min(...this.xs) : 0 }
-  get rtt(): number {
-    if (!this.xs.length) return 0
-    const s = [...this.xs].sort((a, b) => a - b)
-    return s[Math.floor(s.length / 2)]!
-  }
+  get rtt(): number { return median(this.xs) }
   get jitter(): number {
-    if (!this.xs.length) return 0
     const m = this.rtt
-    return this.xs.reduce((a, v) => a + Math.abs(v - m), 0) / this.xs.length
+    return median(this.xs.map(v => Math.abs(v - m)))
   }
 }
 

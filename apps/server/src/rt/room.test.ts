@@ -46,9 +46,28 @@ describe('room', () => {
     expect(c.tl.frame).toBe(room.live!.seq.frame)
   })
 
+  it('a seat silent for 2 s mid-battle is shown as reconnecting, and back when its inputs resume', () => {
+    const peers: Extract<ServerMsg, { k: 'peer' }>[] = []
+    room = new Room('TEST', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined })
+    room.seat('a', 'A', BUILD, m => { if (m.k === 'peer') peers.push(m) })
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    const r = room
+    const feed = (side: 0 | 1) => r.onWire(side, { op: 'input', round: 1, first: r.live!.seq.frame + 1, ack: 0, inputs: [{ x: 0, y: 0, sp: 0 }] })
+    for (let i = 0; i < 12; i++) { feed(0); feed(1); vi.advanceTimersByTime(100) }
+    expect(peers.filter(p => !p.online)).toHaveLength(0)
+    for (let i = 0; i < 30 && !peers.some(p => !p.online); i++) { feed(0); vi.advanceTimersByTime(100) }
+    expect(peers.at(-1)).toMatchObject({ k: 'peer', online: false })
+    expect(r.phase).toBe('battle')
+    feed(1)
+    expect(peers.at(-1)).toMatchObject({ k: 'peer', online: true })
+  })
+
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {
     const { room } = battle()
-    vi.advanceTimersByTime(700)
+    vi.advanceTimersByTime(1200)
     const f = room.live!.seq.frame + 2
     room.onWire(0, { op: 'input', round: 1, first: f, ack: 0, inputs: [{ x: 100, y: 0, sp: 0 }] })
     vi.advanceTimersByTime(100)

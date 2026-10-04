@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { NetDriver } from './driver'
+import { ROLL } from './session'
 import { startTimeline } from './replay'
 import { fresh } from './testkit'
 import { IDLE_INPUT, type Frame, type WireMsg } from './wire'
@@ -20,7 +21,7 @@ describe('net driver', () => {
 
   it('keeps a spirit press made while stalled for the next step', () => {
     const { d, sent } = make()
-    for (let i = 0; i < 32; i++) d.step(0, 0, false, [])
+    for (let i = 0; i < ROLL.maxPredict; i++) d.step(0, 0, false, [])
     expect(d.step(0, 0, true, [])).toBe(false)
     d.onFrames({ op: 'frames', round: 3, first: 1, margin: 20, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)
     expect(d.step(0, 0, false, [])).toBe(true)

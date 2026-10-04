@@ -73,6 +73,10 @@ describe('sequencer', () => {
     expect(s.confirmed[0]![0]).toEqual(I(0))
   })
 
+  it('lead-in covers the longest launch animation plus a one-way trip', () => {
+    expect(SEQ.leadInMs).toBeGreaterThanOrEqual(910 + 150)
+  })
+
   it('matches the golden trace shared with the Go edge', () => {
     const file = new URL('./fixtures/seq-trace.json', import.meta.url)
     const t = sequencerTrace(99, 1500)

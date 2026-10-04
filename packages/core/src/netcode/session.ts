@@ -2,16 +2,17 @@ import type { BattleEvent, BattleState, Side } from '../battle'
 import { cloneTimeline, sameInput, stepTimeline, timelineHash, type Timeline } from './replay'
 import { WIRE, type Frame, type WireInput } from './wire'
 
-export const ROLL = { maxPredict: 32 } as const
+export const ROLL = { maxPredict: 48, maxAhead: 1024 } as const
 export type ConfirmResult = 'same' | 'rollback' | 'jump'
-export interface RollStats { rollbacks: number; resimFrames: number; maxDepth: number; ownReplaced: number; stalls: number; jumps: number }
+export interface RollStats { rollbacks: number; resimFrames: number; maxDepth: number; ownReplaced: number; stalls: number; jumps: number; gaps: number }
 
 export class RollbackSession {
   confirmed: Timeline
   predicted: Timeline
-  readonly stats: RollStats = { rollbacks: 0, resimFrames: 0, maxDepth: 0, ownReplaced: 0, stalls: 0, jumps: 0 }
+  readonly stats: RollStats = { rollbacks: 0, resimFrames: 0, maxDepth: 0, ownReplaced: 0, stalls: 0, jumps: 0, gaps: 0 }
   private local = new Map<number, WireInput>()
   private used = new Map<number, Frame>()
+  private ahead = new Map<number, Frame>()
   private checkpoints: { frame: number; hash: number }[] = []
   private scratch: BattleEvent[] = []
   private readonly foe: Side
@@ -52,21 +53,34 @@ export class RollbackSession {
     return { first, inputs }
   }
 
+  private applyConfirmed(fr: Frame): boolean {
+    const f = this.confirmed.frame + 1
+    const own = this.local.get(f)
+    if (own && !sameInput(own, fr[this.side])) this.stats.ownReplaced++
+    const u = this.used.get(f)
+    const mismatch = f <= this.predicted.frame && (!u || !sameInput(u[0], fr[0]) || !sameInput(u[1], fr[1]))
+    stepTimeline(this.confirmed, fr, this.scratch)
+    if (this.confirmed.frame % WIRE.hashEvery === 0) this.checkpoints.push({ frame: this.confirmed.frame, hash: timelineHash(this.confirmed) })
+    this.used.delete(f)
+    this.local.delete(f)
+    return mismatch
+  }
+
   confirm(first: number, frames: readonly Frame[]): ConfirmResult {
-    let f = this.confirmed.frame + 1
-    if (first > f || first + frames.length <= f) return 'same'
-    let mismatch = false
-    for (let i = f - first; i < frames.length; i++, f++) {
-      const fr = frames[i]!
-      const own = this.local.get(f)
-      if (own && !sameInput(own, fr[this.side])) this.stats.ownReplaced++
-      const u = this.used.get(f)
-      if (f <= this.predicted.frame && (!u || !sameInput(u[0], fr[0]) || !sameInput(u[1], fr[1]))) mismatch = true
-      stepTimeline(this.confirmed, fr, this.scratch)
-      if (this.confirmed.frame % WIRE.hashEvery === 0) this.checkpoints.push({ frame: this.confirmed.frame, hash: timelineHash(this.confirmed) })
-      this.used.delete(f)
-      this.local.delete(f)
+    const f = this.confirmed.frame + 1
+    if (first > f) {
+      this.stats.gaps++
+      for (let i = 0; i < frames.length; i++) if (first + i - f < ROLL.maxAhead) this.ahead.set(first + i, frames[i]!)
+      return 'same'
     }
+    if (first + frames.length <= f) return 'same'
+    let mismatch = false
+    for (let i = f - first; i < frames.length; i++) if (this.applyConfirmed(frames[i]!)) mismatch = true
+    for (let next = this.ahead.get(this.confirmed.frame + 1); next; next = this.ahead.get(this.confirmed.frame + 1)) {
+      this.ahead.delete(this.confirmed.frame + 1)
+      if (this.applyConfirmed(next)) mismatch = true
+    }
+    if (this.ahead.size) for (const k of this.ahead.keys()) if (k <= this.confirmed.frame) this.ahead.delete(k)
     this.scratch.length = 0
     if (this.confirmed.frame >= this.predicted.frame) {
       const jumped = this.confirmed.frame > this.predicted.frame + this.delay
@@ -107,6 +121,7 @@ export class RollbackSession {
     const target = Math.max(this.predicted.frame, tl.frame)
     this.confirmed = cloneTimeline(tl)
     for (const f of [...this.local.keys()]) if (f <= tl.frame) this.local.delete(f)
+    for (const f of [...this.ahead.keys()]) if (f <= tl.frame) this.ahead.delete(f)
     this.resim(target)
   }
 

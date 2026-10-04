@@ -1,11 +1,11 @@
 import {
-  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch,
+  applyRound, assembleTop, composeRip, judgeRip, toView, createBattle, newMatch, SEQ,
   type BattleState, type MatchState, type MotionSample, type RipResult, type RipView, type ServerMsg,
   type Side, type TopBuild, type TouchSample, type WireMsg,
 } from '@spirit/core'
 import { LiveMatch, type LiveDeps } from './live'
 
-export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000 }
+export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000, quietMs: 2000 }
 
 export interface Seat {
   playerId: string
@@ -18,6 +18,8 @@ export interface Seat {
   ready: boolean
   rip: RipResult | null
   bin: (b: Uint8Array) => void
+  heard: number
+  quiet: boolean
   ripLog: RipView[]
   tiltSum: number
   tiltN: number
@@ -32,6 +34,7 @@ export class Room {
   round = 0
   phase: 'wait' | 'launch' | 'battle' | 'between' | 'done' = 'wait'
   live: LiveMatch | null = null
+  private silence: ReturnType<typeof setInterval> | null = null
   launchAt = 0
   private views: [RipView | null, RipView | null] = [null, null]
   private seed = 0
@@ -87,7 +90,7 @@ export class Room {
     if (free < 0 || this.phase !== 'wait') return null
     const side = free as Side
     assembleTop(build)
-    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, bin, ripLog: [], tiltSum: 0, tiltN: 0 }
+    this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, bin, heard: 0, quiet: false, ripLog: [], tiltSum: 0, tiltN: 0 }
     send({ k: 'room', code: this.code, side })
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
@@ -119,6 +122,8 @@ export class Room {
     s.send = send
     s.close = close
     s.bin = bin
+    s.heard = this.opts.now()
+    s.quiet = false
     if (previous !== close) previous()
     this.seatsChanged()
     send({ k: 'room', code: this.code, side })
@@ -167,6 +172,7 @@ export class Room {
     this.round++
     this.phase = 'launch'
     this.live?.stop()
+    this.stopSilence()
     this.live = null
     this.views = [null, null]
     for (const s of this.seats) if (s) s.rip = null
@@ -196,6 +202,26 @@ export class Room {
     this.live = new LiveMatch(this.round, state, this.liveDeps())
     this.phase = 'battle'
     this.broadcast(this.startMsg())
+    const now = this.opts.now() + SEQ.leadInMs
+    for (const s of this.seats) if (s) { s.heard = now; s.quiet = false }
+    this.stopSilence()
+    this.silence = setInterval(() => this.checkSilence(), 250)
+  }
+
+  private stopSilence(): void {
+    if (this.silence) clearInterval(this.silence)
+    this.silence = null
+  }
+
+  private checkSilence(): void {
+    if (this.phase !== 'battle') return this.stopSilence()
+    const now = this.opts.now()
+    for (const i of [0, 1] as const) {
+      const s = this.seats[i], other = this.seats[(1 - i) as Side]
+      if (!s || !s.online || s.quiet || now - s.heard < TIMING.quietMs) continue
+      s.quiet = true
+      if (other?.online) other.send({ k: 'peer', name: s.name, build: s.build, online: false })
+    }
   }
 
   private liveDeps(): LiveDeps {
@@ -216,10 +242,21 @@ export class Room {
   }
 
   onWire(side: Side, m: WireMsg): void {
-    if (this.phase === 'battle') this.live?.onWire(side, m)
+    if (this.phase !== 'battle') return
+    const s = this.seats[side]
+    if (s && m.op === 'input') {
+      s.heard = this.opts.now()
+      if (s.quiet) {
+        s.quiet = false
+        const other = this.seats[(1 - side) as Side]
+        if (other?.online && s.online) other.send({ k: 'peer', name: s.name, build: s.build, online: true })
+      }
+    }
+    this.live?.onWire(side, m)
   }
 
   private endRound(): void {
+    this.stopSilence()
     const live = this.live!
     for (const i of [0, 1] as const) {
       const s = this.seats[i]
@@ -237,6 +274,7 @@ export class Room {
     if (this.phase === 'done') return
     this.phase = 'done'
     this.live?.stop()
+    this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
     for (const s of this.seats) if (s?.hold) clearTimeout(s.hold)
     if (this.match.winner !== null && this.seats[0] && this.seats[1]) this.opts.onResult?.(this)
@@ -246,6 +284,7 @@ export class Room {
   close(): void {
     this.phase = 'done'
     this.live?.stop()
+    this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
     for (const s of this.seats) if (s?.hold) clearTimeout(s.hold)
   }

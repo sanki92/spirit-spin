@@ -1,4 +1,4 @@
-import type { ClientMsg, ServerMsg, Side, TopBuild } from '@spirit/core'
+import { decode, encode, RttStats, type ClientMsg, type ServerMsg, type Side, type TopBuild, type WireMsg } from '@spirit/core'
 import { authToken } from '../state/sync'
 import { log } from '../telemetry'
 
@@ -19,6 +19,9 @@ class Realtime {
   watchCode: string | null = null
   side: Side | null = null
   peer: { name: string; build: TopBuild; online: boolean } | null = null
+  readonly net = new RttStats()
+  private wireHandlers = new Set<(m: WireMsg) => void>()
+  private pingTimer = 0
 
   on(fn: Handler): () => void {
     this.handlers.add(fn)
@@ -39,6 +42,31 @@ class Realtime {
 
   send(m: ClientMsg): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m))
+  }
+
+  onWire(fn: (m: WireMsg) => void): () => void {
+    this.wireHandlers.add(fn)
+    return () => this.wireHandlers.delete(fn)
+  }
+
+  sendWire(m: WireMsg): void {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(encode(m))
+  }
+
+  battlePings(on: boolean): void {
+    clearInterval(this.pingTimer)
+    this.pingTimer = on ? window.setInterval(() => this.sendWire({ op: 'ping', t: performance.now() }), 500) : 0
+  }
+
+  private onWireMsg(m: WireMsg): void {
+    if (m.op !== 'pong') {
+      for (const h of this.wireHandlers) h(m)
+      return
+    }
+    const rtt = performance.now() - m.t
+    this.net.add(rtt)
+    this.rtt = this.net.rtt
+    if (rtt <= this.net.min + 5) this.offset += (m.server + rtt / 2 - Date.now() - this.offset) * 0.25
   }
 
   serverNow(): number {
@@ -63,11 +91,17 @@ class Realtime {
       if (!token) return reject(new Error('no-auth'))
       const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/rt`)
       this.ws = ws
+      ws.binaryType = 'arraybuffer'
       let welcomed = false
       this.welcomed = false
       ws.onopen = () => ws.send(JSON.stringify({ k: 'hello', token, name: this.name } satisfies ClientMsg))
       ws.onmessage = e => {
-        const m = JSON.parse(String(e.data)) as ServerMsg
+        if (typeof e.data !== 'string') {
+          const w = decode(e.data as ArrayBuffer)
+          if (w) this.onWireMsg(w)
+          return
+        }
+        const m = JSON.parse(e.data) as ServerMsg
         if (m.k === 'welcome') {
           welcomed = true
           this.welcomed = true
@@ -136,6 +170,7 @@ class Realtime {
   }
 
   close(): void {
+    this.battlePings(false)
     this.wantOpen = false
     this.reset()
     this.ws?.close()

@@ -66,6 +66,28 @@ describe('rollback session', () => {
     expect(s.advance(me(5), [])).toBe(true)
   })
 
+  it('buffers packets that arrive early and applies them once the gap fills', () => {
+    const s = run(20)
+    const t = truth(1, 12, () => IDLE_INPUT)
+    expect(s.confirm(6, t.slice(5, 9))).toBe('same')
+    expect(s.confirm(10, t.slice(9, 12))).toBe('same')
+    expect(s.confirmed.frame).toBe(0)
+    s.confirm(1, t.slice(0, 5))
+    expect(s.confirmed.frame).toBe(12)
+    const g = startTimeline(fresh())
+    for (const fr of t) stepTimeline(g, fr, [])
+    expect(timelineHash(s.confirmed)).toBe(timelineHash(g))
+  })
+
+  it('counts packets that arrive with a gap', () => {
+    const s = run(12)
+    const t = truth(1, 10, () => IDLE_INPUT)
+    s.confirm(3, t.slice(2, 5))
+    expect(s.stats.gaps).toBe(1)
+    s.confirm(1, t.slice(0, 5))
+    expect(s.stats.gaps).toBe(1)
+  })
+
   it('overlapping packets are idempotent and gaps are ignored', () => {
     const s = run(12)
     const t = truth(1, 10, () => IDLE_INPUT)

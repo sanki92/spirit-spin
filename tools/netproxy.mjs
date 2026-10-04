@@ -10,11 +10,20 @@ const delay = () => {
   return P.lat / 2 + Math.random() * (P.jit / 2) + (ph < P.spike ? P.spike - ph : 0) + (Math.random() < P.loss ? 200 : 0)
 }
 const pipe = (from, to, ready) => {
-  let last = 0
+  const q = []
+  let last = 0, timer = null
+  const drain = () => {
+    timer = null
+    while (q.length && q[0].at <= Date.now()) {
+      const { data, isBinary } = q.shift()
+      void ready.then(() => { if (to.readyState === WebSocket.OPEN) to.send(data, { binary: isBinary }) })
+    }
+    if (q.length) timer = setTimeout(drain, Math.max(0, q[0].at - Date.now()))
+  }
   from.on('message', (data, isBinary) => {
-    const at = Math.max(last, Date.now() + delay())
-    last = at
-    setTimeout(() => void ready.then(() => { if (to.readyState === WebSocket.OPEN) to.send(data, { binary: isBinary }) }), at - Date.now())
+    last = Math.max(last, Date.now() + delay())
+    q.push({ at: last, data, isBinary })
+    if (!timer) timer = setTimeout(drain, Math.max(0, q[0].at - Date.now()))
   })
 }
 new WebSocketServer({ port }).on('connection', (client, req) => {

@@ -3,12 +3,12 @@ import { beginAt, chooseDelay, ClockControl, RttStats, targetMargin } from './cl
 import { WIRE } from './wire'
 
 describe('clock', () => {
-  it('rtt stats: median, min, mean absolute deviation, window of 40', () => {
+  it('rtt stats: median, min, median absolute deviation (robust to stalls), window of 40', () => {
     const r = new RttStats()
     for (const v of [100, 110, 90, 300, 100]) r.add(v)
     expect(r.rtt).toBe(100)
     expect(r.min).toBe(90)
-    expect(r.jitter).toBe(44)
+    expect(r.jitter).toBe(10)
     r.add(Number.NaN)
     r.add(-5)
     expect(r.count).toBe(5)
@@ -49,7 +49,8 @@ describe('clock', () => {
     expect(c.onMargin(-100, 1000)).toBe(Math.ceil(120 / WIRE.tickMs))
     expect(c.onMargin(-100, 1200)).toBe(0)
     expect(c.scale).toBe(1.03)
-    expect(c.onMargin(-100, 1401)).toBeGreaterThan(0)
+    expect(c.onMargin(-100, 1999)).toBe(0)
+    expect(c.onMargin(-100, 2001)).toBeGreaterThan(0)
   })
 })
 

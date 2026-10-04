@@ -12,19 +12,20 @@ export interface SoakResult { frames: number; finished: boolean; synced: boolean
 
 interface Client { side: Side; fps: number; rng: RngState; rtt: RttStats; driver: NetDriver | null; acc: number; lastRender: number; nextRender: number; nextPing: number }
 
-export function runMatch(o: { seed: number; profile: NetProfile; fps?: [number, number]; maxMs?: number }): SoakResult {
+export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [NetProfile, NetProfile]; fps?: [number, number]; maxMs?: number }): SoakResult {
   const p = o.profile
+  const ps: [NetProfile, NetProfile] = o.profiles ?? [p, p]
   const battle = fresh(o.seed)
   const t0 = SEQ.leadInMs
   const seq = new Sequencer(t0)
   const server = new Replayer(startTimeline(battle))
   const hashes = new Map<number, number>()
-  const link = (k: number) => new Link<Uint8Array>(p, createRng(o.seed * 31 + k))
-  const up = [link(1), link(2)], down = [link(3), link(4)]
+  const link = (side: Side, k: number) => new Link<Uint8Array>(ps[side], createRng(o.seed * 31 + k))
+  const up = [link(0, 1), link(1, 2)], down = [link(0, 3), link(1, 4)]
   const acked: [number, number] = [0, 0]
   const sent: [number, number] = [0, 0]
   const clients: Client[] = ([0, 1] as Side[]).map(side => ({ side, fps: o.fps?.[side] ?? 60, rng: createRng(o.seed * 17 + side), rtt: new RttStats(), driver: null, acc: 0, lastRender: 0, nextRender: side * 7, nextPing: 0 }))
-  const rtt0 = 2 * p.latency + p.jitter
+  const rtt0s = ps.map(q => 2 * q.latency + q.jitter)
   let desyncs = 0
   let endAt = Infinity
   const maxMs = o.maxMs ?? 60000
@@ -80,7 +81,8 @@ export function runMatch(o: { seed: number; profile: NetProfile; fps?: [number, 
         for (let i = 0; i < (r?.jump ?? 0); i++) stepClient(c, now)
       }
       if (now >= c.nextPing) { up[c.side]!.send(encode({ op: 'ping', t: now }), now); c.nextPing = now + 500 }
-      if (!c.driver && now >= p.latency) c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, p.jitter), targetMargin(p.jitter), toServer(c.side, now))
+      const q = ps[c.side], rtt0 = rtt0s[c.side]!
+      if (!c.driver && now >= q.latency) c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, q.jitter), targetMargin(q.jitter), toServer(c.side, now))
       if (now < c.nextRender) continue
       const dt = now - c.lastRender
       c.lastRender = now

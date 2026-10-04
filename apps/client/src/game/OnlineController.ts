@@ -1,4 +1,5 @@
-import { createBattle, NET, Predictor, type BattleEvent, type BattleState, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type ClientMsg, type Side, type TouchSample } from '@spirit/core'
+import { beginAt, chooseDelay, createBattle, NetDriver, startTimeline, targetMargin, type BattleEvent, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
+import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
 import { log } from '../telemetry'
@@ -7,22 +8,20 @@ import type { Game } from './Game'
 import { tierOf } from './launchPlan'
 import { bestPayload, calloutOf, judged } from './ripPayload'
 
-const r3 = (v: number) => Math.round(v * 1000) / 1000
 const flipWinner = (w: Side | null) => (w === null ? null : ((1 - w) as Side))
 const view = (s: BattleState, side: Side): BattleState =>
   side === 0 ? s : { ...s, tops: [s.tops[1], s.tops[0]], specs: [s.specs[1], s.specs[0]], outcome: s.outcome && { ...s.outcome, winner: flipWinner(s.outcome.winner) } }
 
 export class OnlineController extends BattleController {
-  private pred: Predictor | null = null
-  private seq = 0
-  private batch: [number, number, number][] = []
-  private batchFrom = 1
-  private sentAt = 0
-  private snapTick = 0
-  private snapAt = 0
+  driver: NetDriver | null = null
+  link: WireLink = mainLink
+  private unwire: () => void = () => undefined
+  private beginServer = Infinity
+  private lastMargin = 0
+  private serverFrame = 0
+  private statsAt = 0
   private ripRound = 0
   private ended = false
-  private lead: number | null = null
   private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
   protected override earlyResolve = false
@@ -30,12 +29,12 @@ export class OnlineController extends BattleController {
   private sent: RipPayload | null = null
   private pendingRip: ClientMsg | null = null
   private startedRound = 0
-  private stats = { snaps: 0, corr: 0, maxCorr: 0, doubled: 0, skipped: 0, lag: 0, lagN: 0, at: 0 }
 
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private side: Side) {
     super(game, setup, deps)
     game.timeWarp = false
     this.unsub = rt.on(m => this.onNet(m))
+    this.unwire = this.link.on(m => this.onWire(m))
   }
 
   override start(): void {
@@ -45,11 +44,16 @@ export class OnlineController extends BattleController {
       const m = rt.last(k)
       if (m) this.onNet(m)
     }
+    rt.battlePings(true)
     rt.send({ k: 'ready' })
   }
 
   override dispose(): void {
     this.unsub()
+    this.unwire()
+    rt.battlePings(false)
+    if (this.link !== mainLink) this.link.close()
+    this.game.netScale = 1
     rt.leave()
     super.dispose()
   }
@@ -60,20 +64,26 @@ export class OnlineController extends BattleController {
     if (this.disposed) return
     if (m.k === 'round' && m.round > this.ripRound) {
       this.ripRound = m.round
-      this.pred = null
+      this.driver = null
+      this.beginServer = Infinity
       this.pendingRip = null
       this.countdown(Math.max(performance.now() + 900, rt.toLocalPerf(m.launchAt)))
     } else if (m.k === 'start' && m.round >= this.ripRound && m.round !== this.startedRound) {
       this.ripRound = m.round
       this.onStart(m)
     } else if (m.k === 'room' && this.pendingRip && this.startedRound !== this.ripRound) rt.send(this.pendingRip)
-    else if (m.k === 'snap') this.onSnap(m)
+    else if (m.k === 'catchup' && m.round === this.startedRound) this.onCatchup(m.tl)
+    else if (m.k === 'resync' && m.round === this.startedRound && this.driver) {
+      log('net.resync', { round: m.round, frame: m.tl.frame })
+      this.driver.resync(m.tl)
+    }
     else if (m.k === 'end' && m.round === this.ripRound && !this.ended) {
       const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
       const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
       const winner = this.side === 0 ? m.winner : flipWinner(m.winner)
-      if (!this.game.battle && this.pred) this.game.setBattle(view(this.pred.state, this.side))
-      if (this.game.battle) this.finishRound({ k: 'finish', tick: this.pred?.state.tick ?? 0, outcome })
+      if (!this.game.battle && this.driver) this.game.setBattle(view(this.driver.view(), this.side))
+      if (this.game.battle) this.finishRound({ k: 'finish', tick: this.driver?.session.confirmed.state.tick ?? 0, outcome })
+      if (this.driver) log('net.round', this.roundStats())
       this.match = { ...this.match, scores, winner }
       useHud.getState().set({ scores })
       if (winner !== null) {
@@ -83,7 +93,7 @@ export class OnlineController extends BattleController {
     } else if (m.k === 'error' && m.code === 'no-room' && !this.ended) {
       log('net.room-lost', { round: this.ripRound })
       this.ended = true
-      this.pred = null
+      this.driver = null
       useHud.getState().set({ notice: 'Connection lost. The match ended without a result.' })
       const abort = this.deps.onAbort
       if (abort) this.later(2200, abort)
@@ -123,90 +133,76 @@ export class OnlineController extends BattleController {
     const specs = this.side === 0 ? [a, b] as const : [b, a] as const
     const rips = m.rips.map(v => ({ ...v, startT: 0 }) as unknown as RipResult)
     const s = createBattle([specs[0], specs[1]], [{ rip: rips[0]!, hesitate: false }, { rip: rips[1]!, hesitate: false }], m.seed)
-    this.pred = new Predictor(s, this.side, [{ x: 0, y: 0, seq: this.side === 0 ? this.seq : 0 }, { x: 0, y: 0, seq: this.side === 1 ? this.seq : 0 }])
-    this.snapTick = m.tick
-    this.snapAt = performance.now()
-    this.lead = null
-    this.batch = []
+    this.makeDriver(m.round, startTimeline(s))
+    const d = this.driver!
+    this.beginServer = beginAt(m.t0, this.rttNow(), d.session.delay, d.clock.target)
     this.spiritSeen = [false, false]
     const mine = m.rips[this.side]
     useHud.getState().set({ phase: 'launch', countdown: null, pull: 0, callout: calloutOf(mine) })
-    log('net.start', { round: m.round, mine: mine.rpm, theirs: m.rips[(1 - this.side) as Side].rpm, rtt: Math.round(rt.rtt) })
+    log('net.start', { round: m.round, mine: mine.rpm, theirs: m.rips[(1 - this.side) as Side].rpm, rtt: Math.round(this.rttNow()), jitter: Math.round(this.link.net.jitter), delay: d.session.delay, target: Math.round(d.clock.target), transport: this.link.kind })
     this.game.setBattle(view(s, this.side))
     this.game.launch([tierOf(mine), tierOf(m.rips[(1 - this.side) as Side])])
     this.enterBattlePhase()
   }
 
-  protected override tick(): void {
-    const p = this.pred
-    if (!p || p.state.outcome || !rt.connected) return
-    let steps: number
-    if (p.state.tick - this.snapTick > NET.maxLead - 4) steps = 0
-    else if (this.lead === null) {
-      const lag = this.snapTick + (performance.now() - this.snapAt + rt.rtt) / NET.tickMs + 4 - p.state.tick
-      steps = lag > 2 ? 2 : lag < -4 ? 0 : 1
-    } else {
-      steps = this.lead < 2 ? 2 : this.lead > 7 ? 0 : 1
-      this.lead += steps - 1
-      this.stats.lag += this.lead
-      this.stats.lagN++
-    }
-    if (steps === 2) this.stats.doubled++
-    if (steps === 0) this.stats.skipped++
-    for (let i = 0; i < steps; i++) this.stepOnce(p)
+  private rttNow(): number {
+    return this.link.net.count >= 3 ? this.link.net.rtt : rt.rtt
   }
 
-  private stepOnce(p: Predictor): void {
+  private makeDriver(round: number, tl: Timeline): void {
+    const jitter = this.link.net.count >= 3 ? this.link.net.jitter : 15
+    this.driver = new NetDriver(tl, this.side, round, chooseDelay(this.rttNow(), jitter), targetMargin(jitter), this.link)
+    this.statsAt = performance.now()
+  }
+
+  private onCatchup(tl: Timeline): void {
+    this.makeDriver(this.startedRound, tl)
+    this.beginServer = -Infinity
+    this.game.battle = view(this.driver!.view(), this.side)
+    log('net.catchup', { round: this.startedRound, frame: tl.frame })
+  }
+
+  private onWire(m: WireMsg): void {
+    const d = this.driver
+    if (!d || m.op !== 'frames' || this.disposed) return
+    const before = this.game.battle?.tops.map(t => ({ x: t.x, y: t.y }))
+    const r = d.onFrames(m, this.link.serverNow())
+    if (!r) return
+    this.lastMargin = m.margin
+    this.serverFrame = m.first + m.frames.length - 1
+    for (let i = 0; i < r.jump; i++) this.stepOnce(d)
+    this.game.netScale = d.clock.scale
+    if (r.result !== 'same' || r.jump) {
+      const after = view(d.view(), this.side)
+      if (r.result === 'rollback' && before) for (let i = 0; i < 2; i++) this.game.correct(i as Side, before[i]!.x - after.tops[i]!.x, before[i]!.y - after.tops[i]!.y)
+      this.game.battle = after
+      this.transitions()
+    }
+    if (performance.now() - this.statsAt > 5000) {
+      log('net.stats', this.roundStats())
+      this.statsAt = performance.now()
+    }
+  }
+
+  private roundStats(): Record<string, unknown> {
+    const d = this.driver!, s = d.session.stats
+    return { round: this.startedRound, transport: this.link.kind, frame: d.session.frame, confirmed: d.session.confirmed.frame, depth: d.session.depth, maxDepth: s.maxDepth, rollbacks: s.rollbacks, resim: s.resimFrames, ownReplaced: s.ownReplaced, stalls: s.stalls, jumps: s.jumps, gaps: s.gaps, serverFrame: this.serverFrame, scale: d.clock.scale, margin: this.lastMargin, target: Math.round(d.clock.target), delay: d.session.delay, rtt: Math.round(this.link.net.rtt), jitter: Math.round(this.link.net.jitter) }
+  }
+
+  private stepOnce(d: NetDriver): void {
     const inp = this.playerInput()
-    if (inp.spirit) this.seq++
-    const n = { x: r3(inp.tiltX), y: r3(inp.tiltY), seq: this.seq }
-    if (!this.batch.length) this.batchFrom = p.state.tick + 1
-    this.batch.push([n.x, n.y, n.seq])
-    p.step(n, this.events)
-    for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(this.side === 1 && e.k === 'wall' ? { ...e, side: (1 - e.side) as Side } : e)
+    const ok = d.step(inp.tiltX, inp.tiltY, inp.spirit, this.events)
+    if (ok) for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(this.side === 1 && e.k === 'wall' ? { ...e, side: (1 - e.side) as Side } : e)
     this.events.length = 0
-    const now = performance.now()
-    if (this.batch.length >= 12 || (this.batch.length >= 2 && now - this.sentAt >= 33)) {
-      rt.send({ k: 'inputs', from: this.batchFrom, list: this.batch })
-      this.batch = []
-      this.sentAt = now
-    }
-    this.game.battle = view(p.state, this.side)
+    if (!ok) return
+    this.game.battle = view(d.view(), this.side)
     this.transitions()
   }
 
-  private onSnap(m: Extract<ServerMsg, { k: 'snap' }>): void {
-    const p = this.pred
-    if (!p) return
-    const before = view(p.state, this.side).tops.map(t => ({ x: t.x, y: t.y }))
-    if (!p.reconcile(m.tick, m.state, m.inputs)) return
-    this.lead = m.leads[this.side]
-    this.snapTick = m.tick
-    this.snapAt = performance.now()
-    const after = view(p.state, this.side)
-    for (let i = 0; i < 2; i++) {
-      const dx = before[i]!.x - after.tops[i]!.x, dy = before[i]!.y - after.tops[i]!.y
-      const d = Math.hypot(dx, dy)
-      this.stats.corr += d
-      this.stats.maxCorr = Math.max(this.stats.maxCorr, d)
-      this.game.correct(i as Side, dx, dy)
-    }
-    this.stats.snaps++
-    if (import.meta.env.DEV) {
-      const w = window as unknown as { __netStats?: { snaps: number; corr: number; maxCorr: number; lag: number; lagN: number } }
-      const t = (w.__netStats ??= { snaps: 0, corr: 0, maxCorr: 0, lag: 0, lagN: 0 })
-      t.snaps++
-      t.corr += Math.hypot(before[0]!.x - after.tops[0]!.x, before[0]!.y - after.tops[0]!.y)
-      t.maxCorr = Math.max(t.maxCorr, this.stats.maxCorr)
-      t.lag = this.stats.lag
-      t.lagN = this.stats.lagN
-    }
-    this.game.battle = after
-    this.transitions()
-    if (performance.now() - this.stats.at > 5000) {
-      log('net.stats', { snaps: this.stats.snaps, avgCorr: +(this.stats.corr / Math.max(1, this.stats.snaps * 2)).toFixed(4), maxCorr: +this.stats.maxCorr.toFixed(3), doubled: this.stats.doubled, skipped: this.stats.skipped, lag: +(this.stats.lag / Math.max(1, this.stats.lagN)).toFixed(1), rtt: Math.round(rt.rtt), tick: p.state.tick, serverTick: m.tick })
-      this.stats = { snaps: 0, corr: 0, maxCorr: 0, doubled: 0, skipped: 0, lag: 0, lagN: 0, at: performance.now() }
-    }
+  protected override tick(): void {
+    const d = this.driver
+    if (!d || d.done || this.link.serverNow() < this.beginServer) return
+    this.stepOnce(d)
   }
 
   private transitions(): void {
