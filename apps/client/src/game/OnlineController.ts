@@ -204,7 +204,7 @@ export class OnlineController extends BattleController {
 
   private roundStats(): Record<string, unknown> {
     const d = this.driver!, s = d.session.stats
-    return { round: this.startedRound, transport: this.link.kind, frame: d.session.frame, confirmed: d.session.confirmed.frame, depth: d.session.depth, maxDepth: s.maxDepth, rollbacks: s.rollbacks, resim: s.resimFrames, ownReplaced: s.ownReplaced, stalls: s.stalls, jumps: s.jumps, gaps: s.gaps, serverFrame: this.serverFrame, scale: d.clock.scale, margin: this.lastMargin, target: Math.round(d.clock.target), delay: d.session.delay, rtt: Math.round(this.link.net.rtt), jitter: Math.round(this.link.net.jitter) }
+    return { round: this.startedRound, transport: this.link.kind, waiting: d.waiting, fps: this.fps, frame: d.session.frame, confirmed: d.session.confirmed.frame, depth: d.session.depth, maxDepth: s.maxDepth, rollbacks: s.rollbacks, resim: s.resimFrames, ownReplaced: s.ownReplaced, stalls: s.stalls, jumps: s.jumps, gaps: s.gaps, serverFrame: this.serverFrame, scale: d.clock.scale, margin: this.lastMargin, target: Math.round(d.clock.target), delay: d.session.delay, rtt: Math.round(this.link.net.rtt), jitter: Math.round(this.link.net.jitter) }
   }
 
   private stepOnce(d: NetDriver): void {
@@ -223,8 +223,15 @@ export class OnlineController extends BattleController {
     this.stepOnce(d)
   }
 
+  private fps = 0
+  private fpsCount = 0
+  private fpsAt = 0
+
   protected override frame(dt: number): void {
     super.frame(dt)
+    const t = performance.now()
+    this.fpsCount++
+    if (t - this.fpsAt >= 1000) { this.fps = this.fpsCount; this.fpsCount = 0; this.fpsAt = t }
     const d = this.driver
     if (!d || d.done || this.disposed || !this.game.battle || this.link.serverNow() < this.beginServer) return
     d.rtt = this.rttNow()

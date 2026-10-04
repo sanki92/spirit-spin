@@ -33,6 +33,9 @@ export function installTelemetry(): void {
   addEventListener('error', e => log('error', { msg: e.message, src: e.filename, line: e.lineno, col: e.colno, stack: (e.error as Error | undefined)?.stack?.slice(0, 600) }))
   addEventListener('unhandledrejection', e => log('rejection', { reason: String((e.reason as Error)?.stack ?? e.reason).slice(0, 600) }))
   document.addEventListener('visibilitychange', () => { log('visibility', document.visibilityState); if (document.visibilityState === 'hidden') flush() })
+  addEventListener('pageshow', e => log('pageshow', { persisted: e.persisted, vis: document.visibilityState }))
+  addEventListener('focus', () => log('focus', document.visibilityState))
+  addEventListener('blur', () => { log('blur', document.visibilityState); flush() })
   addEventListener('orientationchange', () => log('orientation', { w: innerWidth, h: innerHeight, angle: screen.orientation?.angle }))
   addEventListener('resize', () => log('resize', { w: innerWidth, h: innerHeight }))
   addEventListener('pointerdown', e => {

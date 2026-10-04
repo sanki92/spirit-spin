@@ -13,7 +13,7 @@ export class NetDriver {
   private skip = 0
   private margin = 0
   private snapped = false
-  private waiting = false
+  private waitingNow = false
   private repeat = 0
   private readonly from: number
   rtt = 200
@@ -26,6 +26,8 @@ export class NetDriver {
     this.flush()
   }
 
+  get waiting(): boolean { return this.waitingNow }
+
   get done(): boolean { return !!this.session.confirmed.state.outcome }
 
   private flush(): void {
@@ -37,7 +39,7 @@ export class NetDriver {
     if (this.done) return false
     if (spirit) this.sp = (this.sp + 1) & 255
     const own = this.repeat > 0 ? (this.repeat--, this.session.confirmed.last[this.side]) : { x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }
-    const moved = this.waiting ? false : this.skip > 0 ? (this.skip--, false) : this.session.advance(own, out)
+    const moved = this.waitingNow ? false : this.skip > 0 ? (this.skip--, false) : this.session.advance(own, out)
     this.flush()
     return moved
   }
@@ -47,7 +49,7 @@ export class NetDriver {
   onFrames(m: Extract<WireMsg, { op: 'frames' }>): ConfirmResult | null {
     if (m.round !== (this.round & 255)) return null
     const result = this.session.confirm(m.first, m.frames)
-    if (result === 'jump') this.snapped = true, this.waiting = false
+    if (result === 'jump') this.snapped = true, this.waitingNow = false
     for (const c of this.session.takeCheckpoints()) this.sink.send({ op: 'hash', round: this.round & 255, frame: c.frame, hash: c.hash })
     this.margin = m.margin
     if (this.live) this.clock.onMargin(m.margin)
@@ -60,8 +62,8 @@ export class NetDriver {
     const want = clockFrame(now, this.t0, this.rtt, this.clock.target, s.delay)
     const err = want - s.frame
     const lead = Math.ceil((this.rtt + this.clock.target) / WIRE.tickMs) + s.delay + CLOCK.slackFrames
-    this.waiting = err > CLOCK.leapFrames && want - s.confirmed.frame > lead
-    if (this.waiting) return 0
+    this.waitingNow = err > CLOCK.leapFrames && want - s.confirmed.frame > lead
+    if (this.waitingNow) return 0
     const snapped = this.snapped
     this.snapped = false
     if (err > CLOCK.leapFrames || (err > 0 && (snapped || (this.live && this.margin < 0)))) {
@@ -76,7 +78,7 @@ export class NetDriver {
 
   resync(tl: Timeline): void {
     this.skip = 0
-    this.waiting = false
+    this.waitingNow = false
     this.session.resync(tl)
   }
 
