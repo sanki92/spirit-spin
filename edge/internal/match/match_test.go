@@ -62,6 +62,11 @@ func TestConfirmsAndSendsAckWindow(t *testing.T) {
 	m.OnPacket(0, wire.EncodeInput(1, 1, 0, []wire.Input{in(5)}))
 	m.OnPacket(1, wire.EncodeInput(1, 1, 0, []wire.Input{in(-5)}))
 	m.Tick()
+	if len(a.withFrames()) != 0 {
+		t.Fatal("confirmed before the frame deadline")
+	}
+	*now = at(t0, 1)
+	m.Tick()
 	fa := a.withFrames()
 	if len(fa) != 1 || fa[0].First != 1 || len(fa[0].Frames) != 1 || fa[0].Frames[0][0].X != 5 {
 		t.Fatalf("a got %+v", fa)

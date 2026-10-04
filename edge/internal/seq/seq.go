@@ -67,7 +67,7 @@ func (s *Sequencer) Due(now float64) int {
 		f := s.Frame + 1
 		a, okA := s.pending[0][f]
 		b, okB := s.pending[1][f]
-		if (!okA || !okB) && now < s.Deadline(f) {
+		if now < s.Deadline(f) {
 			return n
 		}
 		if !okA {

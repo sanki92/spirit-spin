@@ -8,21 +8,23 @@ const T0 = 1000
 const at = (f: number) => T0 + f * WIRE.tickMs + SEQ.graceMs
 
 describe('sequencer', () => {
-  it('confirms a frame as soon as both inputs arrive, before its deadline', () => {
+  it('waits for each frame deadline even when both inputs arrived early, so clients cannot race ahead of the server clock', () => {
     const s = new Sequencer(T0)
     s.receive(0, 1, [I(5), I(6)], T0)
+    s.receive(1, 1, [I(-5), I(-6)], T0)
     expect(s.due(T0)).toBe(0)
-    s.receive(1, 1, [I(-5)], T0)
-    expect(s.due(T0)).toBe(1)
+    expect(s.due(at(1) - 1)).toBe(0)
+    expect(s.due(at(1))).toBe(1)
     expect(s.confirmed[0]).toEqual([I(5), I(-5)])
-    expect(s.frame).toBe(1)
+    expect(s.due(at(2))).toBe(1)
+    expect(s.confirmed[1]).toEqual([I(6), I(-6)])
   })
 
   it('at the deadline a missing side repeats its last confirmed input', () => {
     const s = new Sequencer(T0)
     s.receive(0, 1, [I(5)], T0)
     s.receive(1, 1, [I(-5, 2)], T0)
-    s.due(T0)
+    s.due(at(1))
     s.receive(0, 2, [I(7)], T0)
     expect(s.due(at(2) - 1)).toBe(0)
     expect(s.due(at(2))).toBe(1)
@@ -42,7 +44,7 @@ describe('sequencer', () => {
   it('late spirit press fires once on the next confirmed frame', () => {
     const s = new Sequencer(T0)
     for (let f = 1; f <= 3; f++) { s.receive(0, f, [I(0)], T0); s.receive(1, f, [I(0)], T0) }
-    s.due(T0)
+    s.due(at(3))
     s.receive(1, 4, [I(0), I(0), I(0)], T0)
     s.due(at(4))
     s.receive(0, 4, [I(0, 1), I(0, 1), I(0, 1)], at(4) + 30)

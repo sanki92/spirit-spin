@@ -43,7 +43,7 @@ export class Sequencer {
     for (;;) {
       const f = this.frame + 1
       const a = this.pending[0].get(f), b = this.pending[1].get(f)
-      if ((a === undefined || b === undefined) && now < this.deadline(f)) return n
+      if (now < this.deadline(f)) return n
       if (a === undefined) this.missing[0]++
       if (b === undefined) this.missing[1]++
       const fr: Frame = [a ?? this.last[0], b ?? this.last[1]]
