@@ -189,3 +189,79 @@ describe('edge link review fixes', () => {
     vi.useRealTimers()
   })
 })
+
+describe('edge link races WebTransport against the WebSocket', () => {
+  const loc = { hostname: 'h', protocol: 'https:', host: 'h' }
+  const info = { wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 't', certHash: 'ab' }
+  const fakeWT = (mode: 'hang' | 'reject' | 'open', openMs = 1) => {
+    const made: { closed: boolean }[] = []
+    class WT {
+      ready: Promise<void>
+      closed: Promise<void>
+      datagrams = { writable: { getWriter: () => ({ write: async () => undefined }) }, readable: { getReader: () => ({ read: () => new Promise(() => undefined) }) } }
+      rec = { closed: false }
+      constructor() {
+        made.push(this.rec)
+        this.ready = mode === 'hang' ? new Promise(() => undefined) : mode === 'reject' ? new Promise((_, rej) => setTimeout(() => rej(new Error('WebTransportError')), 1)) : new Promise(r => setTimeout(r, openMs))
+        this.closed = mode === 'reject' ? new Promise((_, rej) => setTimeout(() => rej(new Error('WebTransportError')), 2)) : new Promise(() => undefined)
+      }
+      close() { this.rec.closed = true }
+    }
+    return { WT: WT as unknown as typeof WebTransport, made }
+  }
+  class OpenWS {
+    binaryType = 'arraybuffer'
+    readyState = 0
+    onopen: (() => void) | null = null
+    onerror: (() => void) | null = null
+    onclose: (() => void) | null = null
+    onmessage: ((e: MessageEvent) => void) | null = null
+    constructor() { setTimeout(() => { this.readyState = 1; this.onopen?.() }, 5) }
+    send() {}
+    close() {}
+  }
+
+  it('a WebTransport handshake that never completes (iOS with a dev cert) falls back after the head start, not the full timeout', async () => {
+    vi.useFakeTimers()
+    const { WT, made } = fakeWT('hang')
+    const link = new EdgeLink(info, { WT, WS: OpenWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 50)
+    expect(link.kind).toBe('ws')
+    await vi.advanceTimersByTimeAsync(EDGE.wtTimeoutMs)
+    expect(made[0]!.closed).toBe(true)
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('a rejected WebTransport leaves no unhandled rejection and the WebSocket takes over', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+    const seen: unknown[] = []
+    const onRej = (e: unknown) => seen.push(e)
+    process.on('unhandledRejection', onRej)
+    const { WT } = fakeWT('reject')
+    const link = new EdgeLink(info, { WT, WS: OpenWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 50)
+    await new Promise(r => setImmediate(r))
+    process.off('unhandledRejection', onRej)
+    expect(link.kind).toBe('ws')
+    expect(seen).toEqual([])
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('a WebTransport that answers within the head start wins and no WebSocket is opened', async () => {
+    vi.useFakeTimers()
+    let wsMade = 0
+    class CountWS extends OpenWS { constructor() { super(); wsMade++ } }
+    const { WT } = fakeWT('open', 20)
+    const link = new EdgeLink(info, { WT, WS: CountWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 200)
+    expect(link.kind).toBe('wt')
+    expect(wsMade).toBe(0)
+    link.close()
+    vi.useRealTimers()
+  })
+})

@@ -19,7 +19,7 @@ export function hexBytes(hex: string): Uint8Array<ArrayBuffer> {
 
 const within = <T>(p: Promise<T>, ms: number): Promise<T> => Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))])
 
-export const EDGE = { wtTimeoutMs: 1500, wsTimeoutMs: 4000, maxBackoffMs: 3000, fastPingMs: 2000, maxRetries: 5, stableMs: 2000 } as const
+export const EDGE = { wtTimeoutMs: 1500, wsTimeoutMs: 4000, maxBackoffMs: 3000, fastPingMs: 2000, maxRetries: 5, stableMs: 2000, wtHeadStartMs: 300 } as const
 
 export class EdgeLink implements WireLink {
   kind: 'wt' | 'ws' | 'none' = 'none'
@@ -62,34 +62,66 @@ export class EdgeLink implements WireLink {
     try {
       const urls = edgeUrls(this.info, this.deps.location ?? location)
       const WT = 'WT' in this.deps ? this.deps.WT : (globalThis as { WebTransport?: typeof WebTransport }).WebTransport
-      let wtFailed = false
-      if (WT && !this.wtBroken) {
-        try {
-          await within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs)
-          return this.up('wt')
-        } catch (e) {
-          wtFailed = true
-          log('edge.wt-fail', { err: String(e).slice(0, 120) })
-          const t = this.wt
-          this.wt = null
-          this.writer = null
-          try { t?.close() } catch { }
-        }
-      }
-      if (this.closed) return
-      try {
-        await within(this.openWS(urls.ws), EDGE.wsTimeoutMs)
-      } catch (e) {
-        const w = this.ws
-        this.ws = null
-        try { w?.close() } catch { }
-        throw e
-      }
-      if (wtFailed) this.wtBroken = true
-      this.up('ws')
+      const kind = await this.race(WT && !this.wtBroken ? WT : null, urls)
+      this.up(kind)
     } finally {
       this.opening = false
     }
+  }
+
+  private race(WT: typeof WebTransport | null, urls: { wt: string; ws: string }): Promise<'wt' | 'ws'> {
+    return new Promise((resolve, reject) => {
+      let done = false, pending = 0, wtFailed = false
+      let wsTimer: ReturnType<typeof setTimeout> | 0 = 0
+      const win = (k: 'wt' | 'ws'): boolean => {
+        if (done) return false
+        done = true
+        if (wsTimer) clearTimeout(wsTimer)
+        if (k === 'ws' && wtFailed) this.wtBroken = true
+        resolve(k)
+        return true
+      }
+      const fail = (e: unknown) => { if (--pending === 0 && !done) { done = true; reject(e) } }
+      const startWS = () => {
+        wsTimer = 0
+        if (done) return
+        if (this.closed) return fail(new Error('closed'))
+        pending++
+        within(this.openWS(urls.ws), EDGE.wsTimeoutMs).then(
+          () => { if (!win('ws') || this.closed) this.dropWS() },
+          e => { this.dropWS(); fail(e) },
+        )
+      }
+      if (WT) {
+        pending++
+        within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs).then(
+          () => { if (!win('wt') || this.closed) this.dropWT() },
+          e => {
+            wtFailed = true
+            log('edge.wt-fail', { err: String(e).slice(0, 120) })
+            this.dropWT()
+            if (done && this.kind === 'ws') this.wtBroken = true
+            if (done && !this.ws && !this.closed) this.schedule()
+            if (wsTimer) { clearTimeout(wsTimer); startWS() }
+            fail(e)
+          },
+        )
+        wsTimer = setTimeout(startWS, EDGE.wtHeadStartMs)
+      } else startWS()
+    })
+  }
+
+  private dropWT(): void {
+    const t = this.wt
+    this.wt = null
+    this.writer = null
+    try { t?.close() } catch { }
+  }
+
+  private dropWS(): void {
+    const w = this.ws
+    this.ws = null
+    try { w?.close() } catch { }
   }
 
   private up(kind: 'wt' | 'ws'): void {
@@ -109,6 +141,7 @@ export class EdgeLink implements WireLink {
   private async openWT(WT: typeof WebTransport, url: string): Promise<void> {
     const opts: WebTransportOptions = this.info.certHash ? { serverCertificateHashes: [{ algorithm: 'sha-256', value: hexBytes(this.info.certHash) }] } : {}
     const t = new WT(url, opts)
+    t.closed.catch(() => undefined)
     this.wt = t
     await t.ready
     if (this.wt !== t) throw new Error('superseded')
