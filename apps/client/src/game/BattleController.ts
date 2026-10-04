@@ -44,7 +44,7 @@ const CAPTURE_AFTER_MS = 700
 const FAIL_RIP = (t0: number) => composeRip(0.15, 0.3, 0.45, 0, t0)
 const RESOLVE_AFTER_START_MS = RIP.windowMs + 10
 const mag = (s: MotionSample) => Math.hypot(s.ax, s.ay, s.az)
-const FAIL_TEXT: Record<RipFail['reason'], string> = { 'no-pull': 'TOO SOFT', 'too-early': 'FALSE START', 'too-late': 'TOO LATE' }
+export const FAIL_TEXT: Record<RipFail['reason'], string> = { 'no-pull': 'TOO SOFT', 'too-early': 'FALSE START', 'too-late': 'TOO LATE' }
 
 export class BattleController {
   match: MatchState = newMatch()
@@ -70,6 +70,7 @@ export class BattleController {
   protected disposed = false
   protected announcer: Announcer
   protected resolvedAt = -1
+  protected earlyResolve = true
   protected windowFrom = -Infinity
   protected coachSince = 0
   protected coached = false
@@ -185,6 +186,10 @@ export class BattleController {
     })
   }
 
+  protected adjudicate(res: RipResult | RipFail, _motion: MotionSample[] | null, _swipe: TouchSample[] | null): RipResult | RipFail {
+    return res
+  }
+
   protected pollLaunch(now: number): void {
     const phase = useHud.getState().phase
     const sensors = this.deps.sensors?.live ? this.deps.sensors : null
@@ -205,7 +210,7 @@ export class BattleController {
       }
       return
     }
-    if (phase !== 'countdown' || now < this.launchAt || this.resolvedAt === this.launchAt) return
+    if (!this.earlyResolve || phase !== 'countdown' || now < this.launchAt || this.resolvedAt === this.launchAt) return
     const t0 = this.launchAt
     const start = sensors?.window(t0 + RIP.earliestMs, t0 + RIP.latestMs).find(s => mag(s) > RIP.startThreshold)
     if (start && now < start.t + RESOLVE_AFTER_START_MS) return
@@ -236,9 +241,10 @@ export class BattleController {
     const usedSwipe = !!swiped?.ok && (!motion?.ok || swiped.rpm > motion.rpm)
     res = usedSwipe ? (swiped as RipResult) : motion ?? swiped ?? { ok: false, reason: 'no-pull' }
     if (!usedSwipe) this.swipe = null
+    const win = this.swipe ? null : this.deps.sensors?.window(from, t0 + CAPTURE_AFTER_MS) ?? []
+    res = this.adjudicate(res, win, this.swipe)
     const rip = res.ok ? res : FAIL_RIP(t0)
     const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
-    const win = this.swipe ? null : this.deps.sensors?.window(from, t0 + CAPTURE_AFTER_MS) ?? []
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
     log('rip', {
       round: this.match.round, mode: this.swipe ? 'swipe' : this.deps.sensors?.live ? 'motion' : 'none', ok: res.ok,

@@ -1,6 +1,6 @@
 import {
   assembleTop, botInput, createBattle, deckTop, encodeInputs, ghostRip, ghostSeeds, judgeRip, quantize, stepBattle,
-  type BattleEvent, type BotBrain, type MotionSample, type RipPayload, type RipResult, type RipView, type RngState, type TickInput, type TopBuild, type TouchSample,
+  type BattleEvent, type BotBrain, type MotionSample, type RipFail, type RipPayload, type RipResult, type RipView, type RngState, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
 import { useHud } from '../state/hud'
 import { authHeader } from '../state/sync'
@@ -8,15 +8,16 @@ import { log } from '../telemetry'
 import { BattleController, type MatchResult, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
 import { tierOf } from './launchPlan'
+import { judged, ripPayload, RIP_AFTER_MS, RIP_BEFORE_MS } from './ripPayload'
 
 export interface IssuedGhost { matchId: string; seed: number; pool: 'motion' | 'swipe'; deck: TopBuild[]; opponent: { name: string; rating: number; deck: TopBuild[]; rips: RipView[]; brain: BotBrain } }
 export interface GhostVerdict { winner: 0 | 1; scores: [number, number]; rating?: number; delta?: number }
 
-const r2 = (v: number) => Math.round(v * 100) / 100
 
 export class GhostController extends BattleController {
   private ghostRng: RngState
   private payload: RipPayload | null = null
+  protected override earlyResolve = false
   private roundInputs: TickInput[] = []
   private rounds: (RipPayload & { inputs: number[] })[] = []
   verdict: GhostVerdict | null = null
@@ -34,23 +35,24 @@ export class GhostController extends BattleController {
     void this.game.setTops([mine, theirs], [this.art(mine), `beasts/${theirs.beastId}`]).then(go, go)
   }
 
-  protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {
+  protected override adjudicate(_res: RipResult | RipFail, motion: MotionSample[] | null, swipe: TouchSample[] | null): RipResult | RipFail {
     const t0 = this.launchAt
+    const trace = this.deps.sensors?.window(t0 - RIP_BEFORE_MS, t0 + RIP_AFTER_MS) ?? motion ?? []
+    this.payload = ripPayload(t0, trace, swipe, this.deps.calibration.pull100, this.issued.pool === 'motion' ? 'motion' : 'swipe')
+    return judged(this.payload).res
+  }
+
+  protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {
     const round = this.match.round
-    const trace = this.deps.sensors?.window(t0 - 400, t0 + 700) ?? motion ?? []
-    const m = trace.filter(s => s.t >= t0 - 400 && s.t <= t0 + 700).map(s => ({ t: r2(s.t - t0), ax: r2(s.ax), ay: r2(s.ay), az: r2(s.az), gx: r2(s.gx), gy: r2(s.gy), gz: r2(s.gz), roll: r2(s.roll) }))
-    const pts = (swipe ?? []).filter(p => p.t >= t0 - 400 && p.t <= t0 + 700).slice(-200)
-    const sw = pts.length ? { points: pts.map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: Math.round(innerHeight) } : undefined
-    this.payload = this.issued.pool === 'motion' ? { motion: m ?? [], pull100: this.deps.calibration.pull100 } : { swipe: sw, pull100: this.deps.calibration.pull100 }
-    const judged = judgeRip(this.payload)
-    const rip = judged.rip
-    useHud.getState().set({ callout: judged.view.ok ? { quality: judged.view.overspin ? 'OVERSPIN' : judged.view.quality, rpm: judged.view.rpm } : { quality: 'FAIL', rpm: judged.view.rpm, note: 'TOO SOFT' } })
+    if (!this.payload) this.adjudicate({ ok: false, reason: 'no-pull' }, motion, swipe)
+    const j = judgeRip(this.payload!)
+    const rip = j.rip
     const mine = assembleTop(deckTop(this.issued.deck, round)), theirs = assembleTop(deckTop(this.issued.opponent.deck, round))
     const theirRip = ghostRip(this.issued.opponent.rips, round)
     const battle = createBattle([mine, theirs], [{ rip, hesitate: false }, { rip: theirRip, hesitate: false }], ghostSeeds(this.issued.seed).battle(round))
     this.roundInputs = []
     this.game.setBattle(battle)
-    this.game.launch([tierOf(judged.view), tierOf(theirRip)])
+    this.game.launch([tierOf(j.view), tierOf(theirRip)])
     this.enterBattlePhase()
   }
 

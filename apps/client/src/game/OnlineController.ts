@@ -1,13 +1,13 @@
-import { createBattle, NET, Predictor, type BattleEvent, type BattleState, type MotionSample, type RipResult, type ServerMsg, type Side, type TouchSample } from '@spirit/core'
+import { createBattle, NET, Predictor, type BattleEvent, type BattleState, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type TouchSample } from '@spirit/core'
 import { rt } from '../net/rt'
 import { useHud } from '../state/hud'
 import { log } from '../telemetry'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
 import { tierOf } from './launchPlan'
+import { calloutOf, judged, ripPayload } from './ripPayload'
 
 const r3 = (v: number) => Math.round(v * 1000) / 1000
-const r2 = (v: number) => Math.round(v * 100) / 100
 const flipWinner = (w: Side | null) => (w === null ? null : ((1 - w) as Side))
 const view = (s: BattleState, side: Side): BattleState =>
   side === 0 ? s : { ...s, tops: [s.tops[1], s.tops[0]], specs: [s.specs[1], s.specs[0]], outcome: s.outcome && { ...s.outcome, winner: flipWinner(s.outcome.winner) } }
@@ -24,6 +24,8 @@ export class OnlineController extends BattleController {
   private lead: number | null = null
   private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
+  protected override earlyResolve = false
+  private sent: RipPayload | null = null
   private stats = { snaps: 0, corr: 0, maxCorr: 0, doubled: 0, skipped: 0, lag: 0, lagN: 0, at: 0 }
 
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private side: Side) {
@@ -33,7 +35,7 @@ export class OnlineController extends BattleController {
 
   override start(): void {
     log('match.start', { online: true, side: this.side, player: this.setup.player, opponent: this.setup.opponent, input: this.inputMode, rtt: Math.round(rt.rtt) })
-    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null })
+    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null, coachTip: null, coach: false, pull: 0 })
     const r = rt.last('round')
     if (r) this.onNet(r)
   }
@@ -77,14 +79,15 @@ export class OnlineController extends BattleController {
     } else if (m.k === 'peer') useHud.getState().set({ notice: m.online ? null : 'Opponent reconnecting…' })
   }
 
+  protected override adjudicate(_res: RipResult | RipFail, motion: MotionSample[] | null, swipe: TouchSample[] | null): RipResult | RipFail {
+    this.sent = ripPayload(this.launchAt, motion, swipe, this.deps.calibration.pull100)
+    return judged(this.sent).res
+  }
+
   protected override launch(_rip: RipResult, _opp: RipResult, motion: MotionSample[] | null, swipe: TouchSample[] | null): void {
-    const t0 = this.launchAt
-    const m = motion?.filter(s => s.t >= t0 - 400 && s.t <= t0 + 700).map(s => ({ t: r2(s.t - t0), ax: r2(s.ax), ay: r2(s.ay), az: r2(s.az), gx: r2(s.gx), gy: r2(s.gy), gz: r2(s.gz), roll: r2(s.roll) }))
-    rt.send({
-      k: 'rip', round: this.ripRound, pull100: this.deps.calibration.pull100,
-      ...(m?.length ? { motion: m } : {}),
-      ...(swipe?.length ? { swipe: { points: swipe.filter(p => p.t >= t0 - 400 && p.t <= t0 + 700).slice(-200).map(p => ({ t: r2(p.t - t0), x: r2(p.x), y: r2(p.y) })), h: Math.round(innerHeight) } } : {}),
-    })
+    const p = this.sent ?? ripPayload(this.launchAt, motion, swipe, this.deps.calibration.pull100)
+    this.sent = null
+    rt.send({ k: 'rip', round: this.ripRound, pull100: p.pull100, ...(p.motion ? { motion: p.motion } : {}), ...(p.swipe ? { swipe: p.swipe } : {}) })
   }
 
   private onStart(m: Extract<ServerMsg, { k: 'start' }>): void {
@@ -99,7 +102,7 @@ export class OnlineController extends BattleController {
     this.batch = []
     this.spiritSeen = [false, false]
     const mine = m.rips[this.side]
-    useHud.getState().set({ callout: mine.ok ? { quality: mine.overspin ? 'OVERSPIN' : mine.quality, rpm: mine.rpm } : { quality: 'FAIL', rpm: mine.rpm, note: 'TOO SOFT' } })
+    useHud.getState().set({ callout: calloutOf(mine) })
     log('net.start', { round: m.round, mine: mine.rpm, theirs: m.rips[(1 - this.side) as Side].rpm, rtt: Math.round(rt.rtt) })
     this.game.setBattle(view(s, this.side))
     this.game.launch([tierOf(mine), tierOf(m.rips[(1 - this.side) as Side])])
