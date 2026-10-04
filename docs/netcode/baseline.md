@@ -42,3 +42,13 @@ Compared with the old model on the iPhone (p95 correction 0.69 arena units, 130+
 - Core soak `npm run soak`: 1,000+ simulated matches across lan, criteria (150 ms RTT, 30 ms jitter, 5% loss), 300 ms spikes, phone hotspot 30 vs 60 fps, uneven 85/320 ms one-way, ordered TCP: zero desyncs; zero own-input corrections and zero stalls on criteria.
 - duo through the 150/30 proxy: 18 scenarios incl. 40-43 pass.
 - duo on a plain connection: 23/23 pass, including the WebKit iPhone visual proof (#30).
+
+## Soak (Phase 3, 2026-10-04)
+
+| run | result |
+|---|---|
+| core `npm run soak` (1,000+ virtual matches, 6 profiles incl. criteria and uneven 85/320 ms) | 6/6 pass, 0 desyncs, 0 own-input corrections on criteria |
+| edge load test, 500 concurrent matches, redundant feeders | 88,505 frames, 0 missing inputs, tick pass < 1 ms |
+| full stack via Go edge, 40 bot matches | 40/40 finished, 87 rounds, 0 desyncs, 0 fallbacks, 0 lost, 0 stream drops |
+| full stack via Go edge with faults (5% drop, +60 ms, ±30 ms jitter on edge→phone) | 20/20 finished, 58 rounds, 0 desyncs, 0 late inputs |
+| full stack in-process (no edge), 20 bot matches | 20/20 finished, 45 rounds, 0 desyncs |

@@ -49,7 +49,8 @@ class Bot {
     this.ws = new WebSocket(API.replace(/^http/, 'ws') + '/rt')
     this.ws.binaryType = 'arraybuffer'
     this.ws.on('message', (d, bin) => (bin ? this.onWire(decode(new Uint8Array(d as ArrayBuffer))) : this.onJson(JSON.parse(String(d)) as ServerMsg)))
-    await new Promise(r => this.ws.once('open', r))
+    await new Promise((res, rej) => { this.ws.once('open', res); this.ws.once('error', rej) })
+    this.ws.on('error', () => undefined)
     this.send({ k: 'hello', token, name: this.name })
     await Promise.race([this.wait('welcome'), new Promise((_, rej) => setTimeout(() => rej(new Error(`${this.name}: no welcome`)), 10000))])
     const t = Date.now()
