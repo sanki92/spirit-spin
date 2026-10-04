@@ -1,0 +1,27 @@
+syntax = "proto3";
+package spirit.edge.v1;
+option go_package = "spiritspin/edge/gen/edgev1;edgev1";
+
+service Edge {
+  rpc CreateMatch(CreateMatchRequest) returns (CreateMatchResponse);
+  rpc StartRound(StartRoundRequest) returns (StartRoundResponse);
+  rpc EndRound(EndRoundRequest) returns (EndRoundResponse);
+  rpc EndMatch(EndMatchRequest) returns (EndMatchResponse);
+  rpc StreamFrames(StreamFramesRequest) returns (stream FrameBatch);
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message CreateMatchRequest { string match_id = 1; }
+message CreateMatchResponse { string cert_hash = 1; }
+message StartRoundRequest { string match_id = 1; uint32 round = 2; uint32 lead_in_ms = 3; }
+message StartRoundResponse { double t0 = 1; }
+message EndRoundRequest { string match_id = 1; uint32 round = 2; }
+message RoundStats { uint32 frames = 1; repeated uint32 late = 2; repeated uint32 missing = 3; repeated int32 margins = 4; uint64 datagrams_in = 5; uint64 datagrams_out = 6; repeated string transports = 7; }
+message EndRoundResponse { RoundStats stats = 1; }
+message EndMatchRequest { string match_id = 1; }
+message EndMatchResponse {}
+message StreamFramesRequest { string match_id = 1; uint32 round = 2; uint32 after = 3; }
+message ClientHash { uint32 side = 1; uint32 frame = 2; uint32 hash = 3; }
+message FrameBatch { uint32 round = 1; uint32 first = 2; bytes inputs = 3; repeated ClientHash hashes = 4; }
+message HealthRequest {}
+message HealthResponse { uint32 matches = 1; uint32 sessions = 2; }

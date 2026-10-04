@@ -10,7 +10,11 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "check": "npm run typecheck && npm test",
-    "balance": "npm run balance -w @spirit/core"
+    "balance": "npm run balance -w @spirit/core",
+    "proto": "protoc -I proto --go_out=edge/gen/edgev1 --go_opt=paths=source_relative --go-grpc_out=edge/gen/edgev1 --go-grpc_opt=paths=source_relative proto/edge.proto",
+    "edge": "cd edge && go run ./cmd/edge",
+    "edge:test": "cd edge && go test -race ./...",
+    "edge:build": "cd edge && go build -trimpath -o ../dist/edge ./cmd/edge"
   },
   "engines": {
     "node": ">=22"

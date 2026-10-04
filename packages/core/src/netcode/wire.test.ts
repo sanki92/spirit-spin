@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decode, encode, quantizeTilt as quantize, tiltOf, type WireInput, type WireMsg } from './wire'
+import { decode, encode, packFrames, quantizeTilt as quantize, tiltOf, unpackFrames, type Frame, type WireInput, type WireMsg } from './wire'
 
 const hex = (b: Uint8Array) => [...b].map(v => v.toString(16).padStart(2, '0')).join('')
 const unhex = (s: string) => Uint8Array.from(s.match(/../g)!.map(h => parseInt(h, 16)))
@@ -31,6 +31,14 @@ describe('wire', () => {
   it('clamps margin and -128 tilt', () => {
     expect((decode(encode({ op: 'frames', round: 1, first: 1, margin: 99999, frames: [] })) as { margin: number }).margin).toBe(32767)
     expect(decode(unhex('0101000000010000000001808003'))).toEqual({ op: 'input', round: 1, first: 1, ack: 0, inputs: [{ x: -127, y: -127, sp: 3 }] })
+  })
+
+  it('packs frames like a frames payload', () => {
+    const fr: Frame[] = [[{ x: 1, y: 2, sp: 0 }, { x: -1, y: 0, sp: 9 }]]
+    expect(hex(packFrames(fr))).toBe('010200ff0009')
+    expect(unpackFrames(packFrames(fr))).toEqual(fr)
+    expect(unpackFrames(new Uint8Array(5))).toEqual([])
+    expect(unpackFrames(new Uint8Array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6]).subarray(6))).toEqual([[{ x: 1, y: 2, sp: 3 }, { x: 4, y: 5, sp: 6 }]])
   })
 
   it('rejects malformed packets', () => {

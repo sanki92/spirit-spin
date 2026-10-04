@@ -62,6 +62,19 @@ export function encode(m: WireMsg): Uint8Array {
   return b
 }
 
+export function packFrames(frames: readonly Frame[]): Uint8Array {
+  const b = new Uint8Array(frames.length * 6)
+  const v = new DataView(b.buffer)
+  frames.forEach((f, i) => { put(v, 6 * i, f[0]); put(v, 6 * i + 3, f[1]) })
+  return b
+}
+
+export function unpackFrames(b: Uint8Array): Frame[] {
+  if (b.length % 6) return []
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength)
+  return Array.from({ length: b.length / 6 }, (_, i) => [get(v, 6 * i), get(v, 6 * i + 3)] as Frame)
+}
+
 export function decode(buf: ArrayBuffer | Uint8Array): WireMsg | null {
   const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
   if (b.length < 1) return null
