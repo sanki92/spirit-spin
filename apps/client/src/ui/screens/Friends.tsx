@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { rt } from '../../net/rt'
 import { useNav } from '../../state/nav'
-import { useSave } from '../../state/save'
+import { launcherId, useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
 import { Img, Screen, TopBar } from '../kit'
@@ -107,6 +107,7 @@ export function Friends({ join }: { join?: string | undefined }) {
   const rivalRef = useRef<Friend | null>(null)
   const reveal = useRef(0)
   const build = useSave(s => s.loadout) as TopBuild
+  const launcher = useSave(launcherId)
   const name = useSave(s => s.name)
   const busy = phase.k === 'connecting' || phase.k === 'joining'
   const lobby = phase.k === 'connecting' || phase.k === 'hosting' || phase.k === 'joining' || phase.k === 'waiting' || foe !== null
@@ -167,7 +168,7 @@ export function Friends({ join }: { join?: string | undefined }) {
     setRival(to)
     setPhase({ k: 'connecting' })
     guard()
-    if (await connect()) rt.send({ k: 'create', build })
+    if (await connect()) rt.send({ k: 'create', build: { ...build, launcher } })
   }
   const enter = async (c: string) => {
     rt.leave()
@@ -175,7 +176,7 @@ export function Friends({ join }: { join?: string | undefined }) {
     setRival(null)
     setPhase({ k: 'joining' })
     guard()
-    if (await connect()) rt.send({ k: 'join', code: c.toUpperCase(), build })
+    if (await connect()) rt.send({ k: 'join', code: c.toUpperCase(), build: { ...build, launcher } })
   }
   useEffect(() => {
     if (join && !auto.current) {

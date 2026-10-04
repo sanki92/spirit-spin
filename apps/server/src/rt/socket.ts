@@ -1,12 +1,14 @@
 import websocket from '@fastify/websocket'
-import { assembleTop, NET, type ServerMsg, type Side } from '@spirit/core'
+import { assembleTop, COSMETICS, NET, type ServerMsg, type Side } from '@spirit/core'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { cleanName, randomCode, type Tokens } from '../auth'
 import { Room } from './room'
 
 const num = z.number().finite()
-const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']) })
+const LAUNCHERS = new Set(Object.values(COSMETICS).filter(c => c.kind === 'launcher').map(c => c.id))
+const Build = z.object({ bladeId: z.string().max(20), discId: z.string().max(20), tipId: z.string().max(20), beastId: z.enum(['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']), launcher: z.string().max(40).optional() })
+  .transform(({ launcher, ...b }) => (launcher && LAUNCHERS.has(launcher) ? { ...b, launcher } : b))
 const Code = z.string().regex(/^[A-Za-z0-9]{4}$/).transform(s => s.toUpperCase())
 const Sample = z.object({ t: num, ax: num, ay: num, az: num, gx: num, gy: num, gz: num, roll: num })
 const Msg = z.discriminatedUnion('k', [

@@ -5,7 +5,7 @@ import { BEASTS } from '../../game/beasts'
 import { Game, type StadiumTheme } from '../../game/Game'
 import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
-import { useSave } from '../../state/save'
+import { launcherId, useSave } from '../../state/save'
 import { Loader } from '../Loader'
 import { BattleHud } from '../hud/BattleHud'
 
@@ -74,7 +74,5 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
 }
 
 function playerLauncher(): string {
-  const s = useSave.getState()
-  const id = s.cosmetics?.launcher ?? `launcher-${s.loadout?.beastId ?? s.starter ?? 'voltfang'}`
-  return `launchers/${id.replace('launcher-', '')}`
+  return `launchers/${launcherId(useSave.getState()).replace('launcher-', '')}`
 }

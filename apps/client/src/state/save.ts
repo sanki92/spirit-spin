@@ -236,3 +236,5 @@ export function ownsCosmetic(s: Pick<SaveData, 'unlocks' | 'entitlements' | 'sta
   if (id === 'title-climber' && s.tower >= 10) return true
   return (s.unlocks ?? []).includes(id) || (s.entitlements ?? []).includes(id)
 }
+
+export const launcherId = (s: { cosmetics?: { launcher?: string | null } | null; loadout?: { beastId: BeastId } | null; starter?: BeastId | null }): string => s.cosmetics?.launcher ?? `launcher-${s.loadout?.beastId ?? s.starter ?? 'voltfang'}`

@@ -107,7 +107,8 @@ export class Game {
       summonTex(beastArt[1], builds[1].beastId),
     ])
     const shock = await tex('vfx/shockwave', 'vfx/impact-flash')
-    const rigArt = [this.playerLauncher ?? `launchers/${builds[0].beastId}`, `launchers/${builds[1].beastId}`].map(id => (hasAsset(id) ? id : null))
+    const own = (b: TopBuild) => (b.launcher ? `launchers/${b.launcher.replace('launcher-', '')}` : null)
+    const rigArt = [this.playerLauncher ?? own(builds[0]), own(builds[1])].map((id, i) => [id, `launchers/${builds[i]!.beastId}`].find(x => x && hasAsset(x)) ?? null)
     const rigTex = await Promise.all(rigArt.map(id => (id ? texture(id).catch(() => null) : null)))
     for (const r of this.launchers) if (r) { this.stage.world.remove(r.group); r.dispose() }
     this.launchers = [rigTex[0] ? new LaunchRig(rigTex[0], 0) : null, rigTex[1] ? new LaunchRig(rigTex[1], 1) : null]

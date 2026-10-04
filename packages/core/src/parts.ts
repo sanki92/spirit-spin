@@ -14,7 +14,7 @@ export interface Disc { id: string; name: string; mass: number; rim: number; rar
 export interface Tip { id: string; name: string; kind: TipKind; driveMod: number; decayMod: number; rarity: Rarity }
 export interface PartLevels { blade?: number; disc?: number; tip?: number }
 export interface BeastKit { trait?: boolean; ultimate?: boolean }
-export interface TopBuild { bladeId: string; discId: string; tipId: string; beastId: BeastId; levels?: PartLevels; kit?: BeastKit }
+export interface TopBuild { bladeId: string; discId: string; tipId: string; beastId: BeastId; levels?: PartLevels; kit?: BeastKit; launcher?: string }
 
 export interface TopStats { attack: number; defense: number; stamina: number; speed: number }
 export interface TopSpec extends TopBuild {

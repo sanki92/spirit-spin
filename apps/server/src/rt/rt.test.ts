@@ -104,6 +104,19 @@ describe('realtime', () => {
     a.ws.close(); b.ws.close()
   })
 
+  it('each player sees the launcher the other equipped; unknown launcher ids are dropped', async () => {
+    const a = await client(), b = await client()
+    a.send({ k: 'hello', token: a.token, name: 'Aki' })
+    b.send({ k: 'hello', token: b.token, name: 'Bo' })
+    await a.wait('welcome'); await b.wait('welcome')
+    a.send({ k: 'create', build: { ...BUILD_A, launcher: 'launcher-voltfang' } })
+    const room = await a.wait('room')
+    b.send({ k: 'join', code: room.code, build: { ...BUILD_B, launcher: 'launcher-<b>' } })
+    expect((await b.wait('peer')).build.launcher).toBe('launcher-voltfang')
+    expect((await a.wait('peer')).build.launcher).toBeUndefined()
+    a.ws.close(); b.ws.close()
+  })
+
   it('a create with unknown parts leaves no room behind', async () => {
     const before = ((await app.inject({ method: 'GET', url: '/healthz' })).json() as { rooms: number }).rooms
     expect(typeof before).toBe('number')
