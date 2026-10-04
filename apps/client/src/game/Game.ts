@@ -30,6 +30,8 @@ const tex = (id: string, fallback: string): Promise<Texture> => texture(hasAsset
 const summonTex = (art: string, beast: string): Promise<Texture> =>
   texture([`${art}/summon`, `beasts/${beast}/summon`, `${art}/emblem`].find(hasAsset) ?? `beasts/${beast}/emblem`)
 
+let looping: Game | null = null
+
 export class Game {
   readonly stage: Stage
   readonly stepper: Stepper
@@ -203,6 +205,7 @@ export class Game {
     window.addEventListener('resize', resize)
     this.removeResize = () => window.removeEventListener('resize', resize)
     this.last = performance.now()
+    looping = this
     this.stage.renderer.setAnimationLoop(now => {
       const dtMs = Math.min(100, now - this.last)
       this.last = now
@@ -217,8 +220,21 @@ export class Game {
   }
 
   stop(): void {
-    this.stage.renderer.setAnimationLoop(null)
+    if (looping === this) {
+      this.stage.renderer.setAnimationLoop(null)
+      looping = null
+    }
     this.removeResize?.()
+  }
+
+  dispose(): void {
+    this.stop()
+    this.stage.scene.traverse(o => {
+      const m = o as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void } | { dispose(): void }[] }
+      m.geometry?.dispose()
+      for (const mat of Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) mat.dispose()
+    })
+    this.stage.renderer.renderLists.dispose()
   }
 
   private step(): void {

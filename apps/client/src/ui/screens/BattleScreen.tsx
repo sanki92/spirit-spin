@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BattleController, type MatchResult, type MatchSetup } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
 import { Game, type StadiumTheme } from '../../game/Game'
+import { battleCanvas } from '../../game/render/Stage'
 import { captureSwipe } from '../../input/swipe'
 import { useRuntime } from '../../runtime'
 import { launcherId, useSave } from '../../state/save'
@@ -12,7 +13,7 @@ import { BattleHud } from '../hud/BattleHud'
 export type ControllerFactory = (game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2]) => BattleController
 
 export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controller, spectator = false, names }: { setup: MatchSetup; theme: StadiumTheme; onEnd: (r: MatchResult) => void; forceSwipe?: boolean; controller?: ControllerFactory | undefined; spectator?: boolean; names?: [string, string] }) {
-  const canvas = useRef<HTMLCanvasElement>(null)
+  const host = useRef<HTMLDivElement>(null)
   const ctrl = useRef<BattleController | null>(null)
   const rt = useRuntime()
   const [loading, setLoading] = useState(true)
@@ -21,12 +22,13 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
     let disposed = false
     let game: Game | null = null
     void (async () => {
-      game = await Game.create(canvas.current!, theme)
+      const canvas = battleCanvas()
+      if (host.current && canvas.parentElement !== host.current) host.current.prepend(canvas)
+      game = await Game.create(canvas, theme)
       if (!spectator) game.playerLauncher = playerLauncher()
       await game.setTops([setup.player, setup.opponent], setup.art)
       if (disposed) {
-        game.stop()
-        game.stage.renderer.dispose()
+        game.dispose()
         return
       }
       game.start()
@@ -40,8 +42,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
     return () => {
       disposed = true
       ctrl.current?.dispose()
-      game?.stop()
-      game?.stage.renderer.dispose()
+      game?.dispose()
     }
   }, [setup, theme, onEnd, rt, forceSwipe, controller])
 
@@ -55,7 +56,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
 
   return (
     <div className="screen battle-screen">
-      <canvas ref={canvas} className="game-canvas" />
+      <div ref={host} className="game-canvas-host" />
       {loading && <Loader full label="Entering the stadium" />}
       {!loading && (
         <BattleHud

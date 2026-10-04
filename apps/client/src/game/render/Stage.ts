@@ -12,6 +12,17 @@ export function detectQuality(): Quality {
   return 'medium'
 }
 
+let shared: { canvas: HTMLCanvasElement; renderer: WebGLRenderer } | null = null
+
+export function battleCanvas(): HTMLCanvasElement {
+  if (!shared) {
+    const canvas = document.createElement('canvas')
+    canvas.className = 'game-canvas'
+    shared = { canvas, renderer: new WebGLRenderer({ canvas, antialias: detectQuality() !== 'low', powerPreference: 'high-performance', alpha: false }) }
+  }
+  return shared.canvas
+}
+
 export class Stage {
   readonly renderer: WebGLRenderer
   readonly scene = new Scene()
@@ -38,7 +49,7 @@ export class Stage {
   readonly perf = { p95: 16.7, frames: 0, slow: 0 }
 
   constructor(canvas: HTMLCanvasElement, readonly quality: Quality) {
-    this.renderer = new WebGLRenderer({ canvas, antialias: quality !== 'low', powerPreference: 'high-performance', alpha: false })
+    this.renderer = shared?.canvas === canvas ? shared.renderer : new WebGLRenderer({ canvas, antialias: quality !== 'low', powerPreference: 'high-performance', alpha: false })
     this.renderer.outputColorSpace = SRGBColorSpace
     this.renderer.toneMapping = quality === 'high' ? ACESFilmicToneMapping : NoToneMapping
     this.renderer.toneMappingExposure = 1.15
