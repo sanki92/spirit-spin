@@ -53,11 +53,29 @@ func main() {
 		slog.Error("certificate", "err", err)
 		os.Exit(1)
 	}
+	listen := func(name, network, addr string) net.Listener {
+		l, err := net.Listen(network, addr)
+		if err != nil {
+			slog.Error(name+" listen", "err", err)
+			os.Exit(1)
+		}
+		return l
+	}
+	udp, err := net.ListenPacket("udp", *wtAddr)
+	if err != nil {
+		slog.Error("webtransport listen", "err", err)
+		os.Exit(1)
+	}
+	wsL := listen("websocket", "tcp", *wsAddr)
+	mL := listen("metrics", "tcp", *metricsAddr)
+	gL := listen("grpc", "tcp", *grpcAddr)
 	sig, stopSig := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSig()
 	run, stopRun := context.WithCancel(context.Background())
 	defer stopRun()
-	reg := match.NewRegistry(func() float64 { return float64(time.Now().UnixNano()) / 1e6 })
+	base := time.Now()
+	epoch := float64(base.UnixNano()) / 1e6
+	reg := match.NewRegistry(func() float64 { return epoch + float64(time.Since(base))/1e6 })
 	go reg.Run(run, 2*time.Millisecond)
 	go func() {
 		t := time.NewTicker(time.Second)
@@ -74,27 +92,24 @@ func main() {
 		}
 	}()
 	go func() {
-		if err := transport.ServeWT(run, *wtAddr, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, []byte(secret), f); err != nil && run.Err() == nil {
+		if err := transport.ServeWT(run, udp, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, []byte(secret), f); err != nil && run.Err() == nil {
 			slog.Error("webtransport", "err", err)
+			os.Exit(1)
 		}
 	}()
-	wsSrv := &http.Server{Addr: *wsAddr, Handler: transport.WSHandler(reg, []byte(secret), f), ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = wsSrv.ListenAndServe() }()
+	wsSrv := &http.Server{Handler: transport.WSHandler(reg, []byte(secret), f), ReadHeaderTimeout: 5 * time.Second}
+	go func() { _ = wsSrv.Serve(wsL) }()
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
-	mSrv := &http.Server{Addr: *metricsAddr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = mSrv.ListenAndServe() }()
-	l, err := net.Listen("tcp", *grpcAddr)
-	if err != nil {
-		slog.Error("grpc listen", "err", err)
-		os.Exit(1)
-	}
+	mSrv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	go func() { _ = mSrv.Serve(mL) }()
 	srv := &rpc.Server{Reg: reg, CertHash: certHash}
 	g := rpc.NewGRPC(srv, secret)
-	go func() { _ = g.Serve(l) }()
+	go func() { _ = g.Serve(gL) }()
 	slog.Info("edge up", "wt", *wtAddr, "ws", *wsAddr, "grpc", *grpcAddr, "metrics", *metricsAddr, "devCert", certHash != "")
 	<-sig.Done()
+	stopSig()
 	srv.Draining.Store(true)
 	slog.Info("draining")
 	deadline := time.Now().Add(*drainFor)

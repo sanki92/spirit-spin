@@ -1,6 +1,4 @@
-package transport
-
-import "time"
+package match
 
 const (
 	limitRate  = 240.0
@@ -9,15 +7,12 @@ const (
 )
 
 type limiter struct {
-	tokens  float64
-	last    time.Time
-	dropped int
+	tokens, last float64
+	dropped      int
 }
 
-func newLimiter(now time.Time) *limiter { return &limiter{tokens: limitBurst, last: now} }
-
-func (l *limiter) allow(now time.Time) bool {
-	l.tokens = min(limitBurst, l.tokens+now.Sub(l.last).Seconds()*limitRate)
+func (l *limiter) allow(now float64) bool {
+	l.tokens = min(limitBurst, l.tokens+max(0, now-l.last)*limitRate/1000)
 	l.last = now
 	if l.tokens >= 1 {
 		l.tokens--

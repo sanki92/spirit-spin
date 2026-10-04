@@ -71,7 +71,10 @@ func EncodeFrames(round uint8, first uint32, margin int, frames []Frame) []byte 
 	be.PutUint32(b[2:], first)
 	be.PutUint16(b[6:], uint16(int16(margin)))
 	b[8] = byte(len(frames))
-	copy(b[9:], PackFrames(frames))
+	for i, f := range frames {
+		put(b[9+6*i:], f[0])
+		put(b[9+6*i+3:], f[1])
+	}
 	return b
 }
 

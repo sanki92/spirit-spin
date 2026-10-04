@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -75,13 +76,14 @@ func TestEdgeDropsGarbageDatagrams(t *testing.T) {
 	if err != nil || len(hash) != 64 {
 		t.Fatalf("cert %v %q", err, hash)
 	}
-	l, _ := net.ListenPacket("udp", "127.0.0.1:0")
+	l, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
 	addr := l.LocalAddr().String()
-	l.Close()
 	go func() {
-		_ = ServeWT(ctx, addr, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, secret, Faults{})
+		_ = ServeWT(ctx, l, &tls.Config{Certificates: []tls.Certificate{cert}}, reg, secret, Faults{})
 	}()
-	time.Sleep(300 * time.Millisecond)
 	cl := &webtransport.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true, NextProtos: []string{http3.NextProtoH3}},
 		QUICConfig:      &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true},
@@ -134,23 +136,37 @@ func TestOutboxDropsWhenFullInsteadOfBlocking(t *testing.T) {
 	o.Close()
 }
 
-func TestLimiterAllowsABurstThenSheds(t *testing.T) {
-	now := time.Unix(0, 0)
-	l := newLimiter(now)
-	ok := 0
-	for i := 0; i < 1000; i++ {
-		if l.allow(now) {
-			ok++
+func TestOutboxKeepsTheNewestPacketsWhenBacklogged(t *testing.T) {
+	block := make(chan struct{})
+	var mu sync.Mutex
+	var got []byte
+	o := newOutbox("x", func(b []byte) error {
+		<-block
+		mu.Lock()
+		got = append(got, b[0])
+		mu.Unlock()
+		return nil
+	}, func() {})
+	for i := 0; i < 100; i++ {
+		o.Send([]byte{byte(i)})
+	}
+	close(block)
+	deadline := time.Now().Add(time.Second)
+	for {
+		mu.Lock()
+		last := len(got) > 0 && got[len(got)-1] == 99
+		n := len(got)
+		mu.Unlock()
+		if last {
+			if n > 10 {
+				t.Fatalf("a slow peer was sent %d stale packets", n)
+			}
+			break
 		}
+		if time.Now().After(deadline) {
+			t.Fatalf("newest packet never sent, got %v", got)
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
-	if ok != limitBurst {
-		t.Fatalf("burst allowed %d, want %d", ok, limitBurst)
-	}
-	if l.flooding() != true {
-		t.Fatal("a 1000-packet instant burst must count as a flood")
-	}
-	later := now.Add(time.Second)
-	if !l.allow(later) {
-		t.Fatal("tokens must refill over time")
-	}
+	o.Close()
 }

@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 	"time"
 
@@ -14,10 +15,9 @@ import (
 	"spiritspin/edge/internal/ticket"
 )
 
-func ServeWT(ctx context.Context, addr string, tc *tls.Config, reg *match.Registry, secret []byte, f Faults) error {
+func ServeWT(ctx context.Context, conn net.PacketConn, tc *tls.Config, reg *match.Registry, secret []byte, f Faults) error {
 	mux := http.NewServeMux()
 	h3 := &http3.Server{
-		Addr:       addr,
 		TLSConfig:  http3.ConfigureTLSConfig(tc),
 		Handler:    mux,
 		QUICConfig: &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true, KeepAlivePeriod: 5 * time.Second, MaxIdleTimeout: 20 * time.Second},
@@ -46,20 +46,13 @@ func ServeWT(ctx context.Context, addr string, tc *tls.Config, reg *match.Regist
 				m.Detach(c.S, p)
 				p.Close()
 			}()
-			lim := newLimiter(time.Now())
 			for {
 				b, err := sess.ReceiveDatagram(sess.Context())
 				if err != nil {
 					return
 				}
-				if !lim.allow(time.Now()) {
-					if lim.flooding() {
-						return
-					}
-					continue
-				}
-				if !f.dropIn() {
-					m.OnPacket(c.S, b)
+				if !f.dropIn() && !m.OnPacket(c.S, b) {
+					return
 				}
 			}
 		}()
@@ -68,5 +61,5 @@ func ServeWT(ctx context.Context, addr string, tc *tls.Config, reg *match.Regist
 		<-ctx.Done()
 		_ = s.Close()
 	}()
-	return s.ListenAndServe()
+	return s.Serve(conn)
 }

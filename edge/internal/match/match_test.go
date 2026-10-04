@@ -204,16 +204,6 @@ func TestDrainCountsOnlyMatchesSomeoneUses(t *testing.T) {
 	}
 }
 
-func TestRunawayRoundStopsAtTheFrameCap(t *testing.T) {
-	m, _, _, now := setup()
-	t0 := m.StartRound(1, 0)
-	*now = at(t0, maxFrames+10)
-	m.Tick()
-	if m.seq != nil {
-		t.Fatal("round kept confirming past the frame cap")
-	}
-}
-
 func TestBatchCarriesEachSidesNewestInputFrame(t *testing.T) {
 	m, _, _, now := setup()
 	t0 := m.StartRound(1, 600)
@@ -263,3 +253,130 @@ func TestPoisonedFirstFrameDoesNotFreezeMargins(t *testing.T) {
 }
 
 func in(x int8) wire.Input { return wire.Input{X: x} }
+
+type closePeer struct {
+	fakePeer
+	closed bool
+}
+
+func (p *closePeer) Close() { p.closed = true }
+
+func hashPkt(round uint8, frame, hash uint32) []byte {
+	b := []byte{wire.OpHash, round, 0, 0, 0, 0, 0, 0, 0, 0}
+	b[2], b[3], b[4], b[5] = byte(frame>>24), byte(frame>>16), byte(frame>>8), byte(frame)
+	b[6], b[7], b[8], b[9] = byte(hash>>24), byte(hash>>16), byte(hash>>8), byte(hash)
+	return b
+}
+
+func TestDeletedMatchRejectsLateAttachAndSubscribe(t *testing.T) {
+	r := NewRegistry(func() float64 { return 0 })
+	m := r.Create("X")
+	r.Delete("X")
+	p := &closePeer{}
+	m.Attach(0, p)
+	if !p.closed || m.sessions() != 0 {
+		t.Fatal("a peer attached to a deleted match must be closed, not kept")
+	}
+	ch, cancel := m.Subscribe(1, 0)
+	defer cancel()
+	if _, ok := <-ch; ok {
+		t.Fatal("subscribing to a deleted match must return a closed channel")
+	}
+}
+
+func TestRateLimitIsPerSeatAndSurvivesReconnect(t *testing.T) {
+	m, _, _, now := setup()
+	m.StartRound(1, 0)
+	ping := append([]byte{wire.OpPing}, make([]byte, 8)...)
+	flooded := false
+	for i := 0; i < 1000 && !flooded; i++ {
+		flooded = !m.OnPacket(0, ping)
+	}
+	if !flooded {
+		t.Fatal("a 1000-packet burst must be reported as a flood")
+	}
+	m.Attach(0, &fakePeer{})
+	if m.OnPacket(0, ping) {
+		t.Fatal("reconnecting must not reset the seat's rate limit")
+	}
+	if !m.OnPacket(1, ping) {
+		t.Fatal("the other seat must not be limited")
+	}
+	*now += 5000
+	if !m.OnPacket(0, ping) {
+		t.Fatal("the limit must refill over time")
+	}
+}
+
+func TestStartRoundRetryKeepsTheRunningRound(t *testing.T) {
+	m, _, _, now := setup()
+	t0 := m.StartRound(1, 600)
+	s := m.seq
+	*now += 300
+	if m.StartRound(1, 600) != t0 || m.seq != s {
+		t.Fatal("a retried StartRound for the running round must not restart it")
+	}
+	if m.StartRound(2, 600) == t0 || m.seq == s {
+		t.Fatal("the next round must start fresh")
+	}
+}
+
+func TestFrameCapStillDeliversTheLastFrames(t *testing.T) {
+	m, a, _, now := setup()
+	t0 := m.StartRound(1, 0)
+	ch, cancel := m.Subscribe(1, 0)
+	defer cancel()
+	*now = at(t0, maxFrames+10)
+	m.Tick()
+	if m.seq != nil {
+		t.Fatal("round kept confirming past the frame cap")
+	}
+	if len(a.withFrames()) == 0 {
+		t.Fatal("frames confirmed before the cap were never sent")
+	}
+	b := <-ch
+	if b.First != 1 || len(b.Inputs) < 6*maxFrames {
+		t.Fatalf("stream missed the final frames: first %d, %d frames", b.First, len(b.Inputs)/6)
+	}
+}
+
+func TestOneSeatCannotCrowdOutTheOthersHashes(t *testing.T) {
+	m, _, _, now := setup()
+	t0 := m.StartRound(1, 600)
+	*now = at(t0, 1)
+	ch, cancel := m.Subscribe(1, 0)
+	defer cancel()
+	for i := 0; i < 100; i++ {
+		m.OnPacket(0, hashPkt(1, 60, uint32(i)))
+	}
+	m.OnPacket(1, hashPkt(1, 60, 7))
+	m.Tick()
+	b := <-ch
+	for _, h := range b.Hashes {
+		if h == (Hash{1, 60, 7}) {
+			return
+		}
+	}
+	t.Fatalf("seat 1 hash dropped among %d", len(b.Hashes))
+}
+
+func TestEndRoundForAnotherRoundReportsNothing(t *testing.T) {
+	m, _, _, _ := setup()
+	m.StartRound(2, 600)
+	if st := m.EndRound(1); st != (Stats{}) {
+		t.Fatalf("stats for a round that is not running: %+v", st)
+	}
+	if m.seq == nil {
+		t.Fatal("ending another round stopped the running one")
+	}
+}
+
+func TestServerOnlyMessagesFromAClientAreIgnored(t *testing.T) {
+	m, _, _, _ := setup()
+	m.StartRound(1, 600)
+	m.OnPacket(0, wire.EncodeFrames(1, 1, 0, []wire.Frame{{}}))
+	m.OnPacket(0, wire.EncodePong(1, 2))
+	if m.in != 0 {
+		t.Fatalf("counted %d server-only packets as client traffic", m.in)
+	}
+}

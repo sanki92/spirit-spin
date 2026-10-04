@@ -56,19 +56,28 @@ type Match struct {
 	hashes   []Hash
 	sub      chan Batch
 	lastSend float64
+	hashN    [2]int
+	lim      [2]limiter
 	in, out  uint64
 	touched  float64
+	gone     bool
 }
 
-func New(id string, now func() float64) *Match { return &Match{ID: id, now: now, touched: now()} }
+func New(id string, now func() float64) *Match {
+	t := now()
+	return &Match{ID: id, now: now, touched: t, lim: [2]limiter{{tokens: limitBurst, last: t}, {tokens: limitBurst, last: t}}}
+}
 
 func (m *Match) StartRound(round uint32, leadInMs float64) float64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched = m.now()
+	if m.seq != nil && m.round == round {
+		return m.seq.T0
+	}
 	t0 := m.touched + leadInMs
 	m.round, m.seq = round, seq.New(t0)
-	m.acked, m.streamed, m.hashes, m.in, m.out, m.lastSend = [2]uint32{}, 0, nil, 0, 0, 0
+	m.acked, m.streamed, m.hashes, m.hashN, m.in, m.out, m.lastSend = [2]uint32{}, 0, nil, [2]int{}, 0, 0, 0
 	return t0
 }
 
@@ -76,25 +85,29 @@ func (m *Match) EndRound(round uint32) Stats {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched = m.now()
-	st := Stats{In: m.in, Out: m.out}
+	if m.seq == nil || m.round != round {
+		return Stats{}
+	}
+	st := Stats{In: m.in, Out: m.out, Frames: m.seq.Frame, Late: m.seq.Late, Missing: m.seq.Missing, Margins: [2]int{m.seq.Margin(0), m.seq.Margin(1)}}
 	for i, p := range m.peers {
 		if p != nil {
 			st.Transports[i] = p.Kind()
 		}
 	}
-	if m.seq != nil && m.round == round {
-		st.Frames, st.Late, st.Missing = m.seq.Frame, m.seq.Late, m.seq.Missing
-		st.Margins = [2]int{m.seq.Margin(0), m.seq.Margin(1)}
-		m.seq = nil
-		metrics.Rounds.Inc()
-		metrics.Late.Add(float64(st.Late[0] + st.Late[1]))
-		metrics.Missing.Add(float64(st.Missing[0] + st.Missing[1]))
-	}
+	m.seq = nil
+	metrics.Rounds.Inc()
+	metrics.Late.Add(float64(st.Late[0] + st.Late[1]))
+	metrics.Missing.Add(float64(st.Missing[0] + st.Missing[1]))
 	return st
 }
 
 func (m *Match) Attach(side int, p Peer) {
 	m.mu.Lock()
+	if m.gone {
+		m.mu.Unlock()
+		p.Close()
+		return
+	}
 	old := m.peers[side]
 	m.peers[side] = p
 	m.acked[side] = 0
@@ -112,13 +125,19 @@ func (m *Match) Detach(side int, p Peer) {
 	}
 }
 
-func (m *Match) OnPacket(side int, b []byte) {
-	msg, ok := wire.Decode(b)
-	if !ok {
-		return
-	}
+func (m *Match) OnPacket(side int, b []byte) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if !m.lim[side].allow(m.now()) {
+		return !m.lim[side].flooding()
+	}
+	if len(b) == 0 || (b[0] != wire.OpInput && b[0] != wire.OpHash && b[0] != wire.OpPing) {
+		return true
+	}
+	msg, ok := wire.Decode(b)
+	if !ok {
+		return true
+	}
 	m.in++
 	metrics.In.Inc()
 	switch msg.Op {
@@ -128,31 +147,30 @@ func (m *Match) OnPacket(side int, b []byte) {
 		}
 	case wire.OpInput:
 		if m.seq == nil || msg.Round != uint8(m.round) {
-			return
+			return true
 		}
 		if msg.Ack >= 0 && uint32(msg.Ack) <= m.seq.Frame {
 			m.acked[side] = uint32(msg.Ack)
 		}
 		m.seq.Receive(side, msg.First, msg.Inputs, m.now())
 	case wire.OpHash:
-		if m.seq != nil && msg.Round == uint8(m.round) && len(m.hashes) < maxHashes {
+		if m.seq != nil && msg.Round == uint8(m.round) && m.hashN[side] < maxHashes/2 {
+			m.hashN[side]++
 			m.hashes = append(m.hashes, Hash{uint32(side), msg.Frame, msg.Hash})
 		}
 	}
+	return true
 }
 
-func (m *Match) Tick() {
+func (m *Match) Tick() { m.tick(m.now()) }
+
+func (m *Match) tick(now float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.seq == nil {
 		return
 	}
-	now := m.now()
 	n := m.seq.Due(now)
-	if m.seq.Frame >= maxFrames {
-		m.seq = nil
-		return
-	}
 	if n > 0 || now-m.lastSend >= keepAlive {
 		m.lastSend = now
 		total := len(m.seq.Confirmed)
@@ -171,17 +189,25 @@ func (m *Match) Tick() {
 		b := Batch{Round: m.round, First: m.streamed + 1, Inputs: wire.PackFrames(m.seq.Confirmed[m.streamed:m.seq.Frame]), Hashes: m.hashes, InputHi: [2]uint32{m.seq.Hi(0), m.seq.Hi(1)}}
 		select {
 		case m.sub <- b:
-			m.streamed, m.hashes = m.seq.Frame, nil
+			m.streamed, m.hashes, m.hashN = m.seq.Frame, nil, [2]int{}
 		default:
 			close(m.sub)
 			m.sub = nil
 		}
+	}
+	if m.seq.Frame >= maxFrames {
+		m.seq = nil
 	}
 }
 
 func (m *Match) Subscribe(round, after uint32) (<-chan Batch, func()) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.gone {
+		ch := make(chan Batch)
+		close(ch)
+		return ch, func() {}
+	}
 	if m.sub != nil {
 		close(m.sub)
 	}
@@ -254,6 +280,7 @@ func (r *Registry) Delete(id string) {
 	peers := m.peers
 	m.peers = [2]Peer{}
 	m.seq = nil
+	m.gone = true
 	if m.sub != nil {
 		close(m.sub)
 		m.sub = nil
@@ -280,21 +307,21 @@ func (m *Match) reapable(now float64) bool {
 
 func (r *Registry) Reap() {
 	now := r.now()
-	for _, m := range r.all() {
+	for _, m := range r.all(nil) {
 		if m.reapable(now) {
 			r.Delete(m.ID)
 		}
 	}
 }
 
-func (r *Registry) all() []*Match {
+func (r *Registry) all(dst []*Match) []*Match {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	out := make([]*Match, 0, len(r.m))
+	dst = dst[:0]
 	for _, m := range r.m {
-		out = append(out, m)
+		dst = append(dst, m)
 	}
-	return out
+	return dst
 }
 
 func (m *Match) inUse() bool {
@@ -305,7 +332,7 @@ func (m *Match) inUse() bool {
 
 func (r *Registry) Live() int {
 	n := 0
-	for _, m := range r.all() {
+	for _, m := range r.all(nil) {
 		if m.inUse() {
 			n++
 		}
@@ -314,7 +341,7 @@ func (r *Registry) Live() int {
 }
 
 func (r *Registry) Counts() (int, int) {
-	ms := r.all()
+	ms := r.all(nil)
 	s := 0
 	for _, m := range ms {
 		s += m.sessions()
@@ -327,6 +354,7 @@ func (r *Registry) Run(ctx context.Context, every time.Duration) {
 	defer t.Stop()
 	reap := time.NewTicker(time.Second)
 	defer reap.Stop()
+	var buf []*Match
 	for {
 		select {
 		case <-ctx.Done():
@@ -334,8 +362,10 @@ func (r *Registry) Run(ctx context.Context, every time.Duration) {
 		case <-reap.C:
 			r.Reap()
 		case <-t.C:
-			for _, m := range r.all() {
-				m.Tick()
+			buf = r.all(buf)
+			now := r.now()
+			for _, m := range buf {
+				m.tick(now)
 			}
 		}
 	}

@@ -11,6 +11,8 @@ import (
 	"spiritspin/edge/internal/ticket"
 )
 
+const readTimeout = 20 * time.Second
+
 func WSHandler(reg *match.Registry, secret []byte, f Faults) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -37,27 +39,22 @@ func WSHandler(reg *match.Registry, secret []byte, f Faults) http.Handler {
 		}
 		p := newOutbox("ws", f.wrap(write), func() {
 			cancel()
-			_ = conn.Close(websocket.StatusNormalClosure, "closed")
+			_ = conn.CloseNow()
 		})
 		m.Attach(c.S, p)
 		defer func() {
 			m.Detach(c.S, p)
 			p.Close()
 		}()
-		lim := newLimiter(time.Now())
 		for {
-			typ, b, err := conn.Read(ctx)
+			rc, done := context.WithTimeout(ctx, readTimeout)
+			typ, b, err := conn.Read(rc)
+			done()
 			if err != nil {
 				return
 			}
-			if !lim.allow(time.Now()) {
-				if lim.flooding() {
-					return
-				}
-				continue
-			}
-			if typ == websocket.MessageBinary && !f.dropIn() {
-				m.OnPacket(c.S, b)
+			if typ == websocket.MessageBinary && !f.dropIn() && !m.OnPacket(c.S, b) {
+				return
 			}
 		}
 	})

@@ -7,12 +7,11 @@ import (
 )
 
 const (
+	TickMs       = 1000.0 / 60.0
 	GraceMs      = 4.0
 	MaxAhead     = 120
 	MarginWindow = 30
 )
-
-var TickMs = 1000.0 / 60.0
 
 type Sequencer struct {
 	T0, Grace float64

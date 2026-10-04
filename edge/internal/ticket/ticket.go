@@ -30,7 +30,12 @@ func Sign(secret []byte, c Claims) string {
 	return p + "." + mac(secret, p)
 }
 
+const maxLen = 512
+
 func Verify(secret []byte, tok string, now time.Time) (Claims, error) {
+	if len(tok) > maxLen {
+		return Claims{}, errors.New("bad ticket")
+	}
 	p, sig, ok := strings.Cut(tok, ".")
 	if !ok || !hmac.Equal([]byte(sig), []byte(mac(secret, p))) {
 		return Claims{}, errors.New("bad ticket")

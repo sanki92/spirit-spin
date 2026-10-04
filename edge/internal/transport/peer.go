@@ -2,6 +2,8 @@ package transport
 
 import "sync"
 
+const outboxCap = 8
+
 type outbox struct {
 	mu     sync.Mutex
 	ch     chan []byte
@@ -11,7 +13,7 @@ type outbox struct {
 }
 
 func newOutbox(kind string, write func([]byte) error, stop func()) *outbox {
-	o := &outbox{ch: make(chan []byte, 64), kind: kind, stop: stop}
+	o := &outbox{ch: make(chan []byte, outboxCap), kind: kind, stop: stop}
 	go func() {
 		for b := range o.ch {
 			if write(b) != nil {
@@ -29,9 +31,16 @@ func (o *outbox) Send(b []byte) {
 	if o.closed {
 		return
 	}
-	select {
-	case o.ch <- b:
-	default:
+	for {
+		select {
+		case o.ch <- b:
+			return
+		default:
+		}
+		select {
+		case <-o.ch:
+		default:
+		}
 	}
 }
 

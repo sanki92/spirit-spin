@@ -3,6 +3,7 @@ package ticket
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -47,5 +48,12 @@ func TestNodeGolden(t *testing.T) {
 	c, err := Verify([]byte(g.Secret), g.Token, time.UnixMilli(1))
 	if err != nil || c.M != g.M || c.S != g.S {
 		t.Fatalf("node ticket rejected: %v %+v", err, c)
+	}
+}
+
+func TestOversizedTicketIsRejected(t *testing.T) {
+	tok := Sign([]byte("s3cret-s3cret-s3"), Claims{M: strings.Repeat("m", 600), S: 0, E: time.Now().Add(time.Minute).UnixMilli()})
+	if _, err := Verify([]byte("s3cret-s3cret-s3"), tok, time.Now()); err == nil {
+		t.Fatal("a ticket over 512 bytes must be rejected before any work")
 	}
 }
