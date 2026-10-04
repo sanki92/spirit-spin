@@ -147,7 +147,7 @@ export class BattleController {
     this.game.setBattle(null)
     this.game.fx.clearDecals()
     this.game.arm()
-    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: null, pull: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
   }
 
@@ -418,7 +418,7 @@ export class BattleController {
       g.stage.shake(0.1)
       s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish')
       buzz([60, 40, 120])
-      useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores, cine: null })
+      useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores, cine: false })
       if (this.match.winner === null && Math.max(p, q) >= 3) this.later(1800, () => this.announcer.say('matchPoint', true))
       this.later(2300, () => {
         if (this.match.winner === null) return this.beginRound()
@@ -429,7 +429,7 @@ export class BattleController {
     const decisive = replaysFinish(o, this.match.winner !== null)
     if (!still && decisive && this.finishCamOk && g.finishCam(loser, impact)) {
       s.play('clashHeavy', { volume: 0.5, rate: 0.55 })
-      useHud.getState().set({ phase: 'roundEnd', banner: null, cine: { skip: () => g.skipCine() } })
+      useHud.getState().set({ phase: 'roundEnd', banner: null, cine: true })
       log('finishCam', { round: this.match.round, finish: o.finish })
     } else {
       g.slowmo(0.25, 1300)

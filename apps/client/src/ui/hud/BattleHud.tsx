@@ -58,13 +58,12 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
       {h.coachTip && <CoachTipCard tip={h.coachTip} />}
       {h.banner && h.phase !== 'grip' && h.phase !== 'countdown' && h.phase !== 'coach' && !(h.phase === 'idle' && h.banner === 'vs') && <Art key={h.banner} id={BANNER_ART[h.banner]} text={BANNER_TEXT[h.banner]} className={`banner pop ${h.banner}`} />}
       {h.cine && (
-        <button className="cine" onClick={h.cine.skip} aria-label="Skip finish replay">
+        <div className="cine" aria-hidden="true">
           <i className="cine-bar top" />
           <i className="cine-bar bottom" />
           {hasAsset('vfx/speedlines') && <img className="cine-lines" src={assetUrl('vfx/speedlines')} alt="" draggable={false} />}
           <span className="cine-tag">Final blow</span>
-          <span className="cine-skip">Tap to skip</span>
-        </button>
+        </div>
       )}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (

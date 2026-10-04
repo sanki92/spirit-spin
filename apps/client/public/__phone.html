@@ -34,9 +34,7 @@ function install() {
   st.tilt = (x, y) => { st.g = { x: -x * 3, y: 7 - y * 3, z: 6.5 } }
   let armed = true
   w.setInterval(() => {
-    const img = w.document.querySelector('.countdown')
-    const label = img && (img.getAttribute('alt') || img.textContent)
-    if (label === 'LAUNCH' && armed && st.auto) { armed = false; w.setTimeout(st.rip, st.delay); w.setTimeout(() => { armed = true }, 2000) }
+    if (w.__hud?.getState().countdown === 'LAUNCH' && armed && st.auto) { armed = false; w.setTimeout(st.rip, st.delay); w.setTimeout(() => { armed = true }, 2000) }
   }, 5)
 }
 frame.addEventListener('load', install)

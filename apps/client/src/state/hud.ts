@@ -22,7 +22,7 @@ export interface HudState {
   safetyPause: boolean
   notice: string | null
   announcer: { id: string; text: string; face: 'hyped' | 'laughing' | 'pointing' | 'serious' | 'shocked' | 'thumbs-up' } | null
-  cine: { skip: () => void } | null
+  cine: boolean
   pull: number
   coach: boolean
   coachTip: { title: string; text: string } | null
@@ -45,7 +45,7 @@ export const useHud = create<HudState>(set => ({
   safetyPause: false,
   notice: null,
   announcer: null,
-  cine: null,
+  cine: false,
   pull: 0,
   coach: false,
   coachTip: null,
