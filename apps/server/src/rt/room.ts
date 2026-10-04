@@ -8,9 +8,9 @@ import { RemoteRound, type EdgeApi, type RoundRunner } from './edge'
 import { LiveMatch, type LiveDeps } from './live'
 import { signTicket } from './tickets'
 
-export const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000, quietMs: 2000 }
+const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000, quietMs: 2000 }
 
-export interface Seat {
+interface Seat {
   playerId: string
   name: string
   build: TopBuild
@@ -52,10 +52,6 @@ export class Room {
   private edgeMatch: Promise<{ certHash: string }> | null = null
   private edgeUsed = false
   private certHash: string | null = null
-
-  get battle(): BattleState | null {
-    return this.live?.ver.tl.state ?? null
-  }
 
   private later(ms: number, fn: () => void): void {
     this.timers.push(setTimeout(fn, ms / (this.opts.speed ?? 1)))
@@ -234,6 +230,7 @@ export class Room {
 
   private checkSilence(): void {
     if (this.phase !== 'battle') return this.stopSilence()
+    if (!this.live) return
     const now = this.opts.now()
     for (const i of [0, 1] as const) {
       const s = this.seats[i], other = this.seats[(1 - i) as Side]
@@ -283,6 +280,7 @@ export class Room {
       })
       this.sendStart()
     } catch (err) {
+      if (this.phase === 'done') return
       this.edgeMatch = null
       this.opts.log?.({ msg: 'edge.fallback', level: 'warn', code: this.code, err: String(err) })
       if (this.phase === 'battle' && this.round === round && !this.live) this.runLocal(state)

@@ -1,7 +1,33 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { roundHalfUp, SEQ, Sequencer, sequencerTrace } from './sequencer'
+import { createRng, rngNext } from '../rng'
+import { roundHalfUp, SEQ, Sequencer } from './sequencer'
 import { WIRE, type WireInput } from './wire'
+
+type SeqOp = { op: 'recv'; side: 0 | 1; first: number; now: number; inputs: number[][] } | { op: 'due'; now: number; n: number; margins: [number, number] }
+interface SeqTrace { t0: number; grace: number; ops: SeqOp[]; confirmed: number[][]; late: [number, number]; missing: [number, number] }
+
+function sequencerTrace(seed: number, steps: number): SeqTrace {
+  const r = createRng(seed)
+  const int = (n: number) => Math.floor(rngNext(r) * n)
+  const s = new Sequencer(1000)
+  const ops: SeqOp[] = []
+  let now = 1000
+  for (let k = 0; k < steps; k++) {
+    now += 1 + int(24)
+    for (const side of [0, 1] as const) {
+      if (rngNext(r) >= 0.25) continue
+      const hi = s.frame + int(12) - 3
+      const n = 1 + int(6)
+      const first = Math.max(1, hi - n + 1)
+      const inputs = Array.from({ length: n }, () => [int(255) - 127, int(255) - 127, int(3)])
+      s.receive(side, first, inputs.map(([x, y, sp]) => ({ x: x!, y: y!, sp: sp! })), now)
+      ops.push({ op: 'recv', side, first, now, inputs })
+    }
+    if (rngNext(r) < 0.5) ops.push({ op: 'due', now, n: s.due(now), margins: [s.margin(0), s.margin(1)] })
+  }
+  return { t0: 1000, grace: SEQ.graceMs, ops, confirmed: s.confirmed.map(f => [f[0].x, f[0].y, f[0].sp, f[1].x, f[1].y, f[1].sp]), late: [...s.late], missing: [...s.missing] }
+}
 
 const I = (x: number, sp = 0): WireInput => ({ x, y: 0, sp })
 const T0 = 1000

@@ -1,4 +1,4 @@
-export const WIRE = { tickMs: 1000 / 60, maxInputs: 16, maxFrames: 16, maxReliableFrames: 255, hashEvery: 60, keepAliveMs: 50 } as const
+export const WIRE = { tickMs: 1000 / 60, maxInputs: 16, maxFrames: 150, maxReliableFrames: 255, hashEvery: 60, keepAliveMs: 50 } as const
 
 export interface WireInput { x: number; y: number; sp: number }
 export type Frame = readonly [WireInput, WireInput]
@@ -59,13 +59,6 @@ export function encode(m: WireMsg): Uint8Array {
       v.setFloat64(1, m.t)
       v.setFloat64(9, m.server)
   }
-  return b
-}
-
-export function packFrames(frames: readonly Frame[]): Uint8Array {
-  const b = new Uint8Array(frames.length * 6)
-  const v = new DataView(b.buffer)
-  frames.forEach((f, i) => { put(v, 6 * i, f[0]); put(v, 6 * i + 3, f[1]) })
   return b
 }
 

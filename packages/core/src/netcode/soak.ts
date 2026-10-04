@@ -8,11 +8,11 @@ import { SEQ, Sequencer } from './sequencer'
 import { fresh } from './testkit'
 import { decode, encode, WIRE, type WireMsg } from './wire'
 
-export interface SoakResult { frames: number; finished: boolean; synced: boolean; desyncs: number; ownReplaced: number; stalls: number; maxDepth: number; rollbacks: number; jumps: number; late: [number, number] }
+export interface SoakResult { frames: number; finished: boolean; synced: boolean; desyncs: number; ownReplaced: number; stalls: number; maxDepth: number; rollbacks: number; jumps: number; late: [number, number]; lateAt: [number[], number[]] }
 
 interface Client { side: Side; fps: number; rng: RngState; rtt: RttStats; driver: NetDriver | null; acc: number; lastRender: number; nextRender: number; nextPing: number }
 
-export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [NetProfile, NetProfile]; fps?: [number, number]; maxMs?: number }): SoakResult {
+export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [NetProfile, NetProfile]; fps?: [number, number]; maxMs?: number; freeze?: { side: Side; from: number; to: number } }): SoakResult {
   const p = o.profile
   const ps: [NetProfile, NetProfile] = o.profiles ?? [p, p]
   const battle = fresh(o.seed)
@@ -28,6 +28,8 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
   const rtt0s = ps.map(q => 2 * q.latency + q.jitter)
   let desyncs = 0
   let endAt = Infinity
+  const lateAt: [number[], number[]] = [[], []]
+  const minEnd = o.freeze ? o.freeze.to + 3000 : 0
   const maxMs = o.maxMs ?? 60000
   const toServer = (side: Side, now: number) => ({ send: (m: WireMsg) => up[side]!.send(encode(m), now) })
   const stepClient = (c: Client, now: number) => {
@@ -45,7 +47,7 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       for (const b of up[side]!.recv(now)) {
         const m = decode(b)
         if (!m) continue
-        if (m.op === 'input') { acked[side] = Math.max(acked[side], m.ack); seq.receive(side, m.first, m.inputs, now); got = true }
+        if (m.op === 'input') { const l = seq.late[side]; acked[side] = Math.max(acked[side], m.ack); seq.receive(side, m.first, m.inputs, now); if (seq.late[side] > l) lateAt[side].push(now); got = true }
         else if (m.op === 'hash') { const h = hashes.get(m.frame); if (h !== undefined && h !== m.hash) desyncs++ }
         else if (m.op === 'ping') down[side]!.send(encode({ op: 'pong', t: m.t, server: now }), now)
       }
@@ -55,7 +57,7 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       if (n) {
         server.push(seq.frame - n + 1, seq.confirmed.slice(seq.frame - n))
         while (!server.tl.state.outcome && server.stepOne([])) if (server.frame % WIRE.hashEvery === 0) hashes.set(server.frame, timelineHash(server.tl))
-        if (server.tl.state.outcome) endAt = now + 3000
+        if (server.tl.state.outcome) endAt = Math.max(now + 3000, minEnd)
       }
       if (n || now % WIRE.keepAliveMs === 0) {
         for (const side of [0, 1] as Side[]) {
@@ -71,18 +73,18 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       for (const side of [0, 1] as Side[]) sendFrames(side, acked[side] + 1, 0, WIRE.maxFrames, now)
     }
     for (const c of clients) {
+      if (o.freeze && c.side === o.freeze.side && now >= o.freeze.from && now < o.freeze.to) continue
       for (const b of down[c.side]!.recv(now)) {
         const m = decode(b)
         if (!m) continue
         if (m.op === 'pong') { c.rtt.add(now - m.t); if (c.driver && c.rtt.count >= 5) { c.driver.clock.target = targetMargin(c.rtt.jitter); c.driver.rtt = c.rtt.rtt } continue }
         if (m.op !== 'frames' || !c.driver) continue
         c.driver.sink = toServer(c.side, now)
-        const r = c.driver.onFrames(m, now)
-        for (let i = 0; i < (r?.jump ?? 0); i++) stepClient(c, now)
+        c.driver.onFrames(m)
       }
       if (now >= c.nextPing) { up[c.side]!.send(encode({ op: 'ping', t: now }), now); c.nextPing = now + 500 }
       const q = ps[c.side], rtt0 = rtt0s[c.side]!
-      if (!c.driver && now >= q.latency) { c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, q.jitter), targetMargin(q.jitter), toServer(c.side, now)); c.driver.rtt = rtt0 }
+      if (!c.driver && now >= q.latency) { c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, q.jitter), targetMargin(q.jitter), toServer(c.side, now), t0); c.driver.rtt = rtt0 }
       if (now < c.nextRender) continue
       const dt = now - c.lastRender
       c.lastRender = now
@@ -93,6 +95,7 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       let n = 0
       while (c.acc >= WIRE.tickMs && n < 5) { stepClient(c, now); c.acc -= WIRE.tickMs; n++ }
       if (n === 5) c.acc = Math.min(c.acc, WIRE.tickMs)
+      for (let j = d.steer(now); j > 0; j--) stepClient(c, now)
     }
   }
   const ds = clients.map(c => c.driver!)
@@ -107,5 +110,6 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
     rollbacks: ds.reduce((a, d) => a + d.session.stats.rollbacks, 0),
     jumps: ds.reduce((a, d) => a + d.session.stats.jumps, 0),
     late: [...seq.late],
+    lateAt,
   }
 }

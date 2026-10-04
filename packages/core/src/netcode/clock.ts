@@ -1,6 +1,6 @@
 import { WIRE } from './wire'
 
-export const CLOCK = { band: 5, small: 0.01, big: 0.03, jumpBelowMs: 0, aheadMs: 250, holdMs: 1000 } as const
+export const CLOCK = { band: 5, small: 0.01, big: 0.03, leapFrames: 6 } as const
 
 const median = (xs: readonly number[]): number => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : 0)
 
@@ -33,37 +33,15 @@ export const targetMargin = (jitter: number): number => Math.min(100, 4 + 3 * WI
 
 export const beginAt = (t0: number, rtt: number, delay: number, target: number): number => t0 + (1 + delay) * WIRE.tickMs - rtt / 2 - target
 
+export const clockFrame = (now: number, t0: number, rtt: number, target: number, delay: number): number => Math.floor((now - t0 + rtt / 2 + target) / WIRE.tickMs + 1e-9) - delay
+
 export class ClockControl {
   scale = 1
-  private holdUntil = -Infinity
 
   constructor(public target: number) {}
 
-  hold(now: number): void {
-    this.holdUntil = now + CLOCK.holdMs
-    this.scale = 1
-  }
-
-  onMargin(margin: number, now: number, maxJump = Infinity, maxPause = Infinity): number {
-    if (now < this.holdUntil) {
-      this.scale = 1
-      return 0
-    }
+  onMargin(margin: number): void {
     const err = margin - this.target
-    if (margin < CLOCK.jumpBelowMs) {
-      const n = Math.min(Math.ceil((this.target - margin) / WIRE.tickMs), maxJump)
-      if (n > 0) {
-        this.hold(now)
-        return n
-      }
-    } else if (err > CLOCK.aheadMs) {
-      const n = Math.min(Math.floor(err / WIRE.tickMs), maxPause)
-      if (n > 0) {
-        this.hold(now)
-        return -n
-      }
-    }
     this.scale = err < -2 * CLOCK.band ? 1 + CLOCK.big : err < -CLOCK.band ? 1 + CLOCK.small : err > 4 * CLOCK.band ? 1 - CLOCK.big : err > CLOCK.band ? 1 - CLOCK.small : 1
-    return 0
   }
 }

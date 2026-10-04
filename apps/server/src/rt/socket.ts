@@ -134,7 +134,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
         }
         if (m.k === 'watch') {
           const r = rooms.get(m.code)
-          if (!r) return fail('no-room', false)
+          if (!r) return fail('no-room', ++misses >= 5)
           if (watching && watching !== r) watching.unwatch(send)
           if (!r.watch(send, bin)) return fail('full', false)
           watching = r
@@ -158,10 +158,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           owned.set(playerId, r)
         } else if (m.k === 'join' || m.k === 'rejoin') {
           const r = rooms.get(m.code)
-          if (!r) {
-            if (++misses >= 5) return fail('no-room')
-            return fail('no-room', false)
-          }
+          if (!r) return fail('no-room', ++misses >= 5)
           const build = m.k === 'join' ? m.build : r.seats.find(s => s?.playerId === playerId)?.build
           if (!build) return fail('no-room', false)
           enter(r, build)

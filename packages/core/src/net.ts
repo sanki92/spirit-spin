@@ -4,7 +4,7 @@ import type { MotionSample, RipResult } from './rip'
 import type { TouchSample } from './rip-swipe'
 import type { Timeline } from './netcode/replay'
 
-export const NET = { swipeRpmCap: 13500, maxRooms: 5000, heartbeatMs: 10000, seatHoldMs: 15000, tickMs: 1000 / 60, maxMessageBytes: 16384, maxMsgsPerSec: 120, maxBinPerSec: 200 } as const
+export const NET = { swipeRpmCap: 13500, maxRooms: 5000, heartbeatMs: 10000, seatHoldMs: 15000, maxMessageBytes: 16384, maxMsgsPerSec: 120, maxBinPerSec: 200 } as const
 
 export interface EdgeInfo { wt: string; ws: string; ticket: string; certHash: string | null }
 export type RipView = Pick<RipResult, 'rpm' | 'quality' | 'overspin' | 'style' | 'bankDir' | 'timing' | 'straightness' | 'pullRatio'> & { ok: boolean; reason: string | null }

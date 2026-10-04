@@ -17,7 +17,6 @@ describe('verifier', () => {
     expect(v.check(60, timelineHash(g))).toBe('ok')
     expect(v.check(60, 1)).toBe('mismatch')
     expect(v.check(61, 1)).toBe('unknown')
-    expect(v.desyncs).toBe(1)
   })
 
   it('stops at the outcome', () => {

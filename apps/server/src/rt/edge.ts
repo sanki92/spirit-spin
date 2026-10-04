@@ -48,7 +48,7 @@ export class EdgeClient {
 
 export type EdgeApi = Pick<EdgeClient, 'cfg' | 'createMatch' | 'startRound' | 'endRound' | 'endMatch' | 'stream'>
 
-export interface RemoteDeps { watch(b: Uint8Array): void; resync(side: Side, m: ServerMsg): void; end(): void; lost(): void; heard(side: Side): void; log(o: Record<string, unknown>): void }
+interface RemoteDeps { watch(b: Uint8Array): void; resync(side: Side, m: ServerMsg): void; end(): void; lost(): void; heard(side: Side): void; log(o: Record<string, unknown>): void }
 
 export const REMOTE = { retries: 20, retryMs: 200, resyncGapMs: 500, stallMs: 2000 } as const
 
@@ -58,6 +58,7 @@ export class RemoteRound implements RoundRunner {
   private done = false
   private retries = 0
   private lastResync: [number, number] = [-Infinity, -Infinity]
+  desyncs = 0
   private hi: [number, number] = [0, 0]
   private lastBatch = Date.now()
   private watchdog: ReturnType<typeof setInterval>
@@ -112,14 +113,15 @@ export class RemoteRound implements RoundRunner {
       const now = Date.now()
       if (now - this.lastResync[h.side] < REMOTE.resyncGapMs) continue
       this.lastResync[h.side] = now
+      this.desyncs++
       this.d.log({ msg: 'net.desync', level: 'error', round: this.round, side: h.side, frame: h.frame, mode: 'edge' })
       this.d.resync(h.side, { k: 'resync', round: this.round, tl: this.ver.tl })
     }
     if (this.ver.outcome) {
       this.stop()
       this.ended = this.edge.endRound(this.matchId, this.round).then(
-        s => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.ver.desyncs, ...s }),
-        e => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.ver.desyncs, frames: this.ver.frame, statsError: String(e) }),
+        s => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.desyncs, ...s }),
+        e => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.desyncs, frames: this.ver.frame, statsError: String(e) }),
       )
       this.d.end()
     }

@@ -163,6 +163,15 @@ describe('realtime', () => {
     c.ws.close()
   })
 
+  it('guessing room codes to watch closes the socket after five misses', async () => {
+    const c = await client()
+    c.send({ k: 'hello', token: c.token, name: 'C' })
+    await c.wait('welcome')
+    for (let i = 0; i < 5; i++) c.send({ k: 'watch', code: `ZZZZ${i}`.slice(-4) })
+    for (let i = 0; i < 40 && c.closed() === null; i++) await new Promise(r => setTimeout(r, 25))
+    expect(c.closed()).toBe(4000)
+  })
+
   it('a create with unknown parts leaves no room behind', async () => {
     const before = ((await app.inject({ method: 'GET', url: '/healthz' })).json() as { rooms: number }).rooms
     expect(typeof before).toBe('number')

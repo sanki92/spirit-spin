@@ -81,6 +81,7 @@ describe('live match', () => {
     set(at(70) + 600)
     m.onWire(0, { op: 'hash', round: 1, frame: 60, hash: 9 })
     expect(out.json).toHaveLength(3)
+    expect(m.desyncs).toBe(3)
   })
 
   it('catchup replays to identical hash and frames continue from it', () => {

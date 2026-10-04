@@ -39,7 +39,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: RealtimeOpts; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: Pick<RealtimeOpts, 'seatHoldMs' | 'speed'>; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -81,13 +81,13 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute' })
-  const edge = deps.realtime?.edge ?? (cfg.edge ? new EdgeClient(cfg.edge) : null)
+  const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const netlog = new NetLog()
   const rooms = await registerRealtime(app, tokens, {
     ...deps.realtime,
     edge,
     netlog,
-    ...(edge instanceof EdgeClient && !deps.realtime?.edge ? { closeEdge: () => edge.close() } : {}),
+    ...(edge ? { closeEdge: () => edge.close() } : {}),
     onResult: room => {
       const [a, b] = room.seats
       if (!a || !b || a.playerId === b.playerId) return
@@ -132,7 +132,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
       return { ok: true }
     })
   }
-  const dashKey = process.env.NET_DASH_KEY ?? ''
+  const dashKey = cfg.netDashKey ?? ''
   if (devShutdown || dashKey) {
     const digest = (s: string) => createHash('sha256').update(s).digest()
     const want = digest(dashKey)

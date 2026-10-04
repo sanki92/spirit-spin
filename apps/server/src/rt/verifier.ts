@@ -3,7 +3,6 @@ import { Replayer, startTimeline, tiltOf, timelineHash, WIRE, type BattleState, 
 export class Verifier {
   readonly rp: Replayer
   readonly tilt = { sum: [0, 0] as [number, number], n: [0, 0] as [number, number] }
-  desyncs = 0
   private hashes = new Map<number, number>()
 
   constructor(state: BattleState) {
@@ -32,8 +31,6 @@ export class Verifier {
   check(frame: number, hash: number): 'ok' | 'mismatch' | 'unknown' {
     const h = this.hashes.get(frame)
     if (h === undefined) return 'unknown'
-    if (h === hash >>> 0) return 'ok'
-    this.desyncs++
-    return 'mismatch'
+    return h === hash >>> 0 ? 'ok' : 'mismatch'
   }
 }

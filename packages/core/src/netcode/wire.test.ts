@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { decode, encode, packFrames, quantizeTilt as quantize, tiltOf, unpackFrames, type Frame, type WireInput, type WireMsg } from './wire'
+import { decode, encode, quantizeTilt as quantize, tiltOf, unpackFrames, type Frame, type WireInput, type WireMsg } from './wire'
+
+const packFrames = (fr: readonly Frame[]) => Uint8Array.from(fr.flatMap(f => f.flatMap(i => [i.x & 255, i.y & 255, i.sp])))
 
 const hex = (b: Uint8Array) => [...b].map(v => v.toString(16).padStart(2, '0')).join('')
 const unhex = (s: string) => Uint8Array.from(s.match(/../g)!.map(h => parseInt(h, 16)))

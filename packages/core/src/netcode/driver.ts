@@ -1,8 +1,8 @@
 import type { BattleEvent, BattleState, Side } from '../battle'
-import { ClockControl } from './clock'
+import { CLOCK, ClockControl, clockFrame } from './clock'
 import type { Timeline } from './replay'
-import { RollbackSession, type ConfirmResult } from './session'
-import { quantizeTilt, WIRE, type WireMsg } from './wire'
+import { ROLL, RollbackSession, type ConfirmResult } from './session'
+import { quantizeTilt, type WireMsg } from './wire'
 
 export interface WireSink { send(m: WireMsg): void }
 
@@ -11,10 +11,13 @@ export class NetDriver {
   readonly clock: ClockControl
   private sp: number
   private skip = 0
+  private margin = 0
+  private readonly from: number
   rtt = 200
 
-  constructor(start: Timeline, readonly side: Side, readonly round: number, delay: number, target: number, public sink: WireSink) {
+  constructor(start: Timeline, readonly side: Side, readonly round: number, delay: number, target: number, public sink: WireSink, readonly t0: number) {
     this.session = new RollbackSession(start, side, delay)
+    this.from = start.frame
     this.clock = new ClockControl(target)
     this.sp = start.last[side].sp
     this.flush()
@@ -30,34 +33,38 @@ export class NetDriver {
   step(tiltX: number, tiltY: number, spirit: boolean, out: BattleEvent[]): boolean {
     if (this.done) return false
     if (spirit) this.sp = (this.sp + 1) & 255
-    if (this.skip > 0) {
-      this.skip--
-      return false
-    }
-    if (!this.session.advance({ x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }, out)) return false
+    const moved = this.skip > 0 ? (this.skip--, false) : this.session.advance({ x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }, out)
     this.flush()
-    return true
+    return moved
   }
 
-  onFrames(m: Extract<WireMsg, { op: 'frames' }>, now: number): { result: ConfirmResult; jump: number } | null {
+  private get live(): boolean { return this.session.confirmed.frame > this.from + this.session.delay }
+
+  onFrames(m: Extract<WireMsg, { op: 'frames' }>): ConfirmResult | null {
     if (m.round !== (this.round & 255)) return null
     const result = this.session.confirm(m.first, m.frames)
     for (const c of this.session.takeCheckpoints()) this.sink.send({ op: 'hash', round: this.round & 255, frame: c.frame, hash: c.hash })
-    if (result === 'jump') {
-      this.clock.hold(now)
-      this.skip = 0
-      return { result, jump: 0 }
-    }
-    if (this.session.confirmed.frame <= this.session.delay) return { result, jump: 0 }
-    const lead = Math.ceil((this.rtt + this.clock.target) / WIRE.tickMs) + this.session.delay + 2
-    const depth = this.session.depth
-    const jump = this.clock.onMargin(m.margin, now, Math.max(0, lead - depth), Math.max(0, depth - lead))
-    if (jump < 0) this.skip = -jump
-    else if (jump > 0) this.skip = 0
-    return { result, jump }
+    this.margin = m.margin
+    if (this.live) this.clock.onMargin(m.margin)
+    return result
   }
 
-  resync(tl: Timeline): void { this.session.resync(tl) }
+  steer(now: number): number {
+    const s = this.session
+    if (this.done) return 0
+    const err = clockFrame(now, this.t0, this.rtt, this.clock.target, s.delay) - s.frame
+    if (err > CLOCK.leapFrames || (err > 0 && this.live && this.margin < 0)) {
+      this.skip = 0
+      return Math.max(0, Math.min(err, ROLL.maxPredict - s.depth))
+    }
+    if (this.skip > 0 || (this.live && err < -CLOCK.leapFrames && this.margin > this.clock.target)) this.skip = Math.max(0, -err)
+    return this.skip ? -this.skip : 0
+  }
+
+  resync(tl: Timeline): void {
+    this.skip = 0
+    this.session.resync(tl)
+  }
 
   view(): BattleState { return this.session.view() }
 }

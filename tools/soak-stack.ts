@@ -85,15 +85,14 @@ class Bot {
     }
     const edged = !!m.edge
     const sink = { send: (w: WireMsg) => { const b = encode(w); if (edged) { if (this.edge?.readyState === WebSocket.OPEN) this.edge.send(b) } else if (this.ws.readyState === WebSocket.OPEN) this.ws.send(b) } }
-    this.driver = new NetDriver(startTimeline(s), this.side, m.round, chooseDelay(this.rtt, 5), targetMargin(5), sink)
+    this.driver = new NetDriver(startTimeline(s), this.side, m.round, chooseDelay(this.rtt, 5), targetMargin(5), sink, m.t0)
     this.driver.rtt = this.rtt
     this.begin = beginAt(m.t0, this.rtt, this.driver.session.delay, this.driver.clock.target)
   }
 
   private onWire(m: WireMsg | null): void {
     if (!m || m.op !== 'frames' || !this.driver) return
-    const r = this.driver.onFrames(m, this.now())
-    for (let i = 0; r && i < r.jump; i++) this.step()
+    this.driver.onFrames(m)
   }
 
   step(): void {
@@ -112,6 +111,7 @@ class Bot {
     if (!d || d.done || this.now() < this.begin) return
     this.acc += Math.min(dt, 100) * d.clock.scale
     while (this.acc >= 1000 / 60) { this.step(); this.acc -= 1000 / 60 }
+    for (let n = d.steer(this.now()); n > 0; n--) this.step()
   }
 
   close(): void {

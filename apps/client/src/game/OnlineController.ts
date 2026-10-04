@@ -18,6 +18,7 @@ export class OnlineController extends BattleController {
   link: WireLink = mainLink
   private unwire: () => void = () => undefined
   private beginServer = Infinity
+  private t0 = 0
   private lastMargin = 0
   private serverFrame = 0
   private statsAt = 0
@@ -140,6 +141,7 @@ export class OnlineController extends BattleController {
 
   private onStart(m: Extract<ServerMsg, { k: 'start' }>): void {
     this.startedRound = m.round
+    this.t0 = m.t0
     if (m.edge && !(this.link instanceof EdgeLink)) {
       const l = new EdgeLink(m.edge, { baseOffset: rt.offset })
       this.useLink(l)
@@ -169,7 +171,7 @@ export class OnlineController extends BattleController {
 
   private makeDriver(round: number, tl: Timeline): void {
     const jitter = this.link.net.count >= 3 ? this.link.net.jitter : 15
-    this.driver = new NetDriver(tl, this.side, round, chooseDelay(this.rttNow(), jitter), targetMargin(jitter), this.link)
+    this.driver = new NetDriver(tl, this.side, round, chooseDelay(this.rttNow(), jitter), targetMargin(jitter), this.link, this.t0)
     this.statsAt = performance.now()
   }
 
@@ -184,16 +186,14 @@ export class OnlineController extends BattleController {
     const d = this.driver
     if (!d || m.op !== 'frames' || this.disposed) return
     const before = this.game.battle?.tops.map(t => ({ x: t.x, y: t.y }))
-    d.rtt = this.rttNow()
-    const r = d.onFrames(m, this.link.serverNow())
+    const r = d.onFrames(m)
     if (!r) return
     this.lastMargin = m.margin
     this.serverFrame = m.first + m.frames.length - 1
-    for (let i = 0; i < r.jump; i++) this.stepOnce(d)
     this.game.netScale = d.clock.scale
-    if (r.result !== 'same' || r.jump) {
+    if (r !== 'same') {
       const after = view(d.view(), this.side)
-      if (r.result === 'rollback' && before) for (let i = 0; i < 2; i++) this.game.correct(i as Side, before[i]!.x - after.tops[i]!.x, before[i]!.y - after.tops[i]!.y)
+      if (r === 'rollback' && before) for (let i = 0; i < 2; i++) this.game.correct(i as Side, before[i]!.x - after.tops[i]!.x, before[i]!.y - after.tops[i]!.y)
       this.game.battle = after
       this.transitions()
     }
@@ -222,6 +222,14 @@ export class OnlineController extends BattleController {
     const d = this.driver
     if (!d || d.done || this.link.serverNow() < this.beginServer) return
     this.stepOnce(d)
+  }
+
+  protected override frame(dt: number): void {
+    super.frame(dt)
+    const d = this.driver
+    if (!d || d.done || this.disposed || !this.game.battle || this.link.serverNow() < this.beginServer) return
+    d.rtt = this.rttNow()
+    for (let n = d.steer(this.link.serverNow()); n > 0; n--) this.stepOnce(d)
   }
 
   private transitions(): void {

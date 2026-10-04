@@ -216,7 +216,7 @@ describe('room', () => {
 
   it('edge mode: seats are not flagged silent while the edge is slow to start the round', async () => {
     const { edge } = fakeEdge()
-    edge.createMatch = async () => { await new Promise(r => setTimeout(r, 2500)); return { certHash: '' } }
+    edge.createMatch = async () => { await new Promise(r => setTimeout(r, 4000)); return { certHash: '' } }
     const peers: Extract<ServerMsg, { k: 'peer' }>[] = []
     room = new Room('SLOW', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
     room.seat('a', 'A', BUILD, m => { if (m.k === 'peer') peers.push(m) })
@@ -227,6 +227,22 @@ describe('room', () => {
     const before = peers.length
     await vi.advanceTimersByTimeAsync(4500)
     expect(peers.slice(before).filter(p => !p.online)).toHaveLength(0)
+  })
+
+  it('edge mode: an edge failure after the room finished is not reported as a fallback', async () => {
+    const { edge } = fakeEdge()
+    edge.createMatch = async () => { await new Promise(r => setTimeout(r, 100)); throw new Error('down') }
+    const logs: Record<string, unknown>[] = []
+    room = new Room('LATE', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge, log: o => logs.push(o) })
+    room.seat('a', 'A', BUILD, () => undefined)
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    room.forfeit(1, 'quit')
+    await vi.advanceTimersByTimeAsync(200)
+    expect(logs.filter(l => l.msg === 'edge.fallback')).toHaveLength(0)
   })
 
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {

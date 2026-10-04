@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
+import type { EdgeConfig } from './rt/edge'
 
 const Env = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -20,6 +21,7 @@ const Env = z.object({
   RT_EDGE_SECRET: z.string().optional(),
   RT_EDGE_WT: z.string().optional(),
   RT_EDGE_WS: z.string().optional(),
+  NET_DASH_KEY: z.string().min(16).optional(),
 })
 
 export interface Config {
@@ -33,7 +35,8 @@ export interface Config {
   trustProxy?: string | boolean | undefined
   staticDir?: string | undefined
   payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
-  edge?: { grpc: string; secret: string; wt: string; ws: string } | null
+  edge?: EdgeConfig | null
+  netDashKey?: string | undefined
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -56,6 +59,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
     staticDir: e.STATIC_DIR,
+    netDashKey: e.NET_DASH_KEY,
     edge: e.RT_EDGE_GRPC ? { grpc: e.RT_EDGE_GRPC, secret: e.RT_EDGE_SECRET!, wt: e.RT_EDGE_WT ?? 'https://{host}:4433/wt', ws: e.RT_EDGE_WS ?? '/edge/ws' } : null,
     payments: e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET
       ? { provider: 'razorpay', keyId: e.RAZORPAY_KEY_ID, keySecret: e.RAZORPAY_KEY_SECRET, webhookSecret: e.RAZORPAY_WEBHOOK_SECRET }

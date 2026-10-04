@@ -23,6 +23,7 @@ export class LiveMatch implements RoundRunner {
   private watched = 0
   private lastSend = -Infinity
   private lastResync: [number, number] = [-Infinity, -Infinity]
+  desyncs = 0
   private cancel: () => void
 
   constructor(readonly round: number, state: BattleState, private d: LiveDeps) {
@@ -43,6 +44,7 @@ export class LiveMatch implements RoundRunner {
       const now = this.d.now()
       if (now - this.lastResync[side] < LIVE.resyncGapMs) return
       this.lastResync[side] = now
+      this.desyncs++
       this.d.log({ msg: 'net.desync', level: 'error', round: this.round, side, frame: m.frame, mode: 'node' })
       this.d.resync(side, { k: 'resync', round: this.round, tl: this.ver.tl })
     }
@@ -87,7 +89,7 @@ export class LiveMatch implements RoundRunner {
   }
 
   summary(): Record<string, unknown> {
-    return { msg: 'net.round', round: this.round, frames: this.ver.frame, late: [...this.seq.late], missing: [...this.seq.missing], margins: [this.seq.margin(0), this.seq.margin(1)], desyncs: this.ver.desyncs, mode: 'node' }
+    return { msg: 'net.round', round: this.round, frames: this.ver.frame, late: [...this.seq.late], missing: [...this.seq.missing], margins: [this.seq.margin(0), this.seq.margin(1)], desyncs: this.desyncs, mode: 'node' }
   }
 
   stop(): void {

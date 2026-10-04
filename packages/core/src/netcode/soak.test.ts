@@ -40,6 +40,15 @@ describe(`soak (${per} matches per profile)`, () => {
       expect(r, `seed ${seed}`).toMatchObject({ finished: true, synced: true, desyncs: 0, stalls: 0, ownReplaced: 0 })
     }
   })
+  it('a phone backgrounded for 5 s returns to normal play within 0.4 s and stays in sync', () => {
+    for (const profile of [PROFILES.criteria, PROFILES.lan, PROFILES.tcp]) {
+      for (const seed of seeds(7000)) {
+        const r = runMatch({ seed, profile, freeze: { side: 0, from: 2500, to: 7500 } })
+        expect(r, `seed ${seed}`).toMatchObject({ finished: true, synced: true, desyncs: 0 })
+        if (!profile.ordered) expect(Math.max(7500, ...r.lateAt[0].filter(t => t < 9500)) - 7500, `seed ${seed} recovery`).toBeLessThan(400)
+      }
+    }
+  })
   it('websocket fallback (ordered, loss becomes delay): in sync', () => {
     const r = runMatch({ seed: 5000, profile: PROFILES.tcp })
     expect(r).toMatchObject({ finished: true, synced: true, desyncs: 0 })

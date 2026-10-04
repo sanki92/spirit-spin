@@ -19,8 +19,7 @@ describe('netcode dashboard', () => {
   })
 
   it('the key opens it remotely; a wrong or multibyte key is a clean 404', async () => {
-    process.env.NET_DASH_KEY = 'k3y-for-the-dashboard'
-    const keyed = await buildApp(CFG)
+    const keyed = await buildApp({ ...CFG, netDashKey: 'k3y-for-the-dashboard' })
     try {
       const ok = await keyed.inject({ method: 'GET', url: '/__dev/net.json?key=k3y-for-the-dashboard', remoteAddress: '127.0.0.1', headers: { 'x-forwarded-for': '203.0.113.9' } })
       expect(ok.statusCode).toBe(200)
@@ -29,7 +28,6 @@ describe('netcode dashboard', () => {
       const wrong = await keyed.inject({ method: 'GET', url: '/__dev/net.json?key=nope', remoteAddress: '10.0.0.9' })
       expect(wrong.statusCode).toBe(404)
     } finally {
-      delete process.env.NET_DASH_KEY
       await keyed.close()
     }
   })

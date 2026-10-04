@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { NetDriver } from './driver'
+import { CLOCK, clockFrame } from './clock'
 import { ROLL } from './session'
 import { startTimeline } from './replay'
 import { fresh } from './testkit'
-import { IDLE_INPUT, type Frame, type WireMsg } from './wire'
+import { IDLE_INPUT, WIRE, type Frame, type WireMsg } from './wire'
 
 const make = (round = 3) => {
   const sent: WireMsg[] = []
-  const d = new NetDriver(startTimeline(fresh()), 0, round, 2, 20, { send: m => sent.push(m) })
+  const d = new NetDriver(startTimeline(fresh()), 0, round, 2, 20, { send: m => sent.push(m) }, 0)
   return { d, sent }
 }
 
@@ -23,7 +24,7 @@ describe('net driver', () => {
     const { d, sent } = make()
     for (let i = 0; i < ROLL.maxPredict; i++) d.step(0, 0, false, [])
     expect(d.step(0, 0, true, [])).toBe(false)
-    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 20, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 20, frames: [[IDLE_INPUT, IDLE_INPUT]] })
     expect(d.step(0, 0, false, [])).toBe(true)
     const last = sent.filter(m => m.op === 'input').at(-1) as Extract<WireMsg, { op: 'input' }>
     expect(last.inputs.at(-1)!.sp).toBe(1)
@@ -33,25 +34,29 @@ describe('net driver', () => {
     const { d } = make()
     for (let i = 0; i < 3; i++) d.step(0, 0, false, [])
     const frames = Array.from({ length: 100 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
-    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames }, 0)).toEqual({ result: 'jump', jump: 0 })
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames })).toBe('jump')
+    expect(d.steer(0)).toBe(0)
   })
 
   it('pauses steps while far ahead, then resumes', () => {
     const { d } = make()
     for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
-    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] }, 0)
-    expect(r!.jump).toBeLessThan(0)
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] })
+    const jump = d.steer(0)
+    expect(jump).toBeLessThan(0)
     let skipped = 0
     while (!d.step(0, 0, false, [])) skipped++
-    expect(skipped).toBe(-r!.jump)
+    expect(skipped).toBe(-jump)
     expect(d.session.stats.stalls).toBe(0)
   })
 
   it('ignores margins until a frame with its first real input is confirmed, so the pre-start prefill never pauses the phone', () => {
     const { d } = make()
     for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
-    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] }, 0)).toEqual({ result: 'same', jump: 0 })
-    expect(d.onFrames({ op: 'frames', round: 3, first: 3, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)!.jump).toBeLessThan(0)
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] })).toBe('same')
+    expect(d.steer(0)).toBe(0)
+    d.onFrames({ op: 'frames', round: 3, first: 3, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT]] })
+    expect(d.steer(0)).toBeLessThan(0)
   })
 
   it('after a freeze the clock jump stops at the expected lead instead of the stale lateness', () => {
@@ -59,27 +64,29 @@ describe('net driver', () => {
     d.rtt = 200
     for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
     const frames = Array.from({ length: 10 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
-    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames }, 0)!
-    expect(r.jump).toBe(0)
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames })
+    expect(d.steer(0)).toBe(0)
     expect(d.session.depth).toBe(20)
   })
 
-  it('a pause is not cancelled by the next frames packet while the clock is held', () => {
+  it('a pause keeps its length across later packets', () => {
     const { d } = make()
     for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
     const three = [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] as Frame[]
-    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: three }, 0)!
-    expect(r.jump).toBeLessThan(0)
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: three })
+    const jump = d.steer(0)
+    expect(jump).toBeLessThan(0)
     expect(d.step(0, 0, false, [])).toBe(false)
-    d.onFrames({ op: 'frames', round: 3, first: 4, margin: 400, frames: [] }, 16)
+    d.onFrames({ op: 'frames', round: 3, first: 4, margin: 400, frames: [] })
+    d.steer(WIRE.tickMs)
     let skipped = 1
     while (!d.step(0, 0, false, [])) skipped++
-    expect(skipped).toBe(-r.jump)
+    expect(skipped).toBe(-jump)
   })
 
   it('drops frames of another round', () => {
     const { d } = make(3)
-    expect(d.onFrames({ op: 'frames', round: 2, first: 1, margin: 0, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)).toBeNull()
+    expect(d.onFrames({ op: 'frames', round: 2, first: 1, margin: 0, frames: [[IDLE_INPUT, IDLE_INPUT]] })).toBeNull()
     expect(d.session.confirmed.frame).toBe(0)
   })
 
@@ -87,9 +94,8 @@ describe('net driver', () => {
     const { d, sent } = make()
     for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
     const frames = Array.from({ length: 60 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
-    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 5, frames }, 0)
-    expect(r).toEqual({ result: 'jump', jump: 0 })
-    expect(d.clock.scale).toBe(1)
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: 5, frames })).toBe('jump')
+    expect(d.clock.scale).toBe(1.03)
     expect(sent.at(-1)).toMatchObject({ op: 'hash', round: 3, frame: 60 })
   })
 
@@ -98,5 +104,54 @@ describe('net driver', () => {
     d.session.confirmed.state.outcome = { winner: 1, finish: 'spin', points: 1 }
     expect(d.step(0, 0, false, [])).toBe(false)
     expect(d.done).toBe(true)
+  })
+})
+
+describe('net driver clock steering', () => {
+  const steer = (t0: number) => {
+    const sent: WireMsg[] = []
+    const d = new NetDriver(startTimeline(fresh()), 0, 3, 2, 20, { send: m => sent.push(m) }, t0)
+    d.rtt = 100
+    return d
+  }
+  const idle = (n: number) => Array.from({ length: n }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+
+  it('after a freeze it jumps straight to the frame the server clock says it should be on', () => {
+    const d = steer(0)
+    for (let i = 0; i < 10; i++) d.step(0, 0, false, [])
+    const now = 100 * WIRE.tickMs
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames: idle(10) })
+    expect(d.steer(now)).toBe(Math.min(clockFrame(now, 0, 100, 20, 2) - 10, ROLL.maxPredict))
+  })
+
+  it('pauses when the clock says it is far ahead, and leaves small errors to time dilation', () => {
+    const d = steer(0)
+    for (let i = 0; i < 40; i++) d.step(0, 0, false, [])
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 900, frames: idle(10) })
+    expect(d.steer(10 * WIRE.tickMs)).toBeLessThan(-CLOCK.leapFrames)
+    const e = steer(0)
+    for (let i = 0; i < 30; i++) e.step(0, 0, false, [])
+    e.onFrames({ op: 'frames', round: 3, first: 1, margin: 20, frames: idle(10) })
+    expect(e.steer((30 - 2) * WIRE.tickMs - 70)).toBe(0)
+  })
+
+  it('a stalled phone keeps sending its ack, so a sender that restarted from an old ack catches it up', () => {
+    const sent: WireMsg[] = []
+    const d = new NetDriver(startTimeline(fresh()), 0, 3, 2, 20, { send: m => sent.push(m) }, 0)
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 20, frames: idle(5) })
+    while (d.step(0, 0, false, []));
+    const n = sent.length
+    expect(d.step(0, 0, false, [])).toBe(false)
+    expect(sent.length).toBe(n + 1)
+    expect(sent.at(-1)).toMatchObject({ op: 'input', ack: 5 })
+  })
+
+  it('a resync drops any pending pause', () => {
+    const d = steer(0)
+    for (let i = 0; i < 40; i++) d.step(0, 0, false, [])
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 900, frames: idle(10) })
+    expect(d.steer(10 * WIRE.tickMs)).toBeLessThan(0)
+    d.resync(startTimeline(fresh()))
+    expect(d.step(0, 0, false, [])).toBe(true)
   })
 })
