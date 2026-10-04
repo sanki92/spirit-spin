@@ -71,13 +71,19 @@ export class EdgeLink implements WireLink {
 
   private race(WT: typeof WebTransport | null, urls: { wt: string; ws: string }): Promise<'wt' | 'ws'> {
     return new Promise((resolve, reject) => {
-      let done = false, pending = 0, wtFailed = false
+      let done = false, pending = 0
       let wsTimer: ReturnType<typeof setTimeout> | 0 = 0
+      let myWt: WebTransport | null = null, myWs: WebSocket | null = null
       const win = (k: 'wt' | 'ws'): boolean => {
         if (done) return false
         done = true
         if (wsTimer) clearTimeout(wsTimer)
-        if (k === 'ws' && wtFailed) this.wtBroken = true
+        wsTimer = 0
+        if (k === 'wt') this.dropWS(myWs)
+        else if (myWt) {
+          this.dropWT(myWt)
+          this.wtBroken = true
+        }
         resolve(k)
         return true
       }
@@ -87,21 +93,18 @@ export class EdgeLink implements WireLink {
         if (done) return
         if (this.closed) return fail(new Error('closed'))
         pending++
-        within(this.openWS(urls.ws), EDGE.wsTimeoutMs).then(
-          () => { if (!win('ws') || this.closed) this.dropWS() },
-          e => { this.dropWS(); fail(e) },
+        within(this.openWS(urls.ws, w => { myWs = w }), EDGE.wsTimeoutMs).then(
+          () => { if (!win('ws') || this.closed) this.dropWS(myWs) },
+          e => { this.dropWS(myWs); fail(e) },
         )
       }
       if (WT) {
         pending++
-        within(this.openWT(WT, urls.wt), EDGE.wtTimeoutMs).then(
-          () => { if (!win('wt') || this.closed) this.dropWT() },
+        within(this.openWT(WT, urls.wt, t => { myWt = t }), EDGE.wtTimeoutMs).then(
+          () => { if (!win('wt') || this.closed) this.dropWT(myWt) },
           e => {
-            wtFailed = true
             log('edge.wt-fail', { err: String(e).slice(0, 120) })
-            this.dropWT()
-            if (done && this.kind === 'ws') this.wtBroken = true
-            if (done && !this.ws && !this.closed) this.schedule()
+            this.dropWT(myWt)
             if (wsTimer) { clearTimeout(wsTimer); startWS() }
             fail(e)
           },
@@ -111,17 +114,19 @@ export class EdgeLink implements WireLink {
     })
   }
 
-  private dropWT(): void {
-    const t = this.wt
-    this.wt = null
-    this.writer = null
-    try { t?.close() } catch { }
+  private dropWT(t: WebTransport | null): void {
+    if (!t) return
+    if (this.wt === t) {
+      this.wt = null
+      this.writer = null
+    }
+    try { t.close() } catch { }
   }
 
-  private dropWS(): void {
-    const w = this.ws
-    this.ws = null
-    try { w?.close() } catch { }
+  private dropWS(w: WebSocket | null): void {
+    if (!w) return
+    if (this.ws === w) this.ws = null
+    try { w.close() } catch { }
   }
 
   private up(kind: 'wt' | 'ws'): void {
@@ -138,10 +143,11 @@ export class EdgeLink implements WireLink {
     log('edge.open', { kind })
   }
 
-  private async openWT(WT: typeof WebTransport, url: string): Promise<void> {
+  private async openWT(WT: typeof WebTransport, url: string, created: (t: WebTransport) => void): Promise<void> {
     const opts: WebTransportOptions = this.info.certHash ? { serverCertificateHashes: [{ algorithm: 'sha-256', value: hexBytes(this.info.certHash) }] } : {}
     const t = new WT(url, opts)
     t.closed.catch(() => undefined)
+    created(t)
     this.wt = t
     await t.ready
     if (this.wt !== t) throw new Error('superseded')
@@ -157,11 +163,12 @@ export class EdgeLink implements WireLink {
     void t.closed.catch(() => undefined).finally(() => this.drop(t))
   }
 
-  private openWS(url: string): Promise<void> {
+  private openWS(url: string, created: (w: WebSocket) => void): Promise<void> {
     return new Promise((resolve, reject) => {
       const WS = this.deps.WS ?? WebSocket
       const ws = new WS(url)
       ws.binaryType = 'arraybuffer'
+      created(ws)
       this.ws = ws
       let opened = false
       ws.onopen = () => { opened = true; resolve() }

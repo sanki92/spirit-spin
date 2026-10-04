@@ -170,3 +170,34 @@ func TestOutboxKeepsTheNewestPacketsWhenBacklogged(t *testing.T) {
 	}
 	o.Close()
 }
+
+func TestASilentSecondConnectionDoesNotKickTheActiveOne(t *testing.T) {
+	reg := match.NewRegistry(clock)
+	m := reg.Create("WS2")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go reg.Run(ctx, 2*time.Millisecond)
+	srv := httptest.NewServer(WSHandler(reg, secret, Faults{}))
+	defer srv.Close()
+	url := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws?t=" + tok("WS2", 0)
+	c1, _, err := websocket.Dial(ctx, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.StartRound(1, 0)
+	_ = c1.Write(ctx, websocket.MessageBinary, wire.EncodeInput(1, 1, 0, []wire.Input{in(9, 0)}))
+	c2, _, err := websocket.Dial(ctx, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c2.CloseNow()
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		rctx, rc := context.WithTimeout(ctx, time.Second)
+		_, _, err := c1.Read(rctx)
+		rc()
+		if err != nil {
+			t.Fatalf("the active connection was dropped by a silent second one: %v", err)
+		}
+	}
+}

@@ -40,10 +40,12 @@ func ServeWT(ctx context.Context, conn net.PacketConn, tc *tls.Config, reg *matc
 			return
 		}
 		p := newOutbox("wt", f.wrap(sess.SendDatagram), func() { _ = sess.CloseWithError(0, "closed") })
-		m.Attach(c.S, p)
 		go func() {
+			attached := false
 			defer func() {
-				m.Detach(c.S, p)
+				if attached {
+					m.Detach(c.S, p)
+				}
 				p.Close()
 			}()
 			for {
@@ -51,7 +53,14 @@ func ServeWT(ctx context.Context, conn net.PacketConn, tc *tls.Config, reg *matc
 				if err != nil {
 					return
 				}
-				if !f.dropIn() && !m.OnPacket(c.S, b) {
+				if f.dropIn() {
+					continue
+				}
+				if !attached {
+					attached = true
+					m.Attach(c.S, p)
+				}
+				if !m.OnPacket(c.S, b) {
 					return
 				}
 			}

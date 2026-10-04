@@ -164,8 +164,10 @@ describe('net driver resume ordering (iOS runs a frame before the buffered packe
     const d = new NetDriver(startTimeline(fresh()), 0, 3, 1, 20, { send: m => sent.push(m) }, 0)
     d.rtt = 10
     d.onFrames({ op: 'frames', round: 3, first: 1, margin: 30, frames: idle(234) })
+    d.steer(236 * WIRE.tickMs)
     const now = 504 * WIRE.tickMs
     expect(d.steer(now)).toBe(0)
+    expect(d.waiting).toBe(true)
     const n0 = sent.length
     expect(d.step(0, 0, false, [])).toBe(false)
     expect(sent.length).toBe(n0 + 1)
@@ -175,3 +177,42 @@ describe('net driver resume ordering (iOS runs a frame before the buffered packe
     expect(n).toBeLessThanOrEqual(8)
   })
 })
+
+describe('net driver waiting cannot trap the player', () => {
+  const idle = (n: number) => Array.from({ length: n }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+
+  it('a badly wrong latency estimate holds steps only briefly after a hitch, never for the rest of the round', () => {
+    const d = new NetDriver(startTimeline(fresh()), 0, 3, 1, 20, { send: () => undefined }, 0)
+    d.rtt = 50
+    let confirmed = 0
+    let held = 0
+    for (let f = 1; f <= 600; f++) {
+      const now = f * WIRE.tickMs
+      if (f % 2 === 0 && f > 40) {
+        const upto = f - 30
+        if (upto > confirmed) { d.onFrames({ op: 'frames', round: 3, first: confirmed + 1, margin: 30, frames: idle(upto - confirmed) }); confirmed = upto }
+      }
+      if (f >= 300 && f < 318) continue
+      d.step(0, 0, false, [])
+      for (let n = d.steer(now); n > 0; n--) d.step(0, 0, false, [])
+      if (d.waiting) held++
+    }
+    expect(held).toBeGreaterThan(0)
+    expect(held).toBeLessThanOrEqual(Math.ceil((2 * (50 + 20)) / WIRE.tickMs) + 1)
+    expect(d.waiting).toBe(false)
+    expect(clockFrame(600 * WIRE.tickMs, 0, 50, 20, 1) - d.session.frame).toBeLessThanOrEqual(CLOCK.leapFrames)
+  })
+
+  it('stops reporting waiting once the round is decided', () => {
+    const d = new NetDriver(startTimeline(fresh()), 0, 3, 1, 20, { send: () => undefined }, 0)
+    d.rtt = 10
+    d.onFrames({ op: 'frames', round: 3, first: 1, margin: 30, frames: idle(20) })
+    d.steer(22 * WIRE.tickMs)
+    d.steer(400 * WIRE.tickMs)
+    expect(d.waiting).toBe(true)
+    d.session.confirmed.state.outcome = { winner: 0, finish: 'spin', points: 1 }
+    d.steer(401 * WIRE.tickMs)
+    expect(d.waiting).toBe(false)
+  })
+})
+

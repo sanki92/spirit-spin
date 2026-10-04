@@ -1,4 +1,4 @@
-import { beginAt, chooseDelay, createBattle, NetDriver, startTimeline, targetMargin, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
+import { beginAt, chooseDelay, createBattle, FINISH_CAM, NetDriver, startTimeline, targetMargin, type BattleState, type ClientMsg, type MotionSample, type RipFail, type RipPayload, type RipResult, type ServerMsg, type Side, type Timeline, type TouchSample, type WireMsg } from '@spirit/core'
 import { EdgeLink } from '../net/edgeLink'
 import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
@@ -10,7 +10,6 @@ import { tierOf } from './launchPlan'
 import { bestPayload, calloutOf, judged } from './ripPayload'
 
 const END_WAIT_MS = 500
-const MIN_REPLAY = 24
 const flipWinner = (w: Side | null) => (w === null ? null : ((1 - w) as Side))
 const view = (s: BattleState, side: Side): BattleState =>
   side === 0 ? s : { ...s, tops: [s.tops[1], s.tops[0]], specs: [s.specs[1], s.specs[0]], outcome: s.outcome && { ...s.outcome, winner: flipWinner(s.outcome.winner) } }
@@ -173,7 +172,8 @@ export class OnlineController extends BattleController {
     const d = this.driver
     if (!this.game.battle && d) this.game.setBattle(view(d.view(), this.side))
     if (this.game.battle && d?.done) this.game.battle = view(d.session.confirmed.state, this.side)
-    if (this.replay.length >= MIN_REPLAY) this.game.useReplay(this.replay)
+    if (this.replay.length >= FINISH_CAM.minFrames) this.game.useReplay(this.replay)
+    this.finishCamOk = !d || d.done
     if (this.game.battle) this.finishRound({ k: 'finish', tick: d?.session.confirmed.state.tick ?? 0, outcome })
     if (d) log('net.round', this.roundStats())
     this.match = { ...this.match, scores, winner }
@@ -212,7 +212,7 @@ export class OnlineController extends BattleController {
 
   private onWire(m: WireMsg): void {
     const d = this.driver
-    if (!d || m.op !== 'frames' || this.disposed) return
+    if (!d || m.op !== 'frames' || this.disposed || d.done) return
     const before = this.game.battle?.tops.map(t => ({ x: t.x, y: t.y }))
     const r = d.onFrames(m)
     if (!r) return

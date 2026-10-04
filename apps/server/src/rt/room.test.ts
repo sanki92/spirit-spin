@@ -283,6 +283,26 @@ describe('room', () => {
     expect(calls.filter(c => c === 'endMatch')).toHaveLength(0)
     await vi.advanceTimersByTimeAsync(200)
     expect(calls.slice(-2)).toEqual(['endRound', 'endMatch'])
+    const again = await play()
+    let settled = false
+    void room!.close().then(() => { settled = true })
+    await vi.advanceTimersByTimeAsync(60)
+    expect(settled).toBe(true)
+    expect(again.slice(-2)).toEqual(['endRound', 'endMatch'])
+  })
+
+  it('edge mode: a forfeit ends the edge match at once, with no linger', async () => {
+    const { edge, calls } = fakeEdge()
+    room = new Room('QUIT', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, edge })
+    room.seat('a', 'A', BUILD, () => undefined)
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    await vi.advanceTimersByTimeAsync(10)
+    room.forfeit(1, 'quit')
+    await vi.advanceTimersByTimeAsync(50)
+    expect(calls.at(-1)).toBe('endMatch')
   })
 
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {

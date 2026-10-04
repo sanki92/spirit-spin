@@ -41,9 +41,11 @@ func WSHandler(reg *match.Registry, secret []byte, f Faults) http.Handler {
 			cancel()
 			_ = conn.CloseNow()
 		})
-		m.Attach(c.S, p)
+		attached := false
 		defer func() {
-			m.Detach(c.S, p)
+			if attached {
+				m.Detach(c.S, p)
+			}
 			p.Close()
 		}()
 		for {
@@ -53,7 +55,14 @@ func WSHandler(reg *match.Registry, secret []byte, f Faults) http.Handler {
 			if err != nil {
 				return
 			}
-			if typ == websocket.MessageBinary && !f.dropIn() && !m.OnPacket(c.S, b) {
+			if typ != websocket.MessageBinary || f.dropIn() {
+				continue
+			}
+			if !attached {
+				attached = true
+				m.Attach(c.S, p)
+			}
+			if !m.OnPacket(c.S, b) {
 				return
 			}
 		}

@@ -52,6 +52,8 @@ export class Room {
   private edgeMatch: Promise<{ certHash: string }> | null = null
   private edgeUsed = false
   private certHash: string | null = null
+  private edgeEnding: Promise<void> | null = null
+  private releaseLinger: () => void = () => undefined
 
   private later(ms: number, fn: () => void): void {
     this.timers.push(setTimeout(fn, ms / (this.opts.speed ?? 1)))
@@ -335,14 +337,14 @@ export class Room {
     this.match = applyRound(this.match, outcome)
     this.phase = 'between'
     this.broadcast({ k: 'end', round: this.round, outcome, scores: this.match.scores, winner: this.match.winner })
-    if (this.match.winner !== null) return this.finish()
+    if (this.match.winner !== null) return this.finish(REMOTE.lingerMs)
     this.later(TIMING.betweenRoundsMs + (replaysFinish(outcome, false) ? NET.finishReplayMs : 0), () => this.nextRound())
   }
 
-  private finish(): void {
+  private finish(lingerMs = 0): void {
     if (this.phase === 'done') return
     this.phase = 'done'
-    void this.endEdgeMatch(REMOTE.lingerMs)
+    void this.endEdgeMatch(lingerMs)
     this.live?.stop()
     this.stopSilence()
     for (const t of this.timers) clearTimeout(t)
@@ -353,16 +355,23 @@ export class Room {
 
   private endEdgeMatch(lingerMs = 0): Promise<void> {
     const e = this.opts.edge
-    if (!this.edgeUsed || !e) return Promise.resolve()
+    if (!this.edgeUsed || !e) return this.edgeEnding ?? Promise.resolve()
     this.edgeUsed = false
     this.edgeMatch = null
     const last = this.live instanceof RemoteRound ? this.live.ended : Promise.resolve()
-    const done = last.finally(() => new Promise<void>(r => setTimeout(r, lingerMs))).finally(() => e.endMatch(this.matchId)).then(() => undefined, () => undefined)
-    return Promise.race([done, new Promise<void>(r => setTimeout(r, 1500 + lingerMs))])
+    const linger = new Promise<void>(r => {
+      if (!lingerMs) return r()
+      const t = setTimeout(r, lingerMs / (this.opts.speed ?? 1))
+      this.releaseLinger = () => { clearTimeout(t); r() }
+    })
+    const done = last.finally(() => linger).finally(() => e.endMatch(this.matchId)).then(() => undefined, () => undefined)
+    this.edgeEnding = Promise.race([done, new Promise<void>(r => setTimeout(r, 1500 + lingerMs))])
+    return this.edgeEnding
   }
 
   close(): Promise<void> {
     this.phase = 'done'
+    this.releaseLinger()
     const ended = this.endEdgeMatch()
     this.live?.stop()
     this.stopSilence()

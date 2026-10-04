@@ -1,4 +1,4 @@
-import { assembleTop, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
+import { assembleTop, FINISH_CAM, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
 import type { Texture } from 'three'
 import { hasAsset } from '../assets/assets'
 import { texture } from './render/textures'
@@ -274,8 +274,8 @@ export class Game {
 
   finishCam(loser: 0 | 1 | null, done: () => void): boolean {
     this.record()
-    if (this.hist.length < 24) return false
-    this.cine = { frames: [...this.hist], t: 0, dur: 2600, fired: 0, impact: false, hold: 0, loser, done }
+    if (this.hist.length < FINISH_CAM.minFrames) return false
+    this.cine = { frames: [...this.hist], t: 0, dur: FINISH_CAM.replayMs, fired: 0, impact: false, hold: 0, loser, done }
     this.slowUntil = 0
     return true
   }
@@ -341,7 +341,7 @@ export class Game {
     }
     if (c.impact) {
       c.hold += ms
-      if (c.hold > 520) this.skipCine()
+      if (c.hold > FINISH_CAM.holdMs) this.skipCine()
     }
   }
 

@@ -265,3 +265,124 @@ describe('edge link races WebTransport against the WebSocket', () => {
     vi.useRealTimers()
   })
 })
+
+describe('edge link race leaves exactly one transport', () => {
+  const loc = { hostname: 'h', protocol: 'https:', host: 'h' }
+  const info = { wt: 'https://{host}:4433/wt', ws: '/edge/ws', ticket: 't', certHash: 'ab' }
+
+  it('a WebTransport that wins after the head start aborts the WebSocket still connecting, so the edge never sees both', async () => {
+    vi.useFakeTimers()
+    const wsState: { closedBeforeOpen: boolean; opened: boolean }[] = []
+    class SlowWS {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      rec = { closedBeforeOpen: false, opened: false }
+      constructor() { wsState.push(this.rec); setTimeout(() => { if (this.rec.closedBeforeOpen) return; this.rec.opened = true; this.readyState = 1; this.onopen?.() }, 400) }
+      send() {}
+      close() { if (!this.rec.opened) this.rec.closedBeforeOpen = true; this.readyState = 3 }
+    }
+    let wtClosed = false
+    class WT {
+      ready = new Promise<void>(r => setTimeout(r, EDGE.wtHeadStartMs + 100))
+      closed = new Promise<void>(() => undefined)
+      datagrams = { writable: { getWriter: () => ({ write: async () => undefined }) }, readable: { getReader: () => ({ read: () => new Promise(() => undefined) }) } }
+      close() { wtClosed = true }
+    }
+    const link = new EdgeLink(info, { WT: WT as unknown as typeof WebTransport, WS: SlowWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 1000)
+    expect(link.kind).toBe('wt')
+    expect(wtClosed).toBe(false)
+    expect(wsState).toHaveLength(1)
+    expect(wsState[0]).toEqual({ closedBeforeOpen: true, opened: false })
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('a WebSocket that wins closes the WebTransport still handshaking at once', async () => {
+    vi.useFakeTimers()
+    let wtClosed = false
+    class HangWT {
+      ready = new Promise<void>(() => undefined)
+      closed = new Promise<void>(() => undefined)
+      datagrams = { writable: { getWriter: () => ({ write: async () => undefined }) }, readable: { getReader: () => ({ read: () => new Promise(() => undefined) }) } }
+      close() { wtClosed = true }
+    }
+    class FastWS {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      constructor() { setTimeout(() => { this.readyState = 1; this.onopen?.() }, 5) }
+      send() {}
+      close() {}
+    }
+    const link = new EdgeLink(info, { WT: HangWT as unknown as typeof WebTransport, WS: FastWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 20)
+    expect(link.kind).toBe('ws')
+    expect(wtClosed).toBe(true)
+    link.close()
+    vi.useRealTimers()
+  })
+
+  it('a stale race callback never closes the transport of a newer connection', async () => {
+    vi.useFakeTimers()
+    const socks: { closed: boolean }[] = []
+    class LateWS {
+      binaryType = 'arraybuffer'
+      readyState = 0
+      onopen: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      onmessage: ((e: MessageEvent) => void) | null = null
+      rec = { closed: false }
+      constructor() {
+        socks.push(this.rec)
+        const first = socks.length === 1
+        setTimeout(() => { if (this.readyState === 0) { this.readyState = 1; this.onopen?.() } }, first ? 5000 : 5)
+      }
+      send() {}
+      close() {
+        if (this.rec.closed) return
+        this.rec.closed = true
+        const pending = this.readyState === 0
+        this.readyState = 3
+        setTimeout(() => { if (pending) this.onerror?.(); this.onclose?.() }, pending ? 1000 : 0)
+      }
+    }
+    let wts = 0
+    let dropFirst: () => void = () => undefined
+    class OnceWT {
+      ready: Promise<void>
+      closed: Promise<void>
+      datagrams = { writable: { getWriter: () => ({ write: async () => undefined }) }, readable: { getReader: () => ({ read: () => new Promise(() => undefined) }) } }
+      constructor() {
+        wts++
+        this.ready = wts === 1 ? new Promise(r => setTimeout(r, EDGE.wtHeadStartMs + 50)) : Promise.reject(new Error('down'))
+        this.ready.catch(() => undefined)
+        this.closed = new Promise(r => { dropFirst = r })
+      }
+      close() {}
+    }
+    const link = new EdgeLink(info, { WT: OnceWT as unknown as typeof WebTransport, WS: LateWS as unknown as typeof WebSocket, location: loc })
+    link.start()
+    await vi.advanceTimersByTimeAsync(EDGE.wtHeadStartMs + 100)
+    expect(link.kind).toBe('wt')
+    dropFirst()
+    await vi.advanceTimersByTimeAsync(400)
+    expect(link.kind).toBe('ws')
+    expect(socks).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(socks[1]!.closed).toBe(false)
+    link.close()
+    vi.useRealTimers()
+  })
+
+})

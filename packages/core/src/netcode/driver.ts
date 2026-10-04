@@ -15,6 +15,8 @@ export class NetDriver {
   private snapped = false
   private waitingNow = false
   private repeat = 0
+  private waitFrom = -Infinity
+  private waitSpent = false
   private readonly from: number
   rtt = 200
 
@@ -38,8 +40,14 @@ export class NetDriver {
   step(tiltX: number, tiltY: number, spirit: boolean, out: BattleEvent[]): boolean {
     if (this.done) return false
     if (spirit) this.sp = (this.sp + 1) & 255
-    const own = this.repeat > 0 ? (this.repeat--, this.session.confirmed.last[this.side]) : { x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }
-    const moved = this.waitingNow ? false : this.skip > 0 ? (this.skip--, false) : this.session.advance(own, out)
+    let moved = false
+    if (this.waitingNow) moved = false
+    else if (this.skip > 0) this.skip--
+    else {
+      const repeat = this.repeat > 0
+      moved = this.session.advance(repeat ? this.session.confirmed.last[this.side] : { x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }, out)
+      if (moved && repeat) this.repeat--
+    }
     this.flush()
     return moved
   }
@@ -58,11 +66,18 @@ export class NetDriver {
 
   steer(now: number): number {
     const s = this.session
-    if (this.done) return 0
+    if (this.done) {
+      this.waitingNow = false
+      return 0
+    }
     const want = clockFrame(now, this.t0, this.rtt, this.clock.target, s.delay)
     const err = want - s.frame
     const lead = Math.ceil((this.rtt + this.clock.target) / WIRE.tickMs) + s.delay + CLOCK.slackFrames
-    this.waitingNow = err > CLOCK.leapFrames && want - s.confirmed.frame > lead
+    const stale = err > CLOCK.leapFrames && want - s.confirmed.frame > lead
+    if (!stale) this.waitSpent = false
+    else if (!this.waitingNow && !this.waitSpent) this.waitFrom = now
+    this.waitingNow = stale && !this.waitSpent && now - this.waitFrom <= 2 * (this.rtt + this.clock.target)
+    if (stale && !this.waitingNow) this.waitSpent = true
     if (this.waitingNow) return 0
     const snapped = this.snapped
     this.snapped = false
