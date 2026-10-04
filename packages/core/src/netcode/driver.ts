@@ -52,7 +52,8 @@ export class NetDriver {
     const lead = Math.ceil((this.rtt + this.clock.target) / WIRE.tickMs) + this.session.delay + 2
     const depth = this.session.depth
     const jump = this.clock.onMargin(m.margin, now, Math.max(0, lead - depth), Math.max(0, depth - lead))
-    this.skip = jump < 0 ? -jump : 0
+    if (jump < 0) this.skip = -jump
+    else if (jump > 0) this.skip = 0
     return { result, jump }
   }
 

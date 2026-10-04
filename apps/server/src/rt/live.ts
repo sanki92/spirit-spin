@@ -1,6 +1,8 @@
 import { encode, SEQ, Sequencer, WIRE, type BattleState, type ServerMsg, type Side, type WireMsg } from '@spirit/core'
 import { Verifier } from './verifier'
 
+export const LIVE = { resyncGapMs: 500 } as const
+
 export interface LiveDeps {
   now(): number
   every(ms: number, fn: () => void): () => void
@@ -19,6 +21,7 @@ export class LiveMatch {
   private sent: [number, number] = [0, 0]
   private watched = 0
   private lastSend = -Infinity
+  private lastResync: [number, number] = [-Infinity, -Infinity]
   private cancel: () => void
 
   constructor(readonly round: number, state: BattleState, private d: LiveDeps) {
@@ -36,6 +39,9 @@ export class LiveMatch {
       this.seq.receive(side, m.first, m.inputs, this.d.now())
       this.tick()
     } else if (m.op === 'hash' && this.ver.check(m.frame, m.hash) === 'mismatch') {
+      const now = this.d.now()
+      if (now - this.lastResync[side] < LIVE.resyncGapMs) return
+      this.lastResync[side] = now
       this.d.log({ msg: 'net.desync', level: 'error', round: this.round, side, frame: m.frame, mode: 'node' })
       this.d.resync(side, { k: 'resync', round: this.round, tl: this.ver.tl })
     }

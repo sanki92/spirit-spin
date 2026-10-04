@@ -203,7 +203,14 @@ export class Room {
     this.phase = 'battle'
     this.broadcast(this.startMsg())
     const now = this.opts.now() + SEQ.leadInMs
-    for (const s of this.seats) if (s) { s.heard = now; s.quiet = false }
+    this.seats.forEach((s, i) => {
+      if (!s) return
+      s.heard = now
+      if (!s.quiet) return
+      s.quiet = false
+      const other = this.seats[(1 - i) as Side]
+      if (other?.online && s.online) other.send({ k: 'peer', name: s.name, build: s.build, online: true })
+    })
     this.stopSilence()
     this.silence = setInterval(() => this.checkSilence(), 250)
   }

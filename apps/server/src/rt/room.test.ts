@@ -65,6 +65,23 @@ describe('room', () => {
     expect(peers.at(-1)).toMatchObject({ k: 'peer', online: true })
   })
 
+  it('a seat still marked silent when the next battle starts is announced back online', () => {
+    const peers: Extract<ServerMsg, { k: 'peer' }>[] = []
+    room = new Room('TEST', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined })
+    room.seat('a', 'A', BUILD, m => { if (m.k === 'peer') peers.push(m) })
+    room.seat('b', 'B', BUILD, () => undefined)
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 1, swipe: SWIPE, pull100: 7 })
+    room.seats[1]!.quiet = true
+    const before = peers.length
+    ;(room as unknown as { nextRound(): void }).nextRound()
+    room.onRip(0, { round: 2, swipe: SWIPE, pull100: 7 })
+    room.onRip(1, { round: 2, swipe: SWIPE, pull100: 7 })
+    expect(peers.slice(before)).toEqual([expect.objectContaining({ k: 'peer', name: 'B', online: true })])
+    expect(room.seats[1]!.quiet).toBe(false)
+  })
+
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {
     const { room } = battle()
     vi.advanceTimersByTime(1200)

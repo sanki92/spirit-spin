@@ -44,6 +44,18 @@ test('stadium mode: a big screen hosts, two phones join, the screen shows the ma
   for (const p of [a, b]) await expect.poll(async () => (await route(p)).k, { timeout: 15_000 }).toBe('live')
   await expect(tv.locator('.game-canvas')).toBeVisible({ timeout: 15_000 })
   await expect.poll(async () => tv.evaluate(() => (window as W).__game?.battle?.tick ?? 0), { timeout: 30_000, intervals: [250] }).toBeGreaterThan(30)
+  const dropped = await tv.evaluate(() => {
+    const w = window as W
+    const round = w.__net.last('round')?.round ?? 0
+    w.__launches = [] as number[]
+    const launch = w.__game.launch.bind(w.__game)
+    w.__game.launch = (t: unknown) => { w.__launches.push(w.__net.last('round')?.round ?? 0); launch(t) }
+    w.__net.ws.close()
+    return round
+  })
+  await expect.poll(async () => tv.evaluate(() => (window as W).__net.connected), { timeout: 10_000 }).toBe(true)
+  await tv.waitForTimeout(1500)
+  expect(await tv.evaluate(r => ((window as W).__launches as number[]).filter(x => x === r).length, dropped)).toBe(0)
   await tv.waitForTimeout(9000)
   await tv.screenshot({ path: 'e2e/out/stadium-battle.png' })
   await expect.poll(async () => (await route(a)).k, { timeout: 200_000, intervals: [2000] }).toBe('result')

@@ -10,6 +10,7 @@ export class SpectatorController extends BattleController {
   private rp: Replayer | null = null
   private primed = false
   private ripRound = 0
+  private startedRound = 0
   private unwire: () => void
   private spiritSeen: [boolean, boolean] = [false, false]
   private unsub: () => void
@@ -46,7 +47,8 @@ export class SpectatorController extends BattleController {
       this.ripRound = m.round
       this.rp = null
       this.countdown(Math.max(performance.now() + 600, rt.toLocalPerf(m.launchAt)))
-    } else if (m.k === 'start' && m.round === this.ripRound) {
+    } else if (m.k === 'start' && m.round === this.ripRound && m.round !== this.startedRound) {
+      this.startedRound = m.round
       const [a, b] = this.game.specs!
       const rips = m.rips.map(v => ({ ...v, startT: 0 }) as unknown as RipResult)
       const s = createBattle([a, b], [{ rip: rips[0]!, hesitate: false }, { rip: rips[1]!, hesitate: false }], m.seed)

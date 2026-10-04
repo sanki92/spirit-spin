@@ -64,6 +64,19 @@ describe('net driver', () => {
     expect(d.session.depth).toBe(20)
   })
 
+  it('a pause is not cancelled by the next frames packet while the clock is held', () => {
+    const { d } = make()
+    for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
+    const three = [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] as Frame[]
+    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: three }, 0)!
+    expect(r.jump).toBeLessThan(0)
+    expect(d.step(0, 0, false, [])).toBe(false)
+    d.onFrames({ op: 'frames', round: 3, first: 4, margin: 400, frames: [] }, 16)
+    let skipped = 1
+    while (!d.step(0, 0, false, [])) skipped++
+    expect(skipped).toBe(-r.jump)
+  })
+
   it('drops frames of another round', () => {
     const { d } = make(3)
     expect(d.onFrames({ op: 'frames', round: 2, first: 1, margin: 0, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)).toBeNull()

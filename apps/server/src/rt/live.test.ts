@@ -66,6 +66,20 @@ describe('live match', () => {
     expect(out.json).toHaveLength(1)
   })
 
+  it('a flood of mismatching hashes resyncs and logs at most once per half second per side', () => {
+    const { m, out, set } = harness()
+    set(at(70))
+    m.tick()
+    for (let i = 0; i < 50; i++) m.onWire(0, { op: 'hash', round: 1, frame: 60, hash: i })
+    expect(out.json).toHaveLength(1)
+    expect(out.logs.filter(l => l.msg === 'net.desync')).toHaveLength(1)
+    m.onWire(1, { op: 'hash', round: 1, frame: 60, hash: 7 })
+    expect(out.json).toHaveLength(2)
+    set(at(70) + 600)
+    m.onWire(0, { op: 'hash', round: 1, frame: 60, hash: 9 })
+    expect(out.json).toHaveLength(3)
+  })
+
   it('catchup replays to identical hash and frames continue from it', () => {
     const { m, out, set } = harness()
     set(at(100))
