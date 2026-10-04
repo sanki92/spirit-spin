@@ -1,4 +1,4 @@
-import { AdditiveBlending, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, Texture } from 'three'
+import { AdditiveBlending, BufferAttribute, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, Texture } from 'three'
 import { cachedRing } from './partMesh'
 import { bowlHeight } from './Stadium'
 
@@ -37,7 +37,9 @@ export class TopMesh {
   readonly group = new Group()
   private spinner = new Group()
   private blur: Mesh[] = []
-  private glow: Mesh
+  readonly glow: Mesh
+  private glowBase: Float32Array
+  private glowSpin = 0
   private angle = 0
   private precess = 0
   private faded = 1
@@ -62,13 +64,17 @@ export class TopMesh {
       this.blur.push(b)
       this.spinner.add(b)
     }
-    this.glow = disc(radius * 1.7, tex.emblem, 0.03, { opacity: 0, additive: true, color: tint })
-    ;(this.glow.material as MeshBasicMaterial).depthTest = false
-    this.glow.renderOrder = 2
-    this.group.add(this.spinner, this.glow)
+    const gg = new CircleGeometry(radius * 1.7, 40)
+    gg.rotateX(-Math.PI / 2)
+    this.glowBase = Float32Array.from(gg.getAttribute('position').array as Float32Array)
+    this.glow = new Mesh(gg, new MeshBasicMaterial({ map: tex.emblem, transparent: true, depthWrite: false, opacity: 0, blending: AdditiveBlending, color: tint, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }))
+    this.glow.visible = false
+    this.group.add(this.spinner)
   }
 
   dispose(): void {
+    this.glow.geometry.dispose()
+    ;(this.glow.material as MeshBasicMaterial).dispose()
     this.group.traverse(o => {
       const m = o as Mesh
       m.geometry?.dispose()
@@ -103,6 +109,21 @@ export class TopMesh {
     this.group.rotation.z = Math.sin(this.precess) * lean
     const gm = this.glow.material as MeshBasicMaterial
     gm.opacity += ((spirit ? 0.9 : 0) - gm.opacity) * Math.min(1, dt * 8)
-    this.glow.rotation.z += dt * 3
+    this.glow.visible = visible && gm.opacity > 0.01
+    if (this.glow.visible) this.layGlow(x, y, dt)
+  }
+
+  private layGlow(x: number, y: number, dt: number): void {
+    this.glowSpin += dt * 3
+    const c = Math.cos(this.glowSpin), s = Math.sin(this.glowSpin)
+    const p = this.glow.geometry.getAttribute('position') as BufferAttribute, b = this.glowBase
+    for (let i = 0; i < p.count; i++) {
+      const bx = b[i * 3]!, bz = b[i * 3 + 2]!
+      const lx = bx * c - bz * s, lz = bx * s + bz * c
+      const wx = x + lx, wz = -y + lz
+      p.setXYZ(i, lx, bowlHeight(Math.min(1, Math.hypot(wx, wz))) + 0.006, lz)
+    }
+    p.needsUpdate = true
+    this.glow.position.set(x, 0, -y)
   }
 }

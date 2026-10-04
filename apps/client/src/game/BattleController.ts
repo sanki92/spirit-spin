@@ -390,6 +390,7 @@ export class BattleController {
       if (o.finish === 'shatter' || (o.finish === 'spirit' && loser !== null && b.tops[loser].shattered)) {
         const l = b.tops[loser ?? 1]
         g.fx.crack(l.x, l.y)
+        g.shatter(loser ?? 1, l.x, l.y)
       }
       g.stage.shake(0.1)
       s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish')

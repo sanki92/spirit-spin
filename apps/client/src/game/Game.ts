@@ -11,6 +11,7 @@ import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
 import { keepInside, separate } from './contact'
+import { Shatter } from './render/Shatter'
 import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
@@ -46,6 +47,8 @@ export class Game {
   private anim: LaunchAnim | null = null
   private clockS = 0
   private grindT = 0
+  private shatters: [Shatter, Shatter] | null = null
+  private broken: [boolean, boolean] = [false, false]
   private prev: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private corr: [Snap, Snap] = [{ x: 0, y: 0 }, { x: 0, y: 0 }]
   private removeResize: (() => void) | null = null
@@ -109,17 +112,28 @@ export class Game {
     this.launchers = [rigTex[0] ? new LaunchRig(rigTex[0], 0) : null, rigTex[1] ? new LaunchRig(rigTex[1], 1) : null]
     for (const r of this.launchers) if (r) this.stage.world.add(r.group)
     for (const t of rigTex) if (t) this.stage.renderer.initTexture(t)
-    if (this.tops) for (const t of this.tops) { this.stage.world.remove(t.group); t.dispose() }
+    if (this.tops) for (const t of this.tops) { this.stage.world.remove(t.group, t.glow); t.dispose() }
+    if (this.shatters) for (const s of this.shatters) { this.stage.world.remove(s.group); s.dispose() }
     if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
     this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
     this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color)]
-    for (const t of this.tops) this.stage.world.add(t.group)
+    for (const t of this.tops) this.stage.world.add(t.group, t.glow)
+    this.shatters = [new Shatter(b0, d0, this.tops[0].radius), new Shatter(b1, d1, this.tops[1].radius)]
+    for (const s of this.shatters) this.stage.world.add(s.group)
+    this.broken = [false, false]
     for (const s of this.spirits) this.stage.world.add(s.group)
     for (const t of [b0, d0, e0, b1, d1, e1, c0, c1]) this.stage.renderer.initTexture(t)
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
     await this.stage.renderer.compileAsync(this.stage.scene, this.stage.camera)
     for (let i = 0; i < 2; i++) this.stage.render(0)
+  }
+
+  shatter(side: 0 | 1, x: number, y: number): void {
+    if (!this.shatters || this.broken[side]) return
+    this.broken[side] = true
+    this.tops?.[side].update(x, y, 0, 0, false, 0, false)
+    this.shatters[side].burst(x, y, 1)
   }
 
   elementOf(side: 0 | 1): string {
@@ -134,6 +148,8 @@ export class Game {
   arm(): void {
     this.armed = true
     this.anim = null
+    this.broken = [false, false]
+    for (const s of this.shatters ?? []) s.clear()
   }
 
   disarm(): void {
@@ -188,6 +204,7 @@ export class Game {
       this.stepper.scale = now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
       const alpha = this.battle && !this.anim ? this.stepper.advance(dtMs) : 0
       this.stadium?.update(dtMs / 1000, this.battle && !this.anim ? this.battle.tops : null)
+      for (const s of this.shatters ?? []) s.update(dtMs / 1000 * (this.cine ? 0.35 : 1))
       this.draw(alpha, dtMs / 1000)
       this.stage.adapt(dtMs)
       this.onFrame?.(dtMs / 1000)
@@ -273,7 +290,7 @@ export class Game {
       const l = look[i]!, top = this.tops[i as 0 | 1]
       if (!l.out) pos[i] = keepInside(pos[i]!, top.radius)
       top.fade(1, dt)
-      top.update(pos[i]!.x, pos[i]!.y, l.spin, l.wobble, l.spirit, dt * 0.3, l.vis)
+      top.update(pos[i]!.x, pos[i]!.y, l.spin, l.wobble, l.spirit, dt * 0.3, l.vis && !this.broken[i as 0 | 1])
     }
     for (; c.fired <= i0; c.fired++) {
       const cl = c.frames[c.fired]!.clash
@@ -405,7 +422,7 @@ export class Game {
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], { x, y } = pos[i]!
         const top = this.tops[i as 0 | 1]
-        top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out)
+        top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1])
         const o = b.tops[(1 - i) as 0 | 1]
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
         top.fade(t.phaseTicks > 0 ? 0.18 : 1, dt)
