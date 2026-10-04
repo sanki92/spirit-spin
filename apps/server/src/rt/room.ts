@@ -342,9 +342,11 @@ export class Room {
   }
 
   private endEdgeMatch(): void {
-    if (!this.edgeMatch) return
+    const e = this.opts.edge
+    if (!this.edgeMatch || !e) return
     this.edgeMatch = null
-    void this.opts.edge?.endMatch(this.matchId).catch(() => undefined)
+    const last = this.live instanceof RemoteRound ? this.live.ended : Promise.resolve()
+    void last.finally(() => e.endMatch(this.matchId).catch(() => undefined))
   }
 
   close(): void {

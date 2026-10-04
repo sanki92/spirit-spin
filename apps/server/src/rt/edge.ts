@@ -58,6 +58,7 @@ export class RemoteRound implements RoundRunner {
   private done = false
   private retries = 0
   private lastResync: [number, number] = [-Infinity, -Infinity]
+  ended: Promise<void> = Promise.resolve()
 
   constructor(readonly round: number, state: BattleState, readonly t0: number, private edge: EdgeApi, private matchId: string, private d: RemoteDeps) {
     this.ver = new Verifier(state)
@@ -96,7 +97,10 @@ export class RemoteRound implements RoundRunner {
     }
     if (this.ver.outcome) {
       this.stop()
-      void this.edge.endRound(this.matchId, this.round).then(s => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.ver.desyncs, ...s }), e => this.d.log({ msg: 'edge.end-round-failed', err: String(e) }))
+      this.ended = this.edge.endRound(this.matchId, this.round).then(
+        s => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.ver.desyncs, ...s }),
+        e => this.d.log({ msg: 'net.round', mode: 'edge', round: this.round, desyncs: this.ver.desyncs, frames: this.ver.frame, statsError: String(e) }),
+      )
       this.d.end()
     }
   }

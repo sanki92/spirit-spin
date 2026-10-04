@@ -11,7 +11,7 @@ function fakeEdge(fail = false) {
     cfg: { grpc: 'x', secret: 'edge-secret-0123456789', wt: 'https://{host}:4433/wt', ws: '/edge/ws' },
     createMatch: async id => { calls.push(`create:${id}`); if (fail) throw new Error('down'); return { certHash: 'ab'.repeat(32) } },
     startRound: async (_id, round, lead) => { calls.push(`start:${round}:${lead}`); return Date.now() + lead },
-    endRound: async () => { calls.push('endRound'); return {} },
+    endRound: async () => { await new Promise(r => setTimeout(r, 20)); calls.push('endRound'); return {} },
     endMatch: async () => { calls.push('endMatch') },
     stream: (_id, _r, _a, onBatch) => { subs.push(onBatch); return () => undefined },
   }
@@ -149,8 +149,9 @@ describe('room', () => {
     subs[0]!({ round: 1, first: 1, frames: Array.from({ length: 3000 }, () => [idle, idle] as const), hashes: [] })
     expect(tvBins.length).toBeGreaterThan(0)
     expect(a.some(m => m.k === 'end')).toBe(true)
-    await vi.advanceTimersByTimeAsync(10)
-    expect(calls).toContain('endRound')
+    room.close()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(calls.slice(-2)).toEqual(['endRound', 'endMatch'])
   })
 
   it('binary input from a seat reaches the live round and a forfeit stops it', () => {
