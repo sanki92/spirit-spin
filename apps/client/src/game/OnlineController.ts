@@ -166,6 +166,7 @@ export class OnlineController extends BattleController {
     const d = this.driver
     if (!d || m.op !== 'frames' || this.disposed) return
     const before = this.game.battle?.tops.map(t => ({ x: t.x, y: t.y }))
+    d.rtt = this.rttNow()
     const r = d.onFrames(m, this.link.serverNow())
     if (!r) return
     this.lastMargin = m.margin

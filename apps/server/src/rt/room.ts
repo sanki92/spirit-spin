@@ -238,7 +238,7 @@ export class Room {
   }
 
   private startMsg(): ServerMsg {
-    return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], tick: 0, t0: this.live!.t0 }
+    return { k: 'start', round: this.round, seed: this.seed, rips: this.views as [RipView, RipView], t0: this.live!.t0 }
   }
 
   onWire(side: Side, m: WireMsg): void {

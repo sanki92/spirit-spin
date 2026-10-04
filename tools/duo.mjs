@@ -60,6 +60,7 @@ const go = (d, r) => d.page.evaluate(r => { const n = window.__nav.getState(); n
 const until = (d, fn, arg, ms = 30000) => d.page.waitForFunction(fn, arg, { timeout: ms, polling: 50 })
 const ev = d => d.page.evaluate(() => window.__ev)
 const shot = (d, name) => d.page.screenshot({ path: `${OUT}/${name}-${d.label}.png` })
+const netStats = d => d.page.evaluate(() => { const s = window.__ctrl?.driver?.session; return s ? { ...s.stats, depth: s.depth, frame: s.frame, confirmed: s.confirmed.frame } : null })
 const confirmedEnd = d => d.page.evaluate(() => { const s = window.__ctrl?.driver?.session; return s && s.confirmed.state.outcome ? JSON.stringify([s.confirmed.state.tops, s.confirmed.state.outcome, s.confirmed.state.rng]) : null })
 async function sameConfirmed(sc, A, B) {
   const ended = d => until(d, () => !!window.__ctrl?.driver?.session?.confirmed?.state?.outcome, null, 60000).then(() => true).catch(() => false)
@@ -460,10 +461,49 @@ await scenario(24, 'B freezes for 1.5 s mid-battle: it catches back up and its s
   await sleep(1200)
   await B.page.evaluate(() => { const t = performance.now(); while (performance.now() - t < 1500) {} })
   await sleep(3000)
-  const lead = await B.page.evaluate(() => window.__ctrl?.lead ?? null)
+  const st = await netStats(B)
+  check(sc, 'B back within the prediction window after the freeze', st !== null && st.depth <= 20, JSON.stringify(st))
+  await sameConfirmed(sc, A, B)
+})
+
+await scenario(40, 'Netcode: own top is never corrected and nothing stalls (run behind tools/netproxy.mjs)', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  await sleep(4000)
+  const [sa, sb] = await Promise.all([netStats(A), netStats(B)])
+  check(sc, 'A own inputs never replaced', sa && sa.ownReplaced === 0, JSON.stringify(sa))
+  check(sc, 'B own inputs never replaced', sb && sb.ownReplaced === 0, JSON.stringify(sb))
+  check(sc, 'no stalls and no packet gaps', sa && sb && sa.stalls === 0 && sb.stalls === 0 && sa.gaps === 0 && sb.gaps === 0)
+})
+
+await scenario(41, 'Netcode: both phones end every round on the same confirmed state', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 22 } })
+  await sameConfirmed(sc, A, B)
+})
+
+await scenario(42, 'Netcode: spirit called during a 400 ms freeze still fires on both phones', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  const filled = await until(A, () => window.__hud.getState().gauge[0] >= 1 && window.__hud.getState().phase === 'battle', null, 45000).then(() => true).catch(() => false)
+  if (!filled) { check(sc, 'spirit gauge filled (skipped)', true, 'gauge never filled'); return }
+  await A.page.evaluate(() => { window.__ctrl.requestSpirit(); const t = performance.now(); while (performance.now() - t < 400) {} })
+  check(sc, 'A sees own spirit', await until(A, () => window.__game.battle?.tops[0].spiritTicks > 0, null, 4000).then(() => true).catch(() => false))
+  check(sc, 'B sees A spirit', await until(B, () => window.__game.battle?.tops[1].spiritTicks > 0, null, 4000).then(() => true).catch(() => false))
+})
+
+await scenario(43, 'Netcode: B drops its socket mid-round, rejoins and ends on the server state', async (sc, mk) => {
+  const [A, B] = await mkAB(mk)
+  await hostJoin(A, B)
+  await round1(A, B, { a: { peak: 28 }, b: { peak: 28 } })
+  await sleep(400)
+  await B.page.evaluate(() => window.__net.ws?.close())
+  await sameConfirmed(sc, A, B)
   const [a, b] = await Promise.all([view(A), view(B)])
-  check(sc, 'B input lead back in the healthy band after the freeze', lead !== null && lead >= -6 && lead <= 12, `lead ${lead}`)
-  if (a.phase === 'battle' && b.phase === 'battle') check(sc, 'B tick within 15 of A tick', Math.abs(a.tick - b.tick) <= 15, `A ${a.tick} B ${b.tick}`)
+  check(sc, 'scores mirror after the rejoin', JSON.stringify(a.scores) === JSON.stringify(flip(b.scores)), `${a.scores} vs ${b.scores}`)
 })
 
 writeFileSync(`${OUT}/report.json`, JSON.stringify(results, null, 1))

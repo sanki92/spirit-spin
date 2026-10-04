@@ -2,7 +2,7 @@ import type { BattleEvent, BattleState, Side } from '../battle'
 import { ClockControl } from './clock'
 import type { Timeline } from './replay'
 import { RollbackSession, type ConfirmResult } from './session'
-import { quantizeTilt, type WireMsg } from './wire'
+import { quantizeTilt, WIRE, type WireMsg } from './wire'
 
 export interface WireSink { send(m: WireMsg): void }
 
@@ -10,6 +10,8 @@ export class NetDriver {
   readonly session: RollbackSession
   readonly clock: ClockControl
   private sp: number
+  private skip = 0
+  rtt = 200
 
   constructor(start: Timeline, readonly side: Side, readonly round: number, delay: number, target: number, public sink: WireSink) {
     this.session = new RollbackSession(start, side, delay)
@@ -28,6 +30,10 @@ export class NetDriver {
   step(tiltX: number, tiltY: number, spirit: boolean, out: BattleEvent[]): boolean {
     if (this.done) return false
     if (spirit) this.sp = (this.sp + 1) & 255
+    if (this.skip > 0) {
+      this.skip--
+      return false
+    }
     if (!this.session.advance({ x: quantizeTilt(tiltX), y: quantizeTilt(tiltY), sp: this.sp }, out)) return false
     this.flush()
     return true
@@ -37,7 +43,17 @@ export class NetDriver {
     if (m.round !== (this.round & 255)) return null
     const result = this.session.confirm(m.first, m.frames)
     for (const c of this.session.takeCheckpoints()) this.sink.send({ op: 'hash', round: this.round & 255, frame: c.frame, hash: c.hash })
-    return { result, jump: this.clock.onMargin(m.margin, now) }
+    if (result === 'jump') {
+      this.clock.hold(now)
+      this.skip = 0
+      return { result, jump: 0 }
+    }
+    if (this.session.confirmed.frame <= this.session.delay) return { result, jump: 0 }
+    const lead = Math.ceil((this.rtt + this.clock.target) / WIRE.tickMs) + this.session.delay + 2
+    const depth = this.session.depth
+    const jump = this.clock.onMargin(m.margin, now, Math.max(0, lead - depth), Math.max(0, depth - lead))
+    this.skip = jump < 0 ? -jump : 0
+    return { result, jump }
   }
 
   resync(tl: Timeline): void { this.session.resync(tl) }

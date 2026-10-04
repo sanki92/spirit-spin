@@ -29,6 +29,41 @@ describe('net driver', () => {
     expect(last.inputs.at(-1)!.sp).toBe(1)
   })
 
+  it('a confirmation that already caught the phone up does not also jump the clock', () => {
+    const { d } = make()
+    for (let i = 0; i < 3; i++) d.step(0, 0, false, [])
+    const frames = Array.from({ length: 100 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames }, 0)).toEqual({ result: 'jump', jump: 0 })
+  })
+
+  it('pauses steps while far ahead, then resumes', () => {
+    const { d } = make()
+    for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
+    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 400, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] }, 0)
+    expect(r!.jump).toBeLessThan(0)
+    let skipped = 0
+    while (!d.step(0, 0, false, [])) skipped++
+    expect(skipped).toBe(-r!.jump)
+    expect(d.session.stats.stalls).toBe(0)
+  })
+
+  it('ignores margins until a frame with its first real input is confirmed, so the pre-start prefill never pauses the phone', () => {
+    const { d } = make()
+    for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
+    expect(d.onFrames({ op: 'frames', round: 3, first: 1, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT], [IDLE_INPUT, IDLE_INPUT]] }, 0)).toEqual({ result: 'same', jump: 0 })
+    expect(d.onFrames({ op: 'frames', round: 3, first: 3, margin: 900, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)!.jump).toBeLessThan(0)
+  })
+
+  it('after a freeze the clock jump stops at the expected lead instead of the stale lateness', () => {
+    const { d } = make()
+    d.rtt = 200
+    for (let i = 0; i < 30; i++) d.step(0, 0, false, [])
+    const frames = Array.from({ length: 10 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
+    const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: -1500, frames }, 0)!
+    expect(r.jump).toBe(0)
+    expect(d.session.depth).toBe(20)
+  })
+
   it('drops frames of another round', () => {
     const { d } = make(3)
     expect(d.onFrames({ op: 'frames', round: 2, first: 1, margin: 0, frames: [[IDLE_INPUT, IDLE_INPUT]] }, 0)).toBeNull()
@@ -41,7 +76,7 @@ describe('net driver', () => {
     const frames = Array.from({ length: 60 }, () => [IDLE_INPUT, IDLE_INPUT] as Frame)
     const r = d.onFrames({ op: 'frames', round: 3, first: 1, margin: 5, frames }, 0)
     expect(r).toEqual({ result: 'jump', jump: 0 })
-    expect(d.clock.scale).toBe(1.03)
+    expect(d.clock.scale).toBe(1)
     expect(sent.at(-1)).toMatchObject({ op: 'hash', round: 3, frame: 60 })
   })
 

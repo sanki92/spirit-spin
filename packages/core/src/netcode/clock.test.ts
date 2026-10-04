@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { beginAt, chooseDelay, ClockControl, RttStats, targetMargin } from './clock'
+import { beginAt, chooseDelay, CLOCK, ClockControl, RttStats, targetMargin } from './clock'
 import { WIRE } from './wire'
 
 describe('clock', () => {
@@ -48,9 +48,41 @@ describe('clock', () => {
     c.onMargin(60, 0); expect(c.scale).toBe(0.97)
     expect(c.onMargin(-100, 1000)).toBe(Math.ceil(120 / WIRE.tickMs))
     expect(c.onMargin(-100, 1200)).toBe(0)
-    expect(c.scale).toBe(1.03)
+    expect(c.scale).toBe(1)
     expect(c.onMargin(-100, 1999)).toBe(0)
     expect(c.onMargin(-100, 2001)).toBeGreaterThan(0)
+  })
+})
+
+describe('clock running ahead', () => {
+  it('asks to pause instead of slowing 3% when far ahead, with a hold', () => {
+    const c = new ClockControl(60)
+    expect(c.onMargin(60 + CLOCK.aheadMs - 1, 0)).toBe(0)
+    expect(c.onMargin(600, 0)).toBe(-Math.floor((600 - 60) / WIRE.tickMs))
+    expect(c.onMargin(600, 500)).toBe(0)
+  })
+
+  it('a hold set by a caught-up confirmation suppresses jumps on stale lateness', () => {
+    const c = new ClockControl(60)
+    c.hold(1000)
+    expect(c.onMargin(-1500, 1100)).toBe(0)
+    expect(c.scale).toBe(1)
+    expect(c.onMargin(-1500, 2001)).toBeGreaterThan(0)
+  })
+})
+
+describe('clock corrections clamped by the real lead', () => {
+  it('never jumps further than the room left, and does not hold when nothing is done', () => {
+    const c = new ClockControl(60)
+    expect(c.onMargin(-1500, 0, 4, Infinity)).toBe(4)
+    const d = new ClockControl(60)
+    expect(d.onMargin(-1500, 0, 0, Infinity)).toBe(0)
+    expect(d.onMargin(-1500, 10, 3, Infinity)).toBe(3)
+  })
+
+  it('never pauses longer than the excess lead', () => {
+    const c = new ClockControl(60)
+    expect(c.onMargin(900, 0, Infinity, 5)).toBe(-5)
   })
 })
 

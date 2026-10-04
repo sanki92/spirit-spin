@@ -74,7 +74,7 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       for (const b of down[c.side]!.recv(now)) {
         const m = decode(b)
         if (!m) continue
-        if (m.op === 'pong') { c.rtt.add(now - m.t); if (c.driver && c.rtt.count >= 5) c.driver.clock.target = targetMargin(c.rtt.jitter); continue }
+        if (m.op === 'pong') { c.rtt.add(now - m.t); if (c.driver && c.rtt.count >= 5) { c.driver.clock.target = targetMargin(c.rtt.jitter); c.driver.rtt = c.rtt.rtt } continue }
         if (m.op !== 'frames' || !c.driver) continue
         c.driver.sink = toServer(c.side, now)
         const r = c.driver.onFrames(m, now)
@@ -82,7 +82,7 @@ export function runMatch(o: { seed: number; profile: NetProfile; profiles?: [Net
       }
       if (now >= c.nextPing) { up[c.side]!.send(encode({ op: 'ping', t: now }), now); c.nextPing = now + 500 }
       const q = ps[c.side], rtt0 = rtt0s[c.side]!
-      if (!c.driver && now >= q.latency) c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, q.jitter), targetMargin(q.jitter), toServer(c.side, now))
+      if (!c.driver && now >= q.latency) { c.driver = new NetDriver(startTimeline(battle), c.side, 1, chooseDelay(rtt0, q.jitter), targetMargin(q.jitter), toServer(c.side, now)); c.driver.rtt = rtt0 }
       if (now < c.nextRender) continue
       const dt = now - c.lastRender
       c.lastRender = now
