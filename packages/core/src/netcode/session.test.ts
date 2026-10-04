@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ROLL, RollbackSession } from './session'
-import { startTimeline, stepTimeline, timelineHash, type Frame } from './replay'
+import { startTimeline, stepTimeline, timelineHash } from './replay'
 import { fresh } from './testkit'
-import { IDLE_INPUT, WIRE, type WireInput } from './wire'
+import { IDLE_INPUT, WIRE, type Frame, type WireInput } from './wire'
 
 const me = (i: number): WireInput => ({ x: ((i * 13) % 100) - 50, y: 20, sp: 0 })
 const own = (fr: number): WireInput => (fr <= 2 ? IDLE_INPUT : me(fr - 3))
@@ -107,5 +107,15 @@ describe('rollback session', () => {
     const s = run(4, 1)
     const t = Array.from({ length: 4 }, (_, i) => [IDLE_INPUT, own(i + 1)] as Frame)
     expect(s.confirm(1, t)).toBe('same')
+  })
+})
+
+describe('rollback session catch-up', () => {
+  it('confirmed running ahead by no more than the input delay is not a jump', () => {
+    const s = run(3)
+    const t = truth(1, 5, () => IDLE_INPUT)
+    expect(s.confirm(1, t)).toBe('same')
+    expect(s.frame).toBe(5)
+    expect(s.stats.jumps).toBe(0)
   })
 })

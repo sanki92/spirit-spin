@@ -1,6 +1,6 @@
 import type { BattleEvent, BattleState, Side } from '../battle'
-import { cloneTimeline, sameInput, stepTimeline, timelineHash, type Frame, type Timeline } from './replay'
-import { WIRE, type WireInput } from './wire'
+import { cloneTimeline, sameInput, stepTimeline, timelineHash, type Timeline } from './replay'
+import { WIRE, type Frame, type WireInput } from './wire'
 
 export const ROLL = { maxPredict: 32 } as const
 export type ConfirmResult = 'same' | 'rollback' | 'jump'
@@ -61,7 +61,7 @@ export class RollbackSession {
       const own = this.local.get(f)
       if (own && !sameInput(own, fr[this.side])) this.stats.ownReplaced++
       const u = this.used.get(f)
-      if (!u || !sameInput(u[0], fr[0]) || !sameInput(u[1], fr[1])) mismatch = true
+      if (f <= this.predicted.frame && (!u || !sameInput(u[0], fr[0]) || !sameInput(u[1], fr[1]))) mismatch = true
       stepTimeline(this.confirmed, fr, this.scratch)
       if (this.confirmed.frame % WIRE.hashEvery === 0) this.checkpoints.push({ frame: this.confirmed.frame, hash: timelineHash(this.confirmed) })
       this.used.delete(f)
@@ -69,7 +69,7 @@ export class RollbackSession {
     }
     this.scratch.length = 0
     if (this.confirmed.frame >= this.predicted.frame) {
-      const jumped = this.confirmed.frame > this.predicted.frame
+      const jumped = this.confirmed.frame > this.predicted.frame + this.delay
       this.predicted = cloneTimeline(this.confirmed)
       this.used.clear()
       if (jumped) { this.stats.jumps++; return 'jump' }

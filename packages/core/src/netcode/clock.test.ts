@@ -27,10 +27,10 @@ describe('clock', () => {
     expect(chooseDelay(100, 50)).toBe(4)
   })
 
-  it('target margin grows with jitter within 4..60 ms', () => {
-    expect(targetMargin(0)).toBe(4)
-    expect(targetMargin(10)).toBe(24)
-    expect(targetMargin(100)).toBe(60)
+  it('target margin covers three frames of loss plus jitter, capped at 100 ms', () => {
+    expect(targetMargin(0)).toBeCloseTo(4 + 3 * WIRE.tickMs, 9)
+    expect(targetMargin(10)).toBeCloseTo(24 + 3 * WIRE.tickMs, 9)
+    expect(targetMargin(100)).toBe(100)
   })
 
   it('begins early enough for the first delayed input to arrive with the target margin', () => {
@@ -50,5 +50,13 @@ describe('clock', () => {
     expect(c.onMargin(-100, 1200)).toBe(0)
     expect(c.scale).toBe(1.03)
     expect(c.onMargin(-100, 1401)).toBeGreaterThan(0)
+  })
+})
+
+describe('clock jump threshold', () => {
+  it('jumps as soon as inputs arrive late, never while still early', () => {
+    const c = new ClockControl(60)
+    expect(c.onMargin(1, 0)).toBe(0)
+    expect(c.onMargin(-1, 0)).toBe(Math.ceil(61 / WIRE.tickMs))
   })
 })

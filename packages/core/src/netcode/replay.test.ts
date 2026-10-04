@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { battleHash, stepBattle, type BattleEvent, type TickInput } from '../battle'
-import { cloneBattle, cloneTimeline, Replayer, startTimeline, stepTimeline, timelineHash, toTick, type Frame } from './replay'
+import { cloneBattle, cloneTimeline, Replayer, startTimeline, stepTimeline, timelineHash, toTick } from './replay'
+import type { Frame } from './wire'
 import { f, fresh } from './testkit'
 
 describe('replay', () => {

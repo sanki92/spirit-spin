@@ -1,6 +1,6 @@
 import { WIRE } from './wire'
 
-export const CLOCK = { band: 5, small: 0.01, big: 0.03, jumpBelowMs: -60, holdMs: 400 } as const
+export const CLOCK = { band: 5, small: 0.01, big: 0.03, jumpBelowMs: 0, holdMs: 400 } as const
 
 export class RttStats {
   private xs: number[] = []
@@ -32,7 +32,7 @@ export function chooseDelay(rtt: number, jitter: number): 1 | 2 | 3 | 4 {
   return 2
 }
 
-export const targetMargin = (jitter: number): number => Math.min(60, Math.max(4, 4 + 2 * jitter))
+export const targetMargin = (jitter: number): number => Math.min(100, 4 + 3 * WIRE.tickMs + 2 * Math.max(0, jitter))
 
 export const beginAt = (t0: number, rtt: number, delay: number, target: number): number => t0 + (1 + delay) * WIRE.tickMs - rtt / 2 - target
 

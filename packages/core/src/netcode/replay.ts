@@ -1,7 +1,6 @@
 import { battleHash, stepBattle, type BattleEvent, type BattleState, type TickInput } from '../battle'
-import { IDLE_INPUT, tiltOf, type WireInput } from './wire'
+import { IDLE_INPUT, tiltOf, type Frame, type WireInput } from './wire'
 
-export type Frame = readonly [WireInput, WireInput]
 export interface Timeline { state: BattleState; frame: number; sp: [number, number]; last: [WireInput, WireInput] }
 
 export function cloneBattle(s: BattleState): BattleState {

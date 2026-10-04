@@ -1,7 +1,6 @@
 import type { Side } from '../battle'
 import { createRng, rngNext } from '../rng'
-import type { Frame } from './replay'
-import { IDLE_INPUT, WIRE, type WireInput } from './wire'
+import { IDLE_INPUT, WIRE, type Frame, type WireInput } from './wire'
 
 export const SEQ = { graceMs: 4, maxAhead: 120, marginWindow: 30, leadInMs: 600 } as const
 export const roundHalfUp = (x: number): number => Math.floor(x + 0.5)

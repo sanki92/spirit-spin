@@ -1,6 +1,7 @@
 export const WIRE = { tickMs: 1000 / 60, maxInputs: 16, maxFrames: 16, maxReliableFrames: 255, hashEvery: 60, keepAliveMs: 50 } as const
 
 export interface WireInput { x: number; y: number; sp: number }
+export type Frame = readonly [WireInput, WireInput]
 export const IDLE_INPUT: WireInput = Object.freeze({ x: 0, y: 0, sp: 0 })
 
 export const quantizeTilt = (v: number): number => Math.round((Number.isFinite(v) ? Math.max(-1, Math.min(1, v)) : 0) * 127)
@@ -8,7 +9,7 @@ export const tiltOf = (q: number): number => q / 127
 
 export type WireMsg =
   | { op: 'input'; round: number; first: number; ack: number; inputs: WireInput[] }
-  | { op: 'frames'; round: number; first: number; margin: number; frames: [WireInput, WireInput][] }
+  | { op: 'frames'; round: number; first: number; margin: number; frames: Frame[] }
   | { op: 'hash'; round: number; frame: number; hash: number }
   | { op: 'ping'; t: number }
   | { op: 'pong'; t: number; server: number }
