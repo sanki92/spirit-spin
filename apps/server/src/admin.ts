@@ -1,4 +1,8 @@
-import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHmac, scrypt, scryptSync, timingSafeEqual } from 'node:crypto'
+import { promisify } from 'node:util'
+
+const scryptAsync = promisify(scrypt) as (p: string, s: string, n: number) => Promise<Buffer>
+const FAILS_PER_MINUTE = 20
 import { desc, eq, gte, ilike, isNotNull, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -15,11 +19,11 @@ export function hashAdminPassword(password: string, salt: string): string {
   return `scrypt:${salt}:${scryptSync(password, salt, 32).toString('hex')}`
 }
 
-function passwordOk(password: string, stored: string): boolean {
+async function passwordOk(password: string, stored: string): Promise<boolean> {
   const [kind, salt, hex] = stored.split(':')
   if (kind !== 'scrypt' || !salt || !hex) return false
   const want = Buffer.from(hex, 'hex')
-  const got = scryptSync(password, salt, want.length)
+  const got = await scryptAsync(password, salt, want.length)
   return got.length === want.length && timingSafeEqual(got, want)
 }
 
@@ -46,15 +50,24 @@ function verify(key: Buffer, token: string): string | null {
 
 interface SaveLike { coins?: number; shards?: number; xp?: number; tower?: number; beasts?: Record<string, { awakened?: string | null; trust?: number; battles?: number }>; owned?: { blades?: string[]; discs?: string[]; tips?: string[] }; history?: unknown[] }
 
-function summary(save: SaveLike) {
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : [])
+const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {})
+
+function summary(raw: unknown) {
+  const save = obj(raw)
+  const owned = obj(save.owned)
   return {
-    coins: save.coins ?? 0,
-    shards: save.shards ?? 0,
-    xp: save.xp ?? 0,
-    tower: save.tower ?? 0,
-    beasts: Object.entries(save.beasts ?? {}).map(([id, b]) => ({ id, awakened: b.awakened ?? null, trust: b.trust ?? 0, battles: b.battles ?? 0 })),
-    parts: { blades: save.owned?.blades?.length ?? 0, discs: save.owned?.discs?.length ?? 0, tips: save.owned?.tips?.length ?? 0 },
-    history: (save.history ?? []).slice(0, 50),
+    coins: num(save.coins),
+    shards: num(save.shards),
+    xp: num(save.xp),
+    tower: num(save.tower),
+    beasts: Object.entries(obj(save.beasts)).map(([id, v]) => {
+      const b = obj(v)
+      return { id, awakened: typeof b.awakened === 'string' ? b.awakened : null, trust: num(b.trust), battles: num(b.battles) }
+    }),
+    parts: { blades: arr(owned.blades).length, discs: arr(owned.discs).length, tips: arr(owned.tips).length },
+    history: arr(save.history).filter(h => h && typeof h === 'object').slice(0, 50),
   }
 }
 
@@ -62,13 +75,14 @@ export interface AdminDeps { db: Db; mod: Moderation; notify: Notifier; rooms: M
 
 export function registerAdmin(appBase: FastifyInstance, d: AdminDeps): void {
   const app = appBase.withTypeProvider<ZodTypeProvider>()
-  const key = createHmac('sha256', d.secret).update('spirit-admin').digest()
+  const key = createHmac('sha256', d.secret).update(`spirit-admin:${d.admin?.passwordHash ?? ''}`).digest()
+  let fails = { at: Date.now(), n: 0 }
   const { db } = d
 
   const requireAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
     const h = req.headers.authorization
     const user = d.admin && h?.startsWith('Admin ') ? verify(key, h.slice(6)) : null
-    if (!user) return reply.code(401).send({ error: 'unauthorized' })
+    if (!user || user !== d.admin?.user) return reply.code(401).send({ error: 'unauthorized' })
     ;(req as FastifyRequest & { admin?: string }).admin = user
   }
   const who = (req: FastifyRequest) => (req as FastifyRequest & { admin?: string }).admin ?? '?'
@@ -83,8 +97,11 @@ export function registerAdmin(appBase: FastifyInstance, d: AdminDeps): void {
 
   app.post('/v1/admin/login', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, schema: { body: z.object({ user: z.string().max(80), password: z.string().max(200) }) } }, async (req, reply) => {
     if (!d.admin) return reply.code(404).send({ error: 'admin disabled' })
+    if (Date.now() - fails.at > 60_000) fails = { at: Date.now(), n: 0 }
+    if (fails.n >= FAILS_PER_MINUTE) return reply.code(429).send({ error: 'too many attempts, wait a minute' })
     const userOk = req.body.user.length === d.admin.user.length && timingSafeEqual(Buffer.from(req.body.user), Buffer.from(d.admin.user))
-    if (!(passwordOk(req.body.password, d.admin.passwordHash) && userOk)) {
+    if (!((await passwordOk(req.body.password, d.admin.passwordHash)) && userOk)) {
+      fails.n++
       req.log.warn({ ip: req.ip }, 'admin.login-failed')
       return reply.code(401).send({ error: 'wrong username or password' })
     }
@@ -139,7 +156,7 @@ export function registerAdmin(appBase: FastifyInstance, d: AdminDeps): void {
     const sharedIp = p.lastIp ? Number((await db.select({ n: sql<number>`count(distinct ${playerIps.playerId})` }).from(playerIps).where(eq(playerIps.ip, p.lastIp))).at(0)?.n ?? 0) : 0
     return {
       player: { id: p.id, name: p.name, username: p.username, friendCode: p.friendCode, createdAt: p.createdAt, lastSeenAt: p.lastSeenAt, lastIp: p.lastIp, country: p.lastCountry, city: p.lastCity, bannedAt: p.bannedAt, banReason: p.banReason, saveVersion: p.saveVersion, ipBanned: p.lastIp ? !!d.mod.ipBan(p.lastIp) : false, playersOnLastIp: sharedIp },
-      save: summary(p.save as SaveLike),
+      save: summary(p.save),
       ips,
       matches: matches.map(m => ({ id: m.id, at: m.endedAt, code: m.code, a: m.aName, b: m.bName, aBeast: m.aBeast, bBeast: m.bBeast, scores: m.scores, winner: m.winner, side: m.aId === p.id ? 0 : 1 })),
       entitlements: ents,

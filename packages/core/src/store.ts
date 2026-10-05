@@ -48,12 +48,12 @@ export const PASS_TIERS: PassTier[] = Array.from({ length: PASS.tiers }, (_, i) 
 
 export const passTier = (passXp: number) => Math.max(0, Math.min(PASS.tiers, Math.floor(Math.max(0, passXp) / PASS.xpPerTier)))
 
-export interface Sku { id: string; name: string; paise: number; grants: string[] }
+export interface Sku { id: string; name: string; coins: number; grants: string[] }
 
 export const SKUS: Record<string, Sku> = {
-  'pass-s1': { id: 'pass-s1', name: 'Spirit Pass · Season 1', paise: 14900, grants: ['pass-s1'] },
-  'stadium-volcano': { id: 'stadium-volcano', name: 'Volcano Crater stadium', paise: 9900, grants: ['stadium-volcano'] },
-  'stadium-frozen-moon': { id: 'stadium-frozen-moon', name: 'Frozen Moon stadium', paise: 9900, grants: ['stadium-frozen-moon'] },
-  'frame-legendary': { id: 'frame-legendary', name: 'Sunforged Frame', paise: 4900, grants: ['frame-legendary'] },
-  ...Object.fromEntries((Object.keys(BEAST_NAMES) as BeastId[]).map(b => [`launcher-${b}`, { id: `launcher-${b}`, name: `${BEAST_NAMES[b]} Launcher`, paise: 4900, grants: [`launcher-${b}`] }])),
+  'pass-s1': { id: 'pass-s1', name: 'Spirit Pass · Season 1', coins: 50000, grants: ['pass-s1'] },
+  'stadium-volcano': { id: 'stadium-volcano', name: 'Volcano Crater stadium', coins: 30000, grants: ['stadium-volcano'] },
+  'stadium-frozen-moon': { id: 'stadium-frozen-moon', name: 'Frozen Moon stadium', coins: 30000, grants: ['stadium-frozen-moon'] },
+  'frame-legendary': { id: 'frame-legendary', name: 'Sunforged Frame', coins: 20000, grants: ['frame-legendary'] },
+  ...Object.fromEntries((Object.keys(BEAST_NAMES) as BeastId[]).map(b => [`launcher-${b}`, { id: `launcher-${b}`, name: `${BEAST_NAMES[b]} Launcher`, coins: 15000, grants: [`launcher-${b}`] }])),
 }

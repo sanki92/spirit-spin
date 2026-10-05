@@ -12,9 +12,6 @@ const Env = z.object({
   RECOVERY_PEPPER: z.string().min(32).optional(),
   TRUST_PROXY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
-  RAZORPAY_KEY_ID: z.string().optional(),
-  RAZORPAY_KEY_SECRET: z.string().optional(),
-  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   STATIC_DIR: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   RT_EDGE_GRPC: z.string().optional(),
@@ -25,6 +22,7 @@ const Env = z.object({
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   ADMIN_USER: z.string().min(3).optional(),
   ADMIN_PASSWORD_HASH: z.string().optional(),
+  COMPETITIVE: z.enum(['0', '1']).optional(),
 })
 
 export interface Config {
@@ -37,11 +35,11 @@ export interface Config {
   recoveryPepper?: string | undefined
   trustProxy?: string | boolean | undefined
   staticDir?: string | undefined
-  payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
   edge?: EdgeConfig | null
   netDashKey?: string | undefined
   discordWebhook?: string | undefined
   admin?: { user: string; passwordHash: string } | null
+  competitive?: boolean
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -52,7 +50,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!e.RECOVERY_PEPPER) throw new Error('RECOVERY_PEPPER is required in production')
     if (!e.CORS_ORIGINS) throw new Error('CORS_ORIGINS is required in production')
     if (env.DEV_TOOLS === '1') throw new Error('DEV_TOOLS must not be enabled in production')
-    if (e.RAZORPAY_KEY_ID && !e.RAZORPAY_WEBHOOK_SECRET) throw new Error('RAZORPAY_WEBHOOK_SECRET is required when Razorpay keys are set')
+    for (const k of ['JWT_SECRET', 'RECOVERY_PEPPER'] as const) if (/replace|change-?me|example/i.test(e[k] ?? '')) throw new Error(`${k} is still a placeholder`)
   }
   return {
     port: e.PORT,
@@ -66,13 +64,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     staticDir: e.STATIC_DIR,
     netDashKey: e.NET_DASH_KEY,
     discordWebhook: e.DISCORD_WEBHOOK_URL,
+    competitive: e.COMPETITIVE === '1',
     admin: e.ADMIN_USER && e.ADMIN_PASSWORD_HASH ? { user: e.ADMIN_USER, passwordHash: e.ADMIN_PASSWORD_HASH } : null,
     edge: e.RT_EDGE_GRPC ? { grpc: e.RT_EDGE_GRPC, secret: e.RT_EDGE_SECRET!, wt: e.RT_EDGE_WT ?? 'https://{host}:4433/wt', ws: e.RT_EDGE_WS ?? '/edge/ws' } : null,
-    payments: e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET
-      ? { provider: 'razorpay', keyId: e.RAZORPAY_KEY_ID, keySecret: e.RAZORPAY_KEY_SECRET, webhookSecret: e.RAZORPAY_WEBHOOK_SECRET }
-      : env.DEV_TOOLS === '1'
-        ? { provider: 'dev', keySecret: `${e.JWT_SECRET ?? devSecret()}:dev-pay`, webhookSecret: `${e.JWT_SECRET ?? devSecret()}:dev-hook` }
-        : { provider: 'none' },
   }
 }
 

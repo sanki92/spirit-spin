@@ -10,6 +10,7 @@ let timer = 0
 let inflight = false
 let applyingRemote = false
 let signedOut = false
+let suspended = false
 
 interface Me { version: number; save: Record<string, unknown>; token?: string; username?: string | null; friendCode?: string }
 
@@ -144,12 +145,13 @@ export async function startSync(): Promise<void> {
 }
 
 async function push(): Promise<void> {
-  if (!auth || inflight || signedOut) return
+  if (!auth || inflight || signedOut || suspended) return
   inflight = true
   try {
     const local = snapshot()
-    const r = await api<{ version: number; save?: Record<string, unknown> }>('PUT', '/v1/save', { baseVersion: auth.version, save: local })
-    if (r.status === 200) storeAuth({ ...auth, version: r.data.version })
+    const r = await api<{ version: number; save?: Record<string, unknown>; clamped?: string[] }>('PUT', '/v1/save', { baseVersion: auth.version, save: local })
+    if (r.status === 200 && r.data.clamped && r.data.save) adopt(r.data.save, r.data.version)
+    else if (r.status === 200) storeAuth({ ...auth, version: r.data.version })
     else if (r.status === 409 && r.data.save) {
       if (((r.data.save.xp as number) ?? 0) > local.xp) adopt(r.data.save, r.data.version)
       else {
@@ -167,6 +169,25 @@ async function push(): Promise<void> {
   } finally {
     inflight = false
   }
+}
+
+export function suspendSync(reason: string): void {
+  suspended = true
+  clearTimeout(timer)
+  if (auth) void api('POST', '/v1/security/flag', { reason }).catch(() => undefined)
+}
+
+export async function flushSave(): Promise<void> {
+  clearTimeout(timer)
+  await push()
+}
+
+export function applyPurchase(version: number, coins: number, items: string[]): void {
+  applyingRemote = true
+  useSave.setState({ coins })
+  useSave.getState().setEntitlements(items)
+  applyingRemote = false
+  if (auth) storeAuth({ ...auth, version })
 }
 
 export async function recover(code: string): Promise<boolean> {

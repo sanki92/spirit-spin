@@ -18,8 +18,6 @@ describe('security', () => {
     const env = { NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(40), RECOVERY_PEPPER: 'y'.repeat(40), CORS_ORIGINS: 'https://play.example.com' }
     expect(() => loadConfig({ ...env, DEV_TOOLS: '1' })).toThrow()
     expect(() => loadConfig({ ...env, CORS_ORIGINS: undefined })).toThrow()
-    expect(loadConfig(env).payments?.provider).toBe('none')
-    expect(() => loadConfig({ ...env, RAZORPAY_KEY_ID: 'rzp_live_x', RAZORPAY_KEY_SECRET: 's' })).toThrow()
   })
 
   it('reading your profile refreshes your token', async () => {
@@ -82,5 +80,48 @@ describe('rate limits behind carrier NAT', () => {
     let limited = false
     for (let i = 0; i < 60 && !limited; i++) limited = (await hit(players[0]!.token)).statusCode === 429
     expect(limited).toBe(true)
+  })
+})
+
+describe('audit fixes', () => {
+  it('production refuses placeholder secrets and keeps ranked and cups off', () => {
+    const env = { NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(40), RECOVERY_PEPPER: 'y'.repeat(40), CORS_ORIGINS: 'https://play.example.com' }
+    expect(() => loadConfig({ ...env, JWT_SECRET: 'replace-with-a-long-random-secret-abcdef' })).toThrow()
+    expect(loadConfig(env).competitive).toBe(false)
+  })
+
+  it('a forged token cannot open a fresh rate-limit bucket', async () => {
+    const forged = (n: number) => `x.${Buffer.from(JSON.stringify({ sub: `00000000-0000-4000-8000-${String(n).padStart(12, '0')}` })).toString('base64url')}.y`
+    let limited = false
+    for (let i = 0; i < 15 && !limited; i++) {
+      const r = await app.inject({ method: 'POST', url: '/v1/auth/recover', headers: { authorization: `Bearer ${forged(i)}` }, payload: { code: 'AAAA-AAAA-AAAA' } })
+      limited = r.statusCode === 429
+    }
+    expect(limited).toBe(true)
+  })
+
+  it('an edited save is cut back to what time allows and the phone is told', async () => {
+    const strict = await buildApp({ databaseUrl: 'memory://', jwtSecret: 'test-secret-test-secret-test-secret-32', corsOrigins: ['*'], logLevel: 'silent', openaiKey: null }, { guestPerMinute: 1000 })
+    const g = (await strict.inject({ method: 'POST', url: '/v1/auth/guest' })).json() as { token: string }
+    const r = await strict.inject({ method: 'PUT', url: '/v1/save', headers: h(g.token), payload: { baseVersion: 0, save: { coins: 9_999_999, xp: 0, tower: 0 } } })
+    expect(r.json()).toMatchObject({ version: 1, clamped: ['coins'], save: { coins: 6150 } })
+    const fair = await strict.inject({ method: 'PUT', url: '/v1/save', headers: h(g.token), payload: { baseVersion: 1, save: { coins: 6200, xp: 40, tower: 0 } } })
+    expect(fair.json()).toEqual({ version: 2 })
+    await strict.close()
+  })
+
+  it('pass rewards above the earned tier are dropped', async () => {
+    const g = await guest()
+    const r = await app.inject({ method: 'PUT', url: '/v1/save', headers: h(g.token), payload: { baseVersion: 0, save: { ...BASE, xp: 50, pass: { season: 's1', baseXp: -100000, free: [1, 2, 30], premium: [] } } } })
+    expect(r.statusCode).toBe(200)
+    const me = (await app.inject({ method: 'GET', url: '/v1/me', headers: h(g.token) })).json()
+    expect(me.save.pass).toMatchObject({ baseXp: 0, free: [] })
+  })
+
+  it('a developer-tools report is accepted once per reason window and needs a login', async () => {
+    const g = await guest()
+    expect((await app.inject({ method: 'POST', url: '/v1/security/flag', payload: { reason: 'debugger' } })).statusCode).toBe(401)
+    expect((await app.inject({ method: 'POST', url: '/v1/security/flag', headers: h(g.token), payload: { reason: 'debugger' } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/v1/security/flag', headers: h(g.token), payload: { reason: 'hax' } })).statusCode).toBe(400)
   })
 })

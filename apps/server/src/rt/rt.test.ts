@@ -88,7 +88,7 @@ describe('realtime', () => {
     const { a, b, room } = await pair()
     expect(room.side).toBe(0)
     expect((await b.wait('room')).side).toBe(1)
-    expect((await a.wait('peer')).name).toBe('Boscript')
+    expect((await a.wait('peer')).name).toMatch(/^Guest-[A-Z0-9]{6}$/)
     let rounds = 0
     for (;;) {
       const ra = await a.wait('round'), rb = await b.wait('round')
@@ -118,8 +118,8 @@ describe('realtime', () => {
     const ha = (await app.inject({ method: 'GET', url: '/v1/history', headers: { authorization: `Bearer ${a.token}` } })).json() as { matches: { opponent: string; scores: number[]; won: boolean; rounds: unknown[] }[] }
     const hb = (await app.inject({ method: 'GET', url: '/v1/history', headers: { authorization: `Bearer ${b.token}` } })).json() as { matches: { opponent: string; scores: number[]; won: boolean }[] }
     expect(ha.matches).toHaveLength(1)
-    expect(ha.matches[0]).toMatchObject({ opponent: 'Boscript', rounds: expect.any(Array) })
-    expect(hb.matches[0]).toMatchObject({ opponent: 'Aki', scores: [ha.matches[0]!.scores[1], ha.matches[0]!.scores[0]], won: !ha.matches[0]!.won })
+    expect(ha.matches[0]).toMatchObject({ opponent: expect.stringMatching(/^Guest-/), rounds: expect.any(Array) })
+    expect(hb.matches[0]).toMatchObject({ opponent: expect.stringMatching(/^Guest-/), scores: [ha.matches[0]!.scores[1], ha.matches[0]!.scores[0]], won: !ha.matches[0]!.won })
     a.ws.close(); b.ws.close()
   }, 120000)
 
@@ -232,7 +232,7 @@ describe('realtime', () => {
     expect((await b.wait('room')).side).toBe(1)
     let seats = await tv.wait('seats')
     while (seats.seats.filter(Boolean).length < 2) seats = await tv.wait('seats')
-    expect(seats.seats.map(x => x?.name)).toEqual(['Aki', 'Bo'])
+    expect(seats.seats.map(x => x?.name)).toEqual([expect.stringMatching(/^Guest-/), expect.stringMatching(/^Guest-/)])
     const r = await tv.wait('round')
     a.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })
     b.send({ k: 'rip', round: r.round, swipe: SWIPE, pull100: 7 })

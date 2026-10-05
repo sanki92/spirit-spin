@@ -8,14 +8,13 @@ import { UsernameSheet } from '../UsernameSheet'
 import { buy, refreshEntitlements, type BuyResult } from '../purchase'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
 
-const price = (paise: number) => `₹${Math.round(paise / 100)}`
-const BUY_TEXT: Record<BuyResult, string> = {
-  bought: 'Unlocked. Enjoy!',
-  cancelled: 'Payment cancelled. You were not charged.',
-  unavailable: 'Purchases are not open yet.',
-  failed: 'We could not confirm the payment. If you were charged, it unlocks automatically within a few minutes.',
-  pending: 'Payment received. It unlocks as soon as you are back online.',
-}
+const price = (coins: number) => coins.toLocaleString('en-IN')
+const buyText = (r: { result: BuyResult; need?: number }) =>
+  r.result === 'bought' ? 'Unlocked. Enjoy!'
+    : r.result === 'owned' ? 'You already own this.'
+      : r.result === 'poor' ? `You need ${price(r.need ?? 0)} more coins. Battles, the Tower and daily quests all pay out.`
+        : r.result === 'offline' ? 'You are offline. Connect and try again.'
+          : 'That did not go through. Try again in a moment.'
 
 function rewardArt(r: PassReward): { img: string | null; label: string } {
   if ('coins' in r) return { img: 'ui/icon-coin', label: `${r.coins} coins` }
@@ -46,7 +45,7 @@ export function Pass() {
     setBusy(true)
     const r = await buy('pass-s1')
     setBusy(false)
-    setNote(BUY_TEXT[r])
+    setNote(buyText(r))
   }
   return (
     <Screen className="pass" bg="backgrounds/journal">
@@ -61,7 +60,7 @@ export function Pass() {
       {!premium && (
         <section className="setting premium-card">
           <div><strong>Premium track</strong><span>Launchers, stadiums, frames and avatars. Cosmetic only; every gameplay reward is on the free track.</span></div>
-          <Slash tone="gold" onClick={() => void unlock()} disabled={busy}>{busy ? 'Opening…' : `Unlock ${price(SKUS['pass-s1']!.paise)}`}</Slash>
+          <Slash tone="gold" onClick={() => void unlock()} disabled={busy}>{busy ? 'Unlocking…' : <>Unlock <Img id="ui/icon-coin" className="price-coin" />{price(SKUS['pass-s1']!.coins)}</>}</Slash>
         </section>
       )}
       {note && <p className="fine" role="status">{note}</p>}
@@ -202,18 +201,16 @@ export function CosmeticShop() {
   const s = useSave()
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  const [provider, setProvider] = useState<string | null>(null)
-  useEffect(() => { void refreshEntitlements().then(r => setProvider(r?.provider ?? 'offline')) }, [])
+  useEffect(() => { void refreshEntitlements() }, [])
   const items = Object.values(SKUS).filter(k => k.id !== 'pass-s1')
   const purchase = async (sku: string) => {
     setBusy(sku)
     const r = await buy(sku)
     setBusy(null)
-    setNote(BUY_TEXT[r])
+    setNote(buyText(r))
   }
   return (
     <>
-      {provider === 'none' && <p className="fine">Purchases open soon. Everything here is cosmetic.</p>}
       {note && <p className="fine" role="status">{note}</p>}
       <div className="shop-grid">
         {items.map(k => {
@@ -224,7 +221,7 @@ export function CosmeticShop() {
               {c?.art && <Img id={c.art} className="shop-img" />}
               <strong>{k.name}</strong>
               <span>{c?.kind ?? 'Cosmetic'}</span>
-              {have ? <em>Owned</em> : <button className="price" disabled={busy !== null || provider === 'none'} onClick={() => void purchase(k.id)}>{busy === k.id ? '…' : price(k.paise)}</button>}
+              {have ? <em>Owned</em> : <button className="price" disabled={busy !== null} onClick={() => void purchase(k.id)} aria-label={`Buy ${k.name} for ${price(k.coins)} coins`}>{busy === k.id ? '…' : <><Img id="ui/icon-coin" className="price-coin" />{price(k.coins)}</>}</button>}
             </div>
           )
         })}

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 type W = Window & Record<string, any>
 
-test('spirit pass: unlock premium with the dev checkout, claim rewards, equip them', async ({ page }) => {
+test('spirit pass: unlock premium with coins, claim rewards, equip them', async ({ page }) => {
   await page.goto('/?sim')
   await page.getByRole('button', { name: 'Start' }).click()
   await page.getByRole('button', { name: 'New player' }).click()
@@ -15,7 +15,7 @@ test('spirit pass: unlock premium with the dev checkout, claim rewards, equip th
     const w = window as W
     w.__save.getState().chooseStarter('nagara')
     for (const k of ['safety', 'calibrated', 'firstBattle']) w.__save.getState().markOnboarded(k)
-    w.__save.setState({ xp: 1300, coins: 100, pass: { season: 's1', baseXp: 0, free: [], premium: [] } })
+    w.__save.setState({ xp: 1300, coins: 60000, pass: { season: 's1', baseXp: 0, free: [], premium: [] } })
     w.__nav.getState().reset({ k: 'home' })
   })
   await page.waitForTimeout(2600)

@@ -13,17 +13,18 @@ import { openDb, players, aiCalls, entitlements, friendships, liveMatches, type 
 import { discordNotifier, type Notifier } from './discord'
 import { Moderation } from './moderation'
 import { registerAdmin } from './admin'
-import { PASS_TIERS, SKUS, usernameError, usernameKey } from '@spirit/core'
+import { PASS_TIERS, passTier, SKUS, usernameError, usernameKey } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Sessions } from './sessions'
+import { limitEconomy } from './economy'
 import { EdgeClient } from './rt/edge'
 import { NetLog } from './rt/netlog'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
 import { recordGhostHistory, registerLeague } from './league'
 import { registerTournaments } from './tournaments'
-import { registerStore, type Payments } from './store'
+import { registerStore } from './store'
 import { desc, gte, inArray, sql } from 'drizzle-orm'
 
 const SaveBody = z.object({
@@ -43,7 +44,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: Pick<RealtimeOpts, 'seatHoldMs' | 'speed'>; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments; notifier?: Notifier }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: Pick<RealtimeOpts, 'seatHoldMs' | 'speed'>; devShutdown?: () => void; guestPerMinute?: number; notifier?: Notifier; trustSaves?: boolean }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -84,7 +85,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   })
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
-  await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKey })
+  await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKeyFor(cfg.jwtSecret) })
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const mod = new Moderation(db, e => app.log.warn({ err: String(e) }, 'ip tracking failed'))
   const sessions = new Sessions(db)
@@ -101,7 +102,10 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     banned: (id, ip) => mod.ban(id, ip),
     session: async token => { const t = await tokens.inspect(token); return t ? { id: t.id, check: await sessions.check(t) } : null },
     onKick: fn => sessions.onKick(fn),
-    nameOf: async id => (await db.select({ username: players.username }).from(players).where(eq(players.id, id)).limit(1)).at(0)?.username ?? null,
+    nameOf: async id => {
+      const [p] = await db.select({ username: players.username, code: players.friendCode }).from(players).where(eq(players.id, id)).limit(1)
+      return p?.username ?? (p?.code ? `Guest-${p.code}` : null)
+    },
     onStart: room => {
       const [a, b] = room.seats
       if (a && b) notify.say(`⚔️ Live battle started: **${a.name}** (${beastName(a.build.beastId)}) vs **${b.name}** (${beastName(b.build.beastId)})`)
@@ -208,9 +212,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     return { playerId: row.id, name: row.name, username: row.username ?? null, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id, await sessions.sid(row.id)) }
   })
 
-  const cups = registerTournaments(app, db, requireAuth)
-  registerStore(app, db, requireAuth, deps.payments ?? cfg.payments ?? { provider: 'none' })
-  registerLeague(app, db, requireAuth, cups.onVerified)
+  registerStore(app, db, requireAuth)
+  if (cfg.competitive !== false) {
+    const cups = registerTournaments(app, db, requireAuth)
+    registerLeague(app, db, requireAuth, cups.onVerified)
+  }
 
   const CHALLENGE_MS = 120_000
   const challenges = new Map<string, Map<string, { code: string; at: number }>>()
@@ -279,13 +285,16 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   app.put('/v1/save', { preHandler: requireAuth, schema: { body: SaveBody } }, async (req, reply) => {
     const { baseVersion } = req.body
-    const save = await sanitizeSave(db, req.playerId, req.body.save)
+    const [cur] = await db.select({ save: players.save, at: players.updatedAt }).from(players).where(eq(players.id, req.playerId)).limit(1)
+    const limited = deps.trustSaves || deps.devShutdown ? { save: req.body.save, clamped: [] as string[] } : limitEconomy((cur?.save ?? {}) as Record<string, unknown>, req.body.save, cur?.at.getTime() ?? Date.now(), Date.now())
+    if (limited.clamped.length) req.log.warn({ playerId: req.playerId, fields: limited.clamped }, 'save.clamped')
+    const save = await sanitizeSave(db, req.playerId, limited.save)
     const updated = await db
       .update(players)
       .set({ save, name: sql`coalesce(${players.username}, ${cleanName(save.name)})`, saveVersion: baseVersion + 1, updatedAt: new Date() })
       .where(and(eq(players.id, req.playerId), eq(players.saveVersion, baseVersion)))
       .returning({ version: players.saveVersion })
-    if (updated.length) return { version: updated[0]!.version }
+    if (updated.length) return limited.clamped.length ? { version: updated[0]!.version, save, clamped: limited.clamped } : { version: updated[0]!.version }
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
     return reply.code(409).send({ error: 'stale save', version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save) })
@@ -321,6 +330,13 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (before && !before.username) notify.say(`🆕 New player joined: **@${username}**${before.friendCode ? ` · ID ${before.friendCode}` : ''}${before.country && before.country !== 'LAN' ? ` · ${before.country}` : ''}`)
     return { username }
   })
+  app.post('/v1/security/flag', { preHandler: requireAuth, config: { rateLimit: { max: 3, timeWindow: '1 minute' } }, schema: { body: z.object({ reason: z.enum(['debugger', 'size', 'console']) }) } }, async req => {
+    const [p] = await db.select({ username: players.username, code: players.friendCode, ip: players.lastIp }).from(players).where(eq(players.id, req.playerId)).limit(1)
+    req.log.warn({ playerId: req.playerId, reason: req.body.reason, ip: req.ip }, 'security.devtools')
+    notify.say(`🚨 Developer tools opened by ${p?.username ? `@${p.username}` : 'a guest'}${p?.code ? ` (ID ${p.code})` : ''} · ${req.body.reason}`)
+    return { ok: true }
+  })
+
   app.get('/v1/history', { preHandler: requireAuth }, async req => {
     const me = req.playerId
     const rows = await db.select().from(liveMatches).where(sql`${liveMatches.aId} = ${me} OR ${liveMatches.bId} = ${me}`).orderBy(desc(liveMatches.endedAt)).limit(50)
@@ -378,18 +394,21 @@ export async function befriend(db: Db, a: string, b: string): Promise<void> {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export function rateKey(req: FastifyRequest): string {
-  const auth = req.headers.authorization
-  const part = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).split('.')[1] : undefined
-  if (part) {
+export function rateKeyFor(secret: string) {
+  return (req: FastifyRequest): string => {
+    const auth = req.headers.authorization
+    const parts = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).split('.') : []
+    if (parts.length !== 3) return req.ip
+    const want = createHmac('sha256', secret).update(`${parts[0]}.${parts[1]}`).digest()
+    const got = Buffer.from(parts[2]!, 'base64url')
+    if (got.length !== want.length || !timingSafeEqual(got, want)) return req.ip
     try {
-      const sub = (JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as { sub?: unknown }).sub
-      if (typeof sub === 'string' && UUID.test(sub)) return `${sub}|${req.ip}`
+      const sub = (JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as { sub?: unknown }).sub
+      return typeof sub === 'string' && UUID.test(sub) ? `${sub}|${req.ip}` : req.ip
     } catch {
       return req.ip
     }
   }
-  return req.ip
 }
 
 export async function sanitizeSave(db: Db, playerId: string, raw: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -397,15 +416,19 @@ export async function sanitizeSave(db: Db, playerId: string, raw: Record<string,
   const owned = rows.map(r => r.item).sort()
   const premium = owned.includes('pass-s1')
   const pass = (raw.pass ?? null) as { season?: string; baseXp?: number; free?: number[]; premium?: number[] } | null
-  const freeClaims = new Set(Array.isArray(pass?.free) ? pass!.free : [])
-  const premiumClaims = new Set(premium && Array.isArray(pass?.premium) ? pass!.premium : [])
+  const xp = typeof raw.xp === 'number' && Number.isFinite(raw.xp) ? Math.max(0, raw.xp) : 0
+  const baseXp = Math.min(xp, Math.max(0, Number(pass?.baseXp) || 0))
+  const reached = passTier(xp - baseXp)
+  const legit = (v: unknown): number[] => (Array.isArray(v) ? v.filter((t): t is number => Number.isInteger(t) && t >= 1 && t <= reached) : [])
+  const freeClaims = new Set(legit(pass?.free))
+  const premiumClaims = new Set(premium ? legit(pass?.premium) : [])
   const allowed = new Set<string>([...owned])
   for (const t of PASS_TIERS) {
     if (freeClaims.has(t.tier) && 'cosmetic' in t.free) allowed.add(t.free.cosmetic)
     if (premiumClaims.has(t.tier) && 'cosmetic' in t.premium) allowed.add(t.premium.cosmetic)
   }
   const unlocks = Array.isArray(raw.unlocks) ? (raw.unlocks as unknown[]).filter((u): u is string => typeof u === 'string' && (allowed.has(u) || !SELLABLE.has(u) && !PREMIUM_ONLY.has(u))) : []
-  return { ...raw, entitlements: owned, unlocks, ...(pass ? { pass: { ...pass, premium: [...premiumClaims] } } : {}) }
+  return { ...raw, entitlements: owned, unlocks, ...(pass ? { pass: { ...pass, baseXp, free: [...freeClaims], premium: [...premiumClaims] } } : {}) }
 }
 
 const SELLABLE = new Set(Object.values(SKUS).flatMap(k => k.grants))

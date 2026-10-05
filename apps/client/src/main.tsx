@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { Runtime, RuntimeContext } from './runtime'
 import { useNav } from './state/nav'
-import { startSync } from './state/sync'
+import { startSync, suspendSync } from './state/sync'
+import { startDevtoolsGuard } from './security/devtools'
+import { rt } from './net/rt'
 import { useSave } from './state/save'
 import { useHud } from './state/hud'
 import { installTelemetry, log } from './telemetry'
@@ -24,6 +26,13 @@ if (import.meta.env.DEV) {
   if (new URLSearchParams(location.search).has('sim')) void import('./dev/sim').then(m => m.installSim())
 }
 void startSync()
+if (import.meta.env.PROD) {
+  startDevtoolsGuard(reason => {
+    log('security.devtools', { reason })
+    suspendSync(reason)
+    rt.leave()
+  })
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

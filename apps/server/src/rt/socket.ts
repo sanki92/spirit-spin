@@ -27,6 +27,10 @@ const Msg = z.discriminatedUnion('k', [
 ])
 
 
+const MAX_SOCKETS_PER_PLAYER = 4
+const MAX_SOCKETS_PER_IP = 200
+const IDLE_ROOM_MS = 10 * 60_000
+
 export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; onStart?: (room: Room) => void; banned?: (playerId: string, ip: string) => string | null; session?: (token: string) => Promise<{ id: string; check: 'ok' | 'signed-out' | 'expired' | 'unknown' } | null>; onKick?: (fn: (playerId: string) => void) => void; nameOf?: (playerId: string) => Promise<string | null>; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
 
 export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opts: RealtimeOpts = {}) {
@@ -49,6 +53,19 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   })
   const owned = new Map<string, Room>()
   const sockets = new Map<string, Set<() => void>>()
+  const perIp = new Map<string, number>()
+  const stadiums = new Map<string, Room>()
+  const born = new Map<Room, number>()
+  const sweep = setInterval(() => {
+    const now = Date.now()
+    for (const r of rooms.values()) {
+      if (!born.has(r)) born.set(r, now)
+      if (r.seats.every(s => !s) && now - born.get(r)! > IDLE_ROOM_MS) void r.close()
+    }
+    for (const r of born.keys()) if (![...rooms.values()].includes(r)) born.delete(r)
+  }, 60_000)
+  sweep.unref?.()
+  app.addHook('onClose', async () => clearInterval(sweep))
   opts.onKick?.(pid => {
     for (const k of sockets.get(pid) ?? []) k()
     sockets.delete(pid)
@@ -62,6 +79,11 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let watching: Room | null = null
     let misses = 0
 
+    const ip = req.ip
+    perIp.set(ip, (perIp.get(ip) ?? 0) + 1)
+    if (perIp.get(ip)! > MAX_SOCKETS_PER_IP) {
+      socket.close(4002, 'rate')
+    }
     let windowStart = Date.now(), count = 0
     const send = (m: ServerMsg) => { if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(m)) }
     const replaced = () => socket.close(4001, 'replaced')
@@ -128,6 +150,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
         } else id = await tokens.verify(m.token)
         if (!id) return fail('auth')
         if (opts.banned?.(id, req.ip)) return fail('banned')
+        if ((sockets.get(id)?.size ?? 0) >= MAX_SOCKETS_PER_PLAYER) return fail('rate')
         playerId = id
         if (!sockets.has(id)) sockets.set(id, new Set())
         sockets.get(id)!.add(kick)
@@ -139,9 +162,12 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       try {
         if (m.k === 'stadium') {
           if (watching) watching.unwatch(send)
+          const prev = stadiums.get(playerId)
+          if (prev && prev !== watching) void prev.close()
           const r = make()
           if (!r) return fail('rate', false)
           rooms.set(r.code, r)
+          stadiums.set(playerId, r)
           r.watch(send, bin)
           watching = r
           return
@@ -191,6 +217,9 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     })
     socket.on('close', () => {
       clearInterval(heartbeat)
+      const left = (perIp.get(ip) ?? 1) - 1
+      if (left > 0) perIp.set(ip, left)
+      else perIp.delete(ip)
       if (playerId) sockets.get(playerId)?.delete(kick)
 
       if (room && side !== null) room.disconnect(side, send)
