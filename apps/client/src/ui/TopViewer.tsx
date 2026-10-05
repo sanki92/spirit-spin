@@ -194,10 +194,23 @@ export default function TopViewer(p: ViewerProps) {
 
 let warmStage: ReturnType<typeof buildStage> | null = null
 
+const idle = (f: () => void) => ((window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((g: () => void) => window.setTimeout(g, 50)))(f)
+const step = (f: () => void) => new Promise<void>(r => idle(() => { f(); r() }))
+
+export async function warmParts(owned: { blades: string[]; discs: string[]; tips: string[] }): Promise<void> {
+  const jobs: [string, (t: Texture) => unknown][] = [
+    ...owned.tips.map(id => [`parts/tip-${id}`, (t: Texture) => cachedTip(`tip-${id}`, t, TIP_H)] as [string, (t: Texture) => unknown]),
+    ...owned.blades.map(id => [`parts/blade-${id}`, (t: Texture) => cachedRing(`blade-${id}`, t, BLADE_D, 0.012)] as [string, (t: Texture) => unknown]),
+    ...owned.discs.map(id => [`parts/disc-${id}`, (t: Texture) => cachedRing(`disc-${id}`, t, DISC_D, 0.01)] as [string, (t: Texture) => unknown]),
+  ]
+  for (const [id, build] of jobs) {
+    const t = await texture(id).catch(() => null)
+    if (t) await step(() => { build(t); getRenderer().initTexture(t) })
+  }
+}
+
 export async function prewarmTop(b: { bladeId: string; discId: string; tipId: string; beastId?: string }): Promise<void> {
   const [bt, dt, tt, et] = await Promise.all([texture(`parts/blade-${b.bladeId}`), texture(`parts/disc-${b.discId}`), texture(`parts/tip-${b.tipId}`), texture(`beasts/${b.beastId ?? 'voltfang'}/emblem-disc`).catch(() => null)])
-  const idle = (f: () => void) => ((window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((g: () => void) => window.setTimeout(g, 50)))(f)
-  const step = (f: () => void) => new Promise<void>(r => idle(() => { f(); r() }))
   let rb!: ReturnType<typeof cachedRing>, rd!: ReturnType<typeof cachedRing>, tg!: ReturnType<typeof cachedTip>
   await step(() => { rb = cachedRing(`blade-${b.bladeId}`, bt, BLADE_D, 0.012) })
   await step(() => { rd = cachedRing(`disc-${b.discId}`, dt, DISC_D, 0.01) })

@@ -55,6 +55,7 @@ export function Garage() {
   const [flash, setFlash] = useState<string | null>(null)
   const flashTimer = useRef(0)
   useEffect(() => () => clearTimeout(flashTimer.current), [])
+  useEffect(() => { if (ready3d) void import('../TopViewer').then(m => m.warmParts(useSave.getState().owned)).catch(() => undefined) }, [ready3d])
   const toTop = () => document.querySelector('.page.garage')?.scrollTo({ top: 0, behavior: s.settings.reducedMotion ? 'auto' : 'smooth' })
   const say = (m: string) => { setFlash(m); clearTimeout(flashTimer.current); flashTimer.current = window.setTimeout(() => setFlash(null), 2200) }
 

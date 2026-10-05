@@ -208,6 +208,7 @@ function warmArt(): void {
   const battle = ['ui/banner-victory', 'ui/banner-defeat', 'ui/banner-vs', 'ui/countdown-3', 'ui/countdown-2', 'ui/countdown-1', 'ui/countdown-launch', 'ui/callout-perfect', 'ui/callout-great', 'ui/callout-good', 'ui/callout-weak', `ui/hud-plate-${b}`, `${art}/cutin`, `${art}/summon`, `launchers/${b}`, 'backgrounds/share', 'backgrounds/vs-clash', 'onboarding/guide-grip', 'onboarding/guide-ready', 'onboarding/guide-pull']
   const parts = [...s.owned.blades.map(id => `parts/blade-${id}`), ...s.owned.discs.map(id => `parts/disc-${id}`), ...s.owned.tips.map(id => `parts/tip-${id}`)]
   const types = ['attack', 'defense', 'stamina', 'balance'].map(t => `ui/type-${t}`)
-  const spirits = Object.keys(s.beasts).flatMap(id => { const f = s.beasts[id as BeastId]?.awakened; const base = f ? `beasts/${id}/awakened-${f}` : `beasts/${id}`; return [`${base}/emblem`, `${base}/emblem-disc`] })
-  warmImages([`${art}/card-art`, `${art}/emblem`, `${art}/emblem-disc`, 'ui/icon-coin', 'ui/icon-spirit-shard', ...types, ...icons, 'backgrounds/garage', ...parts, ...spirits, ...faces, ...battle, 'backgrounds/tower'], 6)
+  const spirits = Object.keys(s.beasts).flatMap(id => { const f = s.beasts[id as BeastId]?.awakened; const base = f ? `beasts/${id}/awakened-${f}` : `beasts/${id}`; return [`${base}/emblem`, `${base}/emblem-disc`, `${base}/summon`] })
+  const burst = ['vfx/impact-flash', 'vfx/shockwave', ...['lightning', 'crystal', 'water', 'fire', 'wind', 'shadow'].map(e => `vfx/hit-${e}`)]
+  warmImages([`${art}/card-art`, `${art}/emblem`, `${art}/emblem-disc`, 'ui/icon-coin', 'ui/icon-spirit-shard', ...types, ...icons, 'backgrounds/garage', ...parts, ...spirits, ...burst, ...faces, ...battle, 'backgrounds/tower'], 6)
 }
