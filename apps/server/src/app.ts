@@ -85,7 +85,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   })
   app.addHook('onClose', close)
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
-  await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKeyFor(cfg.jwtSecret) })
+  await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKeyFor(cfg.jwtSecret), allowList: req => !/^\/(v1|rt|edge|__)/.test(req.url) })
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const mod = new Moderation(db, e => app.log.warn({ err: String(e) }, 'ip tracking failed'))
   const sessions = new Sessions(db)

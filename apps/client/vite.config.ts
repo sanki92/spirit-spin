@@ -124,7 +124,7 @@ export default defineConfig({
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'font-css' } },
           { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'font-files', expiration: { maxEntries: 20, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } } },
-          { urlPattern: /\/assets\/.*\.(webp|png|mp3|ogg|json)(\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'game-assets', expiration: { maxEntries: 600 } } },
+          { urlPattern: /\/assets\/.*\.(webp|png|mp3|ogg|json)(\?.*)?$/, handler: 'CacheFirst', options: { cacheName: 'game-assets', expiration: { maxEntries: 800, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [200] } } },
         ],
       },
     }),

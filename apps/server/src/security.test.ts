@@ -125,3 +125,13 @@ describe('audit fixes', () => {
     expect((await app.inject({ method: 'POST', url: '/v1/security/flag', headers: h(g.token), payload: { reason: 'hax' } })).statusCode).toBe(400)
   })
 })
+
+describe('static files are never rate limited', () => {
+  it('only API routes count toward the per-player limit', async () => {
+    const codes = new Set<number>()
+    for (let i = 0; i < 140; i++) codes.add((await app.inject({ method: 'GET', url: '/healthz' })).statusCode)
+    expect([...codes]).toEqual([200])
+    const r = await app.inject({ method: 'GET', url: '/healthz' })
+    expect(r.headers['x-ratelimit-limit']).toBeUndefined()
+  })
+})
