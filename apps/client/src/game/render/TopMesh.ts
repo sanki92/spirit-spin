@@ -87,11 +87,12 @@ export class TopMesh {
     if (Math.abs(f - this.faded) < 0.002) return
     this.faded = f
     this.spinner.traverse(o => {
-      const m = (o as Mesh).material as MeshBasicMaterial | undefined
-      if (!m) return
-      if (!m.transparent) { m.transparent = true; m.needsUpdate = true }
-      m.userData.base ??= m.opacity
-      m.opacity = (m.userData.base as number) * f
+      const mat = (o as Mesh).material as MeshBasicMaterial | MeshBasicMaterial[] | undefined
+      for (const m of Array.isArray(mat) ? mat : mat ? [mat] : []) {
+        if (!m.transparent) { m.transparent = true; m.needsUpdate = true }
+        m.userData.base ??= m.opacity
+        m.opacity = (m.userData.base as number) * f
+      }
     })
   }
 
