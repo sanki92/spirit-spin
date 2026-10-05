@@ -5,6 +5,8 @@ COPY packages/core/package.json packages/core/
 COPY apps/client/package.json apps/client/
 COPY apps/server/package.json apps/server/
 RUN npm ci
+COPY tsconfig.base.json ./
+COPY proto proto
 COPY packages packages
 COPY apps apps
 RUN test -f apps/client/src/assets/manifest.json && test -d apps/client/public/assets \
@@ -17,6 +19,7 @@ ENV NODE_ENV=production PORT=8787 STATIC_DIR=/app/apps/client/dist DATABASE_URL=
 COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/packages packages
+COPY --from=build /app/proto proto
 COPY --from=build /app/apps/server apps/server
 COPY --from=build /app/apps/client/dist apps/client/dist
 RUN mkdir -p /app/.data && chown node:node /app/.data

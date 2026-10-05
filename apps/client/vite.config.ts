@@ -1,6 +1,6 @@
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa'
@@ -63,6 +63,7 @@ function dropDevPages(): Plugin {
     apply: 'build',
     closeBundle() {
       const dist = resolve(__dirname, 'dist')
+      if (!existsSync(dist)) return
       for (const f of readdirSync(dist)) if (/^__.*\.html$/.test(f) || f === 'devices.html') rmSync(resolve(dist, f))
     },
   }
