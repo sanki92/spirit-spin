@@ -3,6 +3,7 @@ import { useNav } from '../state/nav'
 import { useProfile, type Invite } from '../state/profile'
 import { declineInvite, fetchInvites } from '../state/sync'
 import { ShortageSheet } from './ShortageSheet'
+import { InstallGuide } from './InstallBanner'
 import { UsernameSheet } from './UsernameSheet'
 
 const POLL_MS = 8000
@@ -79,6 +80,7 @@ export function GlobalLayer({ routeKey }: { routeKey: string }) {
       )}
       {routeKey === 'home' && profile.loaded && !profile.username && <UsernameSheet required onClose={() => undefined} />}
       <ShortageSheet />
+      <InstallGuide />
     </>
   )
 }

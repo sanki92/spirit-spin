@@ -8,6 +8,7 @@ import { useNav } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
 import { Coins, Img, Screen, Shards } from '../kit'
+import { InstallBanner } from '../InstallBanner'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
@@ -132,6 +133,7 @@ export function Home() {
       </button>
 
       <div className="h3-play">
+        {!first && <InstallBanner />}
         {!first && (
           <button className="h3-mode" onClick={() => setSheet('modes')} aria-haspopup="dialog" aria-label={`Game mode: ${card.name}. Change mode`}>
             <Img id={card.icon} /><span>{card.name}</span><i aria-hidden="true">▾</i>
