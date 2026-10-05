@@ -9,6 +9,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { adminLog, entitlements, ipBans, liveMatches, playerIps, players, type Db } from './db'
 import type { Notifier } from './discord'
+import { clientIp } from './clientip'
 import { plainIp, type Moderation } from './moderation'
 import type { NetLog } from './rt/netlog'
 import type { Room } from './rt/room'
@@ -102,7 +103,7 @@ export function registerAdmin(appBase: FastifyInstance, d: AdminDeps): void {
     const userOk = req.body.user.length === d.admin.user.length && timingSafeEqual(Buffer.from(req.body.user), Buffer.from(d.admin.user))
     if (!((await passwordOk(req.body.password, d.admin.passwordHash)) && userOk)) {
       fails.n++
-      req.log.warn({ ip: req.ip }, 'admin.login-failed')
+      req.log.warn({ ip: clientIp(req) }, 'admin.login-failed')
       return reply.code(401).send({ error: 'wrong username or password' })
     }
     return { token: sign(key, d.admin.user), expiresIn: TOKEN_MS }

@@ -18,6 +18,7 @@ import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Sessions } from './sessions'
+import { clientIp } from './clientip'
 import { limitEconomy } from './economy'
 import { EdgeClient } from './rt/edge'
 import { NetLog } from './rt/netlog'
@@ -133,11 +134,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (session === 'signed-out') return reply.code(401).send({ error: 'signed-out' })
     if (session !== 'ok') return reply.code(401).send({ error: 'unauthorized' })
     const id = t.id
-    const banned = mod.ban(id, req.ip)
+    const banned = mod.ban(id, clientIp(req))
     if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
     req.playerId = id
     lastSeen.set(id, Date.now())
-    mod.touch(id, req.ip)
+    mod.touch(id, clientIp(req))
   }
 
   if (cfg.staticDir && existsSync(cfg.staticDir)) {
@@ -184,7 +185,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   }
 
   app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 120, timeWindow: '1 minute' } } }, async (req, reply) => {
-    const ipBanned = mod.ipBan(req.ip)
+    const ipBanned = mod.ipBan(clientIp(req))
     if (ipBanned) return reply.code(403).send({ error: 'banned', reason: ipBanned })
     const code = newRecoveryCode()
     const sid = randomBytes(12).toString('base64url')
@@ -199,7 +200,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     async (req, reply) => {
       const [row] = await db.select({ id: players.id }).from(players).where(eq(players.recoveryHash, hashRecoveryCode(req.body.code, pepper))).limit(1)
       if (!row) return reply.code(404).send({ error: 'unknown recovery code' })
-      const banned = mod.ban(row.id, req.ip)
+      const banned = mod.ban(row.id, clientIp(req))
       if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
       const sid = await sessions.rotate(row.id)
       return { playerId: row.id, token: await tokens.sign(row.id, sid) }
@@ -332,7 +333,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   })
   app.post('/v1/security/flag', { preHandler: requireAuth, config: { rateLimit: { max: 3, timeWindow: '1 minute' } }, schema: { body: z.object({ reason: z.enum(['debugger', 'size', 'console']) }) } }, async req => {
     const [p] = await db.select({ username: players.username, code: players.friendCode, ip: players.lastIp }).from(players).where(eq(players.id, req.playerId)).limit(1)
-    req.log.warn({ playerId: req.playerId, reason: req.body.reason, ip: req.ip }, 'security.devtools')
+    req.log.warn({ playerId: req.playerId, reason: req.body.reason, ip: clientIp(req) }, 'security.devtools')
     notify.say(`🚨 Developer tools opened by ${p?.username ? `@${p.username}` : 'a guest'}${p?.code ? ` (ID ${p.code})` : ''} · ${req.body.reason}`)
     return { ok: true }
   })
@@ -398,15 +399,15 @@ export function rateKeyFor(secret: string) {
   return (req: FastifyRequest): string => {
     const auth = req.headers.authorization
     const parts = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).split('.') : []
-    if (parts.length !== 3) return req.ip
+    if (parts.length !== 3) return clientIp(req)
     const want = createHmac('sha256', secret).update(`${parts[0]}.${parts[1]}`).digest()
     const got = Buffer.from(parts[2]!, 'base64url')
-    if (got.length !== want.length || !timingSafeEqual(got, want)) return req.ip
+    if (got.length !== want.length || !timingSafeEqual(got, want)) return clientIp(req)
     try {
       const sub = (JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as { sub?: unknown }).sub
-      return typeof sub === 'string' && UUID.test(sub) ? `${sub}|${req.ip}` : req.ip
+      return typeof sub === 'string' && UUID.test(sub) ? `${sub}|${clientIp(req)}` : clientIp(req)
     } catch {
-      return req.ip
+      return clientIp(req)
     }
   }
 }

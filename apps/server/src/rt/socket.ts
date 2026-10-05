@@ -3,6 +3,7 @@ import { assembleTop, COSMETICS, decode, encode, NET, type ServerMsg, type Side 
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { cleanName, randomCode, type Tokens } from '../auth'
+import { clientIp } from '../clientip'
 import type { EdgeApi } from './edge'
 import type { NetLog } from './netlog'
 import { Room } from './room'
@@ -79,7 +80,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     let watching: Room | null = null
     let misses = 0
 
-    const ip = req.ip
+    const ip = clientIp(req)
     perIp.set(ip, (perIp.get(ip) ?? 0) + 1)
     if (perIp.get(ip)! > MAX_SOCKETS_PER_IP) {
       socket.close(4002, 'rate')
@@ -149,7 +150,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
           id = s?.check === 'ok' ? s.id : null
         } else id = await tokens.verify(m.token)
         if (!id) return fail('auth')
-        if (opts.banned?.(id, req.ip)) return fail('banned')
+        if (opts.banned?.(id, ip)) return fail('banned')
         if ((sockets.get(id)?.size ?? 0) >= MAX_SOCKETS_PER_PLAYER) return fail('rate')
         playerId = id
         if (!sockets.has(id)) sockets.set(id, new Set())
