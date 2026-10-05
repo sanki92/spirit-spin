@@ -11,6 +11,7 @@ import { Coins, Img, Screen, Shards, Slash, TopBar } from '../kit'
 import { SpiritBurst } from '../SpiritBurst'
 import type { ViewFocus } from '../TopViewer'
 import { beastArt } from './Home'
+import { canAfford, needMore } from '../../state/shortage'
 
 const TopViewer = lazy(() => import('../TopViewer'))
 
@@ -87,14 +88,16 @@ export function Garage() {
   }
   const upgrade = () => {
     if (!kind || cost === null) return
-    if (!s.upgradePart(kind, currentId)) return say(`You need ${cost - (s.shards ?? 0)} more Spirit Shards`)
+    if (!canAfford('shards', s.shards ?? 0, cost, `the ${info!.name} upgrade`)) return
+    if (!s.upgradePart(kind, currentId)) return needMore('shards', cost - (s.shards ?? 0), `the ${info!.name} upgrade`)
     rt.sound.play('callout')
     log('garage.upgrade', { kind, id: currentId, level: level + 1 })
     say(`${info!.name} is now level ${level + 1}`)
     toTop()
   }
   const buyTrait = () => {
-    if (!s.buyTrait(draft.beastId)) return say(`You need ${TRAIT_COST - (s.shards ?? 0)} more Spirit Shards`)
+    if (!canAfford('shards', s.shards ?? 0, TRAIT_COST, TECHNIQUES[draft.beastId].trait.name)) return
+    if (!s.buyTrait(draft.beastId)) return needMore('shards', TRAIT_COST - (s.shards ?? 0), TECHNIQUES[draft.beastId].trait.name)
     rt.sound.play('callout')
     log('garage.trait', { beast: draft.beastId })
     say(`${TECHNIQUES[draft.beastId].trait.name} unlocked`)
@@ -154,7 +157,7 @@ export function Garage() {
             <span className="part-gain">{cost === null ? 'Fully upgraded' : gains.length ? `Next level: ${gains.map(([k, d]) => `+${d} ${STAT_NAME[k]}`).join(', ')}${spilled ? ` (${STAT_NAME[info.primary]} is maxed)` : ''}` : 'Every stat this part can raise is maxed'}</span>
           </div>
           {cost === null ? <span className="maxed">Max level</span> : (
-            <button className="upgrade-btn" onClick={upgrade} disabled={(s.shards ?? 0) < cost || gains.length === 0} aria-label={`Upgrade ${info.name} for ${cost} Spirit Shards`}>
+            <button className="upgrade-btn" onClick={upgrade} disabled={gains.length === 0} aria-label={`Upgrade ${info.name} for ${cost} Spirit Shards`}>
               <span>Upgrade</span>
               <b><Img id="ui/icon-spirit-shard" />{cost}</b>
             </button>
@@ -174,7 +177,7 @@ export function Garage() {
             {!kit.trait && (
               <div className="ability-lock">
                 <span>Unlocks at Trust {TRAIT_TRUST} (now {beast?.trust ?? 0})</span>
-                <button className="upgrade-btn" onClick={buyTrait} disabled={(s.shards ?? 0) < TRAIT_COST}><span>Unlock now</span><b><Img id="ui/icon-spirit-shard" />{TRAIT_COST}</b></button>
+                <button className="upgrade-btn" onClick={buyTrait}><span>Unlock now</span><b><Img id="ui/icon-spirit-shard" />{TRAIT_COST}</b></button>
               </div>
             )}
           </div>

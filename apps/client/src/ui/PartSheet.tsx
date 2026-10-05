@@ -69,7 +69,7 @@ export function PartSheet({ kind, id, onClose, onBuy, price }: { kind: PartKind;
           {equipped ? <span className="sheet-note">Equipped</span>
             : owned ? <button className="cta cyan" onClick={equip}><span>Equip on {BEASTS[base.beastId].name}</span></button>
             : onBuy ? (
-              <button className="cta gold" onClick={onBuy} disabled={s.coins < cost}><span><Img id="ui/icon-coin" className="cta-coin" />{s.coins < cost ? `Need ${cost - s.coins} more coins` : `Buy for ${cost}`}</span></button>
+              <button className="cta gold" onClick={onBuy}><span><Img id="ui/icon-coin" className="cta-coin" />{`Buy for ${cost.toLocaleString('en-IN')}`}</span></button>
             ) : <span className="sheet-note">{floor ? (floor <= s.tower ? 'Look for it in the Shop rotation' : `Drops on Tower floor ${floor}`) : 'Look for it in the daily Shop'}</span>}
         </div>
       </section>

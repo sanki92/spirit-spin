@@ -10,6 +10,7 @@ import { Axis, Img, Screen, Slash, TopBar } from '../kit'
 import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
 import { PartSheet } from '../PartSheet'
+import { canAfford, needMore } from '../../state/shortage'
 
 export function Journal() {
   const s = useSave()
@@ -220,7 +221,8 @@ export function Shop() {
   const nav = useNav()
   const owns = (kind: 'blade' | 'disc' | 'tip', id: string) => s.owned[`${kind}s`].includes(id)
   const buy = (kind: 'blade' | 'disc' | 'tip', id: string, price: number) => {
-    if (!s.spend(price)) return setMsg(`You need ${price - s.coins} more coins. Tower battles and quests pay out.`)
+    if (!canAfford('coins', s.coins, price, `the ${partName(kind, id)}`)) return setSheet(null)
+    if (!s.spend(price)) return needMore('coins', price - s.coins, `the ${partName(kind, id)}`)
     s.addPart(`${kind}s`, id)
     setMsg(`${partName(kind, id)} is yours. Equip it in the Garage.`)
   }

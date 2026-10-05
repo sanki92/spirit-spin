@@ -6,14 +6,14 @@ import { useProfile } from '../../state/profile'
 import { ownsCosmetic, useSave } from '../../state/save'
 import { UsernameSheet } from '../UsernameSheet'
 import { buy, refreshEntitlements, type BuyResult } from '../purchase'
+import { canAfford, needMore } from '../../state/shortage'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
 
 const price = (coins: number) => coins.toLocaleString('en-IN')
 const buyText = (r: { result: BuyResult; need?: number }) =>
   r.result === 'bought' ? 'Unlocked. Enjoy!'
     : r.result === 'owned' ? 'You already own this.'
-      : r.result === 'poor' ? `You need ${price(r.need ?? 0)} more coins. Battles, the Tower and daily quests all pay out.`
-        : r.result === 'offline' ? 'You are offline. Connect and try again.'
+      : r.result === 'offline' ? 'You are offline. Connect and try again.'
           : 'That did not go through. Try again in a moment.'
 
 function rewardArt(r: PassReward): { img: string | null; label: string } {
@@ -42,9 +42,12 @@ export function Pass() {
   const tier = passTier(xp)
   const premium = (s.entitlements ?? []).includes('pass-s1')
   const unlock = async () => {
+    const cost = SKUS['pass-s1']!.coins
+    if (!canAfford('coins', useSave.getState().coins, cost, 'the Spirit Pass')) return
     setBusy(true)
     const r = await buy('pass-s1')
     setBusy(false)
+    if (r.result === 'poor') return needMore('coins', r.need ?? cost, 'the Spirit Pass')
     setNote(buyText(r))
   }
   return (
@@ -204,9 +207,12 @@ export function CosmeticShop() {
   useEffect(() => { void refreshEntitlements() }, [])
   const items = Object.values(SKUS).filter(k => k.id !== 'pass-s1')
   const purchase = async (sku: string) => {
+    const item = SKUS[sku]!
+    if (!canAfford('coins', useSave.getState().coins, item.coins, `the ${item.name}`)) return
     setBusy(sku)
     const r = await buy(sku)
     setBusy(null)
+    if (r.result === 'poor') return needMore('coins', r.need ?? item.coins, `the ${item.name}`)
     setNote(buyText(r))
   }
   return (

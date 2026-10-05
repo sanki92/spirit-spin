@@ -701,3 +701,14 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .banned-wall .cta { width: min(80vw, 320px); }
 .banned-wall.signed-out h2 { color: var(--gold); }
 .price-coin { width: 18px; height: 18px; margin: 0 4px -3px 6px; object-fit: contain; }
+.sheet.shortage { justify-items: center; text-align: center; gap: 10px; z-index: 1; }
+.shortage-icon { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 6px 16px rgba(255, 201, 60, 0.35)); }
+.shortage h2 { margin: 0; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 34px; letter-spacing: 1px; color: #fff; }
+.shortage-need { margin: 0; max-width: 32ch; font-size: 17px; font-weight: 700; color: var(--chrome); }
+.shortage-need b { color: var(--gold); }
+.shortage-have { margin: 0; font-size: 14px; color: var(--muted); }
+.shortage-ways { list-style: none; margin: 4px 0; padding: 12px 14px; display: grid; gap: 6px; width: 100%; max-width: 380px; text-align: left; background: var(--ink); border: 1px solid var(--line); }
+.shortage-ways li { font-size: 14px; font-weight: 600; color: var(--chrome); }
+.shortage-ways li::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 10px; background: var(--gold); transform: rotate(45deg); vertical-align: 2px; }
+.shortage-acts { display: grid; gap: 8px; width: 100%; max-width: 380px; }
+.shortage-acts .cta > span { min-height: 52px; font-size: 22px; }
