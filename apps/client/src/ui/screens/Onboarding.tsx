@@ -7,17 +7,54 @@ import { useSave } from '../../state/save'
 import { Img, Screen, Slash, Stat } from '../kit'
 import { GuideStrip } from '../hud/LaunchHud'
 
+const INTRO_MS = 2600
+
+function IntroTop({ side, blade, disc, beast }: { side: 'l' | 'r'; blade: string; disc: string; beast: BeastId }) {
+  return (
+    <span className={`intro-top ${side}`} style={{ ['--c' as string]: BEASTS[beast].color }}>
+      <span className="intro-spin">
+        <Img id={`parts/disc-${disc}`} eager />
+        <Img id={`parts/blade-${blade}`} eager />
+        <Img id={`beasts/${beast}/emblem-disc`} className="intro-emblem" eager />
+      </span>
+    </span>
+  )
+}
+
 export function Splash() {
   const nav = useNav()
   const birthYear = useSave(s => s.birthYear)
+  const calm = useSave(s => s.settings.reducedMotion) || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const stage = useRef<HTMLDivElement>(null)
+  const [phase, setPhase] = useState<'wait' | 'go' | 'end'>('wait')
+  const start = () => nav.replace(birthYear ? { k: 'ready' } : { k: 'age' })
+  useEffect(() => {
+    let live = true, t = 0
+    const imgs = [...(stage.current?.querySelectorAll('img') ?? [])]
+    const ready = Promise.all(imgs.map(i => i.decode().catch(() => undefined)))
+    void Promise.race([ready, new Promise(r => setTimeout(r, 1500))]).then(() => {
+      if (!live) return
+      setPhase(p => (p === 'wait' ? 'go' : p))
+      t = window.setTimeout(() => setPhase('end'), calm ? 900 : INTRO_MS)
+    })
+    return () => { live = false; clearTimeout(t) }
+  }, [calm])
   return (
-    <div className="screen entry splash2">
-      <Img id="key-art/hero-portrait" className="entry-art" eager fallback={<Img id="key-art/style-anchor-v3" className="entry-art" eager />} />
-      <button className="entry-hit" onClick={() => nav.replace(birthYear ? { k: 'ready' } : { k: 'age' })} aria-label="Start">
-        <Img id="ui/logo" className="entry-logo" eager fallback={<h1 className="wordmark slant">Spirit Spin</h1>} />
-        <span className="entry-tag">Six spirits. One rip.</span>
-        <span className="entry-start">Tap to start</span>
-      </button>
+    <div className={`screen intro i-${phase} ${calm ? 'calm' : ''}`} onClick={() => (phase === 'end' ? start() : setPhase('end'))}>
+      <div ref={stage} className="intro-stage" aria-hidden="true">
+        <Img id="key-art/hero-portrait" className="intro-art" eager />
+        <i className="intro-dim" />
+        {!calm && <IntroTop side="l" blade="spark" disc="compact" beast="voltfang" />}
+        {!calm && <IntroTop side="r" blade="ember" disc="heavy" beast="agnyx" />}
+        {!calm && <Img id="vfx/hit-lightning" className="intro-spark l" eager />}
+        {!calm && <Img id="vfx/hit-fire" className="intro-spark r" eager />}
+        {!calm && <Img id="vfx/shockwave" className="intro-ring" eager />}
+        {!calm && <Img id="vfx/impact-flash" className="intro-flash" eager />}
+        <Img id="ui/logo" className="intro-logo" eager fallback={<strong className="intro-word">Spirit Spin</strong>} />
+      </div>
+      {phase === 'end' && (
+        <button className="cta gold intro-start" onClick={e => { e.stopPropagation(); start() }} aria-label="Start"><span>Tap to start</span></button>
+      )}
     </div>
   )
 }

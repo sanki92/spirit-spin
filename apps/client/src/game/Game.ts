@@ -107,10 +107,10 @@ export class Game {
   async setTops(builds: [TopBuild, TopBuild], beastArt: [string, string]): Promise<void> {
     const specs: [TopSpec, TopSpec] = [assembleTop(builds[0]), assembleTop(builds[1])]
     const load = (b: TopBuild, emblem: string) =>
-      Promise.all([tex(`parts/blade-${b.bladeId}`, `beasts/${b.beastId}/emblem`), tex(`parts/disc-${b.discId}`, `beasts/${b.beastId}/emblem`), tex(emblem, `beasts/${b.beastId}/emblem`)])
+      Promise.all([tex(`parts/blade-${b.bladeId}`, `beasts/${b.beastId}/emblem`), tex(`parts/disc-${b.discId}`, `beasts/${b.beastId}/emblem`), tex(emblem, `beasts/${b.beastId}/emblem-disc`)])
     const [[b0, d0, e0], [b1, d1, e1], c0, c1] = await Promise.all([
-      load(builds[0], `${beastArt[0]}/emblem`),
-      load(builds[1], `${beastArt[1]}/emblem`),
+      load(builds[0], `${beastArt[0]}/emblem-disc`),
+      load(builds[1], `${beastArt[1]}/emblem-disc`),
       summonTex(beastArt[0], builds[0].beastId),
       summonTex(beastArt[1], builds[1].beastId),
     ])

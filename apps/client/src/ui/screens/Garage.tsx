@@ -54,6 +54,7 @@ export function Garage() {
   const [flash, setFlash] = useState<string | null>(null)
   const flashTimer = useRef(0)
   useEffect(() => () => clearTimeout(flashTimer.current), [])
+  const toTop = () => document.querySelector('.page.garage')?.scrollTo({ top: 0, behavior: s.settings.reducedMotion ? 'auto' : 'smooth' })
   const say = (m: string) => { setFlash(m); clearTimeout(flashTimer.current); flashTimer.current = window.setTimeout(() => setFlash(null), 2200) }
 
   const p = progress(s)
@@ -80,8 +81,7 @@ export function Garage() {
   const choose = (id: string) => {
     if (id === currentId) return
     rt.sound.play('ui', { volume: 0.5 })
-    const v = document.querySelector('.viewer-wrap')
-    if (v && v.getBoundingClientRect().bottom < 120) v.scrollIntoView({ behavior: s.settings.reducedMotion ? 'auto' : 'smooth', block: 'start' })
+    toTop()
     if (slot === 'beast') { setBurst(n => n + 1); rt.sound.play('spirit', { volume: 0.7 }) }
     setDraft(d => (slot === 'blade' ? { ...d, bladeId: id } : slot === 'disc' ? { ...d, discId: id } : slot === 'tip' ? { ...d, tipId: id } : { ...d, beastId: id as BeastId }))
   }
@@ -91,12 +91,14 @@ export function Garage() {
     rt.sound.play('callout')
     log('garage.upgrade', { kind, id: currentId, level: level + 1 })
     say(`${info!.name} is now level ${level + 1}`)
+    toTop()
   }
   const buyTrait = () => {
     if (!s.buyTrait(draft.beastId)) return say(`You need ${TRAIT_COST - (s.shards ?? 0)} more Spirit Shards`)
     rt.sound.play('callout')
     log('garage.trait', { beast: draft.beastId })
     say(`${TECHNIQUES[draft.beastId].trait.name} unlocked`)
+    toTop()
   }
 
   const saved = s.loadout && JSON.stringify({ ...draft, levels: undefined, kit: undefined }) === JSON.stringify({ ...s.loadout, levels: undefined, kit: undefined })
@@ -123,7 +125,7 @@ export function Garage() {
         <div className="viewer-wrap">
           <div className={`viewer-2d ${ready3d ? 'gone' : ''}`} aria-hidden="true"><TopPreview build={draft} size={240} /></div>
           <Suspense fallback={null}>
-            <TopViewer blade={draft.bladeId} disc={draft.discId} tip={draft.tipId} emblem={`${art}/emblem`} color={BEASTS[draft.beastId].color} focus={focus} still={s.settings.reducedMotion} onReady={() => setReady3d(true)} />
+            <TopViewer blade={draft.bladeId} disc={draft.discId} tip={draft.tipId} emblem={`${art}/emblem-disc`} color={BEASTS[draft.beastId].color} focus={focus} still={s.settings.reducedMotion} onReady={() => setReady3d(true)} />
           </Suspense>
           {burst > 0 && <SpiritBurst key={burst} beast={draft.beastId} art={art} />}
           <span className="viewer-hint">Drag to turn</span>
@@ -188,7 +190,7 @@ export function Garage() {
       {slot !== 'beast' && grid}
       {flash && <div className="toast" role="status">{flash}</div>}
       <div className="garage-cta">
-        <Slash tone={saved ? 'ghost' : 'gold'} disabled={!!saved} onClick={() => { s.setLoadout({ bladeId: draft.bladeId, discId: draft.discId, tipId: draft.tipId, beastId: draft.beastId }); rt.sound.play('launch', { volume: 0.4 }); say('Equipped. Ready to battle') }}>{saved ? 'Equipped' : 'Equip this top'}</Slash>
+        <Slash tone={saved ? 'ghost' : 'gold'} disabled={!!saved} onClick={() => { s.setLoadout({ bladeId: draft.bladeId, discId: draft.discId, tipId: draft.tipId, beastId: draft.beastId }); toTop();rt.sound.play('launch', { volume: 0.4 }); say('Equipped. Ready to battle') }}>{saved ? 'Equipped' : 'Equip this top'}</Slash>
       </div>
     </Screen>
   )

@@ -54,6 +54,11 @@
   "w": 223,
   "h": 256
  },
+ "beasts/aegiron/awakened-sage/emblem-disc": {
+  "url": "/assets/beasts/aegiron/awakened-sage/emblem-disc.webp?v=e4319f52",
+  "w": 512,
+  "h": 512
+ },
  "beasts/aegiron/awakened-sage/expressions/furious": {
   "url": "/assets/beasts/aegiron/awakened-sage/expressions/furious.webp?v=38182ce8",
   "w": 311,
@@ -103,6 +108,11 @@
   "url": "/assets/beasts/aegiron/awakened-titan/emblem.webp?v=9583e040",
   "w": 204,
   "h": 256
+ },
+ "beasts/aegiron/awakened-titan/emblem-disc": {
+  "url": "/assets/beasts/aegiron/awakened-titan/emblem-disc.webp?v=34cf0b95",
+  "w": 512,
+  "h": 512
  },
  "beasts/aegiron/awakened-titan/expressions/furious": {
   "url": "/assets/beasts/aegiron/awakened-titan/expressions/furious.webp?v=e10f3576",
@@ -154,6 +164,11 @@
   "w": 229,
   "h": 256
  },
+ "beasts/aegiron/emblem-disc": {
+  "url": "/assets/beasts/aegiron/emblem-disc.webp?v=cbc68c86",
+  "w": 512,
+  "h": 512
+ },
  "beasts/aegiron/expressions/furious": {
   "url": "/assets/beasts/aegiron/expressions/furious.webp?v=7aa02e44",
   "w": 320,
@@ -203,6 +218,11 @@
   "url": "/assets/beasts/agnyx/awakened-inferno/emblem.webp?v=65a227a8",
   "w": 241,
   "h": 256
+ },
+ "beasts/agnyx/awakened-inferno/emblem-disc": {
+  "url": "/assets/beasts/agnyx/awakened-inferno/emblem-disc.webp?v=5c8ea96f",
+  "w": 512,
+  "h": 512
  },
  "beasts/agnyx/awakened-inferno/expressions/furious": {
   "url": "/assets/beasts/agnyx/awakened-inferno/expressions/furious.webp?v=e3227719",
@@ -254,6 +274,11 @@
   "w": 234,
   "h": 256
  },
+ "beasts/agnyx/awakened-solar/emblem-disc": {
+  "url": "/assets/beasts/agnyx/awakened-solar/emblem-disc.webp?v=15f83e47",
+  "w": 512,
+  "h": 512
+ },
  "beasts/agnyx/awakened-solar/expressions/furious": {
   "url": "/assets/beasts/agnyx/awakened-solar/expressions/furious.webp?v=507bf8d4",
   "w": 233,
@@ -303,6 +328,11 @@
   "url": "/assets/beasts/agnyx/emblem.webp?v=7c9a0cca",
   "w": 227,
   "h": 256
+ },
+ "beasts/agnyx/emblem-disc": {
+  "url": "/assets/beasts/agnyx/emblem-disc.webp?v=7245c217",
+  "w": 512,
+  "h": 512
  },
  "beasts/agnyx/expressions/furious": {
   "url": "/assets/beasts/agnyx/expressions/furious.webp?v=81568e42",
@@ -354,6 +384,11 @@
   "w": 246,
   "h": 256
  },
+ "beasts/nagara/awakened-eclipse/emblem-disc": {
+  "url": "/assets/beasts/nagara/awakened-eclipse/emblem-disc.webp?v=a582a8bc",
+  "w": 512,
+  "h": 512
+ },
  "beasts/nagara/awakened-eclipse/expressions/furious": {
   "url": "/assets/beasts/nagara/awakened-eclipse/expressions/furious.webp?v=20ab90da",
   "w": 240,
@@ -403,6 +438,11 @@
   "url": "/assets/beasts/nagara/awakened-tide/emblem.webp?v=494b6a3a",
   "w": 233,
   "h": 256
+ },
+ "beasts/nagara/awakened-tide/emblem-disc": {
+  "url": "/assets/beasts/nagara/awakened-tide/emblem-disc.webp?v=e1d41648",
+  "w": 512,
+  "h": 512
  },
  "beasts/nagara/awakened-tide/expressions/furious": {
   "url": "/assets/beasts/nagara/awakened-tide/expressions/furious.webp?v=0b30e803",
@@ -454,6 +494,11 @@
   "w": 233,
   "h": 256
  },
+ "beasts/nagara/emblem-disc": {
+  "url": "/assets/beasts/nagara/emblem-disc.webp?v=9831dfa3",
+  "w": 512,
+  "h": 512
+ },
  "beasts/nagara/expressions/furious": {
   "url": "/assets/beasts/nagara/expressions/furious.webp?v=874eec64",
   "w": 220,
@@ -503,6 +548,11 @@
   "url": "/assets/beasts/umbrax/awakened-nightfang/emblem.webp?v=8a105d35",
   "w": 253,
   "h": 256
+ },
+ "beasts/umbrax/awakened-nightfang/emblem-disc": {
+  "url": "/assets/beasts/umbrax/awakened-nightfang/emblem-disc.webp?v=70aeab26",
+  "w": 512,
+  "h": 512
  },
  "beasts/umbrax/awakened-nightfang/expressions/furious": {
   "url": "/assets/beasts/umbrax/awakened-nightfang/expressions/furious.webp?v=6f23fbea",
@@ -554,6 +604,11 @@
   "w": 242,
   "h": 256
  },
+ "beasts/umbrax/awakened-sovereign/emblem-disc": {
+  "url": "/assets/beasts/umbrax/awakened-sovereign/emblem-disc.webp?v=cdb34ace",
+  "w": 512,
+  "h": 512
+ },
  "beasts/umbrax/awakened-sovereign/expressions/furious": {
   "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/furious.webp?v=3c6b5534",
   "w": 320,
@@ -603,6 +658,11 @@
   "url": "/assets/beasts/umbrax/emblem.webp?v=74a5ebcf",
   "w": 225,
   "h": 256
+ },
+ "beasts/umbrax/emblem-disc": {
+  "url": "/assets/beasts/umbrax/emblem-disc.webp?v=9e783178",
+  "w": 512,
+  "h": 512
  },
  "beasts/umbrax/expressions/furious": {
   "url": "/assets/beasts/umbrax/expressions/furious.webp?v=b992030f",
@@ -654,6 +714,11 @@
   "w": 236,
   "h": 256
  },
+ "beasts/voltfang/awakened-phantom/emblem-disc": {
+  "url": "/assets/beasts/voltfang/awakened-phantom/emblem-disc.webp?v=123464e7",
+  "w": 512,
+  "h": 512
+ },
  "beasts/voltfang/awakened-phantom/expressions/furious": {
   "url": "/assets/beasts/voltfang/awakened-phantom/expressions/furious.webp?v=9b9869a9",
   "w": 250,
@@ -703,6 +768,11 @@
   "url": "/assets/beasts/voltfang/awakened-storm/emblem.webp?v=331ae92d",
   "w": 245,
   "h": 256
+ },
+ "beasts/voltfang/awakened-storm/emblem-disc": {
+  "url": "/assets/beasts/voltfang/awakened-storm/emblem-disc.webp?v=ed3e7e08",
+  "w": 512,
+  "h": 512
  },
  "beasts/voltfang/awakened-storm/expressions/furious": {
   "url": "/assets/beasts/voltfang/awakened-storm/expressions/furious.webp?v=37626cfd",
@@ -754,6 +824,11 @@
   "w": 239,
   "h": 256
  },
+ "beasts/voltfang/emblem-disc": {
+  "url": "/assets/beasts/voltfang/emblem-disc.webp?v=c01e1337",
+  "w": 512,
+  "h": 512
+ },
  "beasts/voltfang/expressions/furious": {
   "url": "/assets/beasts/voltfang/expressions/furious.webp?v=932f18eb",
   "w": 266,
@@ -803,6 +878,11 @@
   "url": "/assets/beasts/zephyra/awakened-eye/emblem.webp?v=3dd2c56e",
   "w": 241,
   "h": 256
+ },
+ "beasts/zephyra/awakened-eye/emblem-disc": {
+  "url": "/assets/beasts/zephyra/awakened-eye/emblem-disc.webp?v=9889192f",
+  "w": 512,
+  "h": 512
  },
  "beasts/zephyra/awakened-eye/expressions/furious": {
   "url": "/assets/beasts/zephyra/awakened-eye/expressions/furious.webp?v=ee4b6eee",
@@ -854,6 +934,11 @@
   "w": 252,
   "h": 256
  },
+ "beasts/zephyra/awakened-gale/emblem-disc": {
+  "url": "/assets/beasts/zephyra/awakened-gale/emblem-disc.webp?v=483c75f2",
+  "w": 512,
+  "h": 512
+ },
  "beasts/zephyra/awakened-gale/expressions/furious": {
   "url": "/assets/beasts/zephyra/awakened-gale/expressions/furious.webp?v=3e19226d",
   "w": 305,
@@ -903,6 +988,11 @@
   "url": "/assets/beasts/zephyra/emblem.webp?v=f21e2b6e",
   "w": 232,
   "h": 256
+ },
+ "beasts/zephyra/emblem-disc": {
+  "url": "/assets/beasts/zephyra/emblem-disc.webp?v=e150e002",
+  "w": 512,
+  "h": 512
  },
  "beasts/zephyra/expressions/furious": {
   "url": "/assets/beasts/zephyra/expressions/furious.webp?v=84485321",

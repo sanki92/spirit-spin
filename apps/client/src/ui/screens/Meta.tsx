@@ -1,6 +1,7 @@
 import { awakenedForm, awakeningHints, awakeningReady, BLADES, DISCS, dropFloor, shopRotation, TECHNIQUES, TIPS, type BeastId, type Mood } from '@spirit/core'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
+import { useRuntime } from '../../runtime'
 import { useNav, type Route } from '../../state/nav'
 import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
@@ -53,45 +54,66 @@ export function Journal() {
   )
 }
 
+const AURA: Record<BeastId, string> = { voltfang: 'vfx/hit-lightning', aegiron: 'vfx/hit-crystal', nagara: 'vfx/hit-water', agnyx: 'vfx/hit-fire', zephyra: 'vfx/hit-wind', umbrax: 'vfx/hit-shadow' }
+const CHARGE_MS = 1300
+const BURST_MS = 320
+
 export function Awaken({ then }: { then?: Route | undefined } = {}) {
   const nav = useNav()
+  const rt = useRuntime()
   const s = useSave()
   const id = (s.loadout?.beastId ?? 'voltfang') as BeastId
   const b = s.beasts[id]
   const form = useMemo(() => (b ? awakenedForm(b) : 'storm'), [b])
-  const [done, setDone] = useState(false)
+  const [phase, setPhase] = useState<'idle' | 'charge' | 'burst' | 'done'>('idle')
   const [line, setLine] = useState<{ text: string; mood: Mood } | null>(null)
+  const timers = useRef<number[]>([])
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
   const ready = !!b && awakeningReady(b)
+  const started = phase !== 'idle'
   const awaken = () => {
-    if (!b) return
+    if (!b || started) return
     const next = { ...b, awakened: form }
     s.setBeast(next)
-    setDone(true)
+    rt.sound.play('spirit', { volume: 0.8 })
     void spiritMoment('awaken', next, null, null).then(ai => {
       const text = ai?.line ?? 'I can feel everything we went through. Thank you, partner.'
       setLine({ text, mood: ai?.mood ?? 'joyful' })
       const cur = useSave.getState().beasts[id]
       if (cur) useSave.getState().setBeast({ ...cur, memories: [{ at: todayKey(), text: `We awakened together into the ${form} form.`, importance: 5, tags: ['awakening'] }, ...cur.memories].slice(0, 50) })
     })
+    if (s.settings.reducedMotion) return setPhase('done')
+    setPhase('charge')
+    timers.current.push(window.setTimeout(() => { setPhase('burst'); rt.sound.play('callout') }, CHARGE_MS))
+    timers.current.push(window.setTimeout(() => setPhase('done'), CHARGE_MS + BURST_MS))
   }
   useEffect(() => {
-    if (!done && !ready) nav.replace({ k: 'journal' })
-  }, [done, ready, nav])
-  if (!b || (!done && !ready)) return null
+    if (!started && !ready) nav.replace({ k: 'journal' })
+  }, [started, ready, nav])
+  if (!b || (!started && !ready)) return null
+  const name = BEASTS[id].name
   return (
-    <Screen className="awaken center">
-      <div className="awaken-stage" style={{ ['--c' as string]: BEASTS[id].color }}>
-        <Img id={`beasts/${id}/awakened-${form}/summon`} className={`awaken-art ${done ? 'lit' : ''}`} fallback={<Img id={`beasts/${id}/awakened-${form}/cutin`} className={`awaken-art ${done ? 'lit' : ''}`} />} />
+    <Screen className={`awaken2 aw-${phase}`}>
+      <div className="aw-stage" style={{ ['--c' as string]: BEASTS[id].color }} aria-hidden="true">
+        <Img id={`beasts/${id}/card-art`} className="aw-art aw-base awaken-art" eager />
+        <Img id={`beasts/${id}/awakened-${form}/card-art`} className="aw-art aw-new" eager fallback={<Img id={`beasts/${id}/awakened-${form}/summon`} className="aw-art aw-new" eager />} />
+        <i className="aw-glow" />
+        <Img id="vfx/shockwave" className="aw-ring in" eager />
+        <Img id={AURA[id]} className="aw-el" eager />
+        <Img id="vfx/shockwave" className="aw-ring out" eager />
+        <i className="aw-flash" />
       </div>
-      <h2 className="slant">{done ? `${form} ${BEASTS[id].name}` : `${BEASTS[id].name} is changing…`}</h2>
-      <p className="body">{done ? 'Your bond shaped this form. Its Spirit Skill burns brighter.' : 'Everything you went through together is taking shape.'}</p>
-      {done && (
-        <div className="speech awaken-speech">
-          <Img id={`beasts/${id}/awakened-${form}/expressions/${line?.mood ?? 'joyful'}`} className="speech-face" />
-          <p aria-live="polite">{line ? line.text : <span className="typing">…</span>}</p>
-        </div>
-      )}
-      {done ? <Slash tone="gold" onClick={() => { nav.reset({ k: 'home' }); if (then) nav.push(then) }}>Continue</Slash> : <Slash tone="gold" onClick={awaken}>Awaken</Slash>}
+      <div className="aw-copy">
+        <h2 className="slant aw-name" style={{ ['--c' as string]: BEASTS[id].color }}>{phase === 'done' ? `${form} ${name}` : `${name} is changing…`}</h2>
+        <p className="body">{phase === 'done' ? 'Your bond shaped this form. Its Spirit Skill burns brighter.' : 'Everything you went through together is taking shape.'}</p>
+        {phase === 'done' && (
+          <div className="speech awaken-speech">
+            <Img id={`beasts/${id}/awakened-${form}/expressions/${line?.mood ?? 'joyful'}`} className="speech-face" />
+            <p aria-live="polite">{line ? line.text : <span className="typing">…</span>}</p>
+          </div>
+        )}
+        {phase === 'done' ? <Slash tone="gold" onClick={() => { nav.reset({ k: 'home' }); if (then) nav.push(then) }}>Continue</Slash> : <Slash tone="gold" disabled={started} onClick={awaken}>Awaken</Slash>}
+      </div>
     </Screen>
   )
 }

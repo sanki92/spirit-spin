@@ -40,7 +40,8 @@ function buildStage() {
     const blade = new Mesh(new BufferGeometry(), [skin(), wall()])
     blade.position.y = BLADE_Y
     const coinTop = new MeshStandardMaterial({ metalness: 0.15, roughness: 0.55, alphaTest: 0.35 })
-    const coin = new Mesh(new CylinderGeometry(0.31, 0.33, 0.04, 48), [metal, coinTop, metal])
+    const rimMetal = new MeshStandardMaterial({ color: 0xb8c0d4, metalness: 0.7, roughness: 0.3 })
+    const coin = new Mesh(new CylinderGeometry(0.31, 0.31, 0.04, 64), [rimMetal, coinTop, metal])
     coin.position.y = BLADE_Y + BLADE_D + 0.02
     const tip = new Mesh(new BufferGeometry(), new MeshStandardMaterial({ metalness: 0.2, roughness: 0.45, alphaTest: 0.35 }))
     tip.position.y = -CORE_H + 0.004
@@ -194,7 +195,7 @@ export default function TopViewer(p: ViewerProps) {
 let warmStage: ReturnType<typeof buildStage> | null = null
 
 export async function prewarmTop(b: { bladeId: string; discId: string; tipId: string; beastId?: string }): Promise<void> {
-  const [bt, dt, tt, et] = await Promise.all([texture(`parts/blade-${b.bladeId}`), texture(`parts/disc-${b.discId}`), texture(`parts/tip-${b.tipId}`), texture(`beasts/${b.beastId ?? 'voltfang'}/emblem`).catch(() => null)])
+  const [bt, dt, tt, et] = await Promise.all([texture(`parts/blade-${b.bladeId}`), texture(`parts/disc-${b.discId}`), texture(`parts/tip-${b.tipId}`), texture(`beasts/${b.beastId ?? 'voltfang'}/emblem-disc`).catch(() => null)])
   const idle = (f: () => void) => ((window as Window & { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback ?? ((g: () => void) => window.setTimeout(g, 50)))(f)
   const step = (f: () => void) => new Promise<void>(r => idle(() => { f(); r() }))
   let rb!: ReturnType<typeof cachedRing>, rd!: ReturnType<typeof cachedRing>, tg!: ReturnType<typeof cachedTip>

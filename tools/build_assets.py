@@ -89,6 +89,31 @@ def circle_mask(img, size):
     return img
 
 
+def emblem_disc(img, size=512):
+    a = np.array(img.convert("RGBA"))
+    alpha = a[:, :, 3] > 128
+    ys, xs = np.nonzero(alpha)
+    cx, cy = (xs.min() + xs.max()) / 2, (ys.min() + ys.max()) / 2
+    edge = alpha & ~ndimage.binary_erosion(alpha)
+    ey, ex = np.nonzero(edge)
+    for _ in range(4):
+        d = np.hypot(ex - cx, ey - cy)
+        r = np.median(d)
+        keep = np.abs(d - r) < r * 0.03
+        px, py = ex[keep], ey[keep]
+        A = np.c_[2 * px, 2 * py, np.ones(len(px))]
+        sol, *_ = np.linalg.lstsq(A, px ** 2 + py ** 2, rcond=None)
+        cx, cy = sol[0], sol[1]
+    r = np.median(np.hypot(px - cx, py - cy)) - 1.5
+    crop = img.convert("RGBA").crop((int(round(cx - r)), int(round(cy - r)), int(round(cx + r)), int(round(cy + r)))).resize((size, size), Image.LANCZOS)
+    big = size * 4
+    mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, big - 1, big - 1), fill=255)
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.paste(crop.convert("RGB"), (0, 0), mask.resize((size, size), Image.LANCZOS))
+    return out
+
+
 def split_sprites(img, count, rows):
     alpha = np.array(img)[:, :, 3] > 16
     labels, _ = ndimage.label(ndimage.binary_dilation(alpha, iterations=8))
@@ -143,6 +168,10 @@ def _process(rel_png, rel):
         return
     if rel.startswith("vfx/"):
         save(key_vfx(rel[4:], img), rel, 512, 85)
+        return
+    if rel.endswith("/emblem"):
+        save(trim(img.convert("RGBA")), rel, 1024)
+        save(emblem_disc(img), rel + "-disc", 512, 88)
         return
     if "cutin" in rel:
         save(img.convert("RGB"), rel, 1280, 80)

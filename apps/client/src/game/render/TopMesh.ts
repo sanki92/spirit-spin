@@ -57,7 +57,7 @@ export class TopMesh {
     const tip = new Mesh(new ConeGeometry(radius * 0.22, 0.05, 16), new MeshLambertMaterial({ color: 0x9aa3b8 }))
     tip.rotation.x = Math.PI
     tip.position.y = 0.02
-    this.spinner.add(body, tip, solid(tex.disc, radius * 0.86, 0.064, 0.06), solid(tex.blade, radius, 0.073, 0.075), disc(radius * 0.36, tex.emblem, 0.074 + radius * 0.09))
+    this.spinner.add(body, tip, solid(tex.disc, radius * 0.86, 0.064, 0.06), solid(tex.blade, radius, 0.073, 0.075), disc(radius * 0.3, tex.emblem, 0.074 + radius * 0.09))
     for (let i = 1; i <= 3; i++) {
       const b = disc(radius, tex.blade, 0.079 + i * 0.0005, { opacity: 0.22, additive: true })
       b.rotation.z = i * 0.35
