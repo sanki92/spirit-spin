@@ -5,6 +5,8 @@ import { useSave } from '../state/save'
 
 const EAGER = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('still')
 
+const shown = new Set<string>()
+
 function retryImage(e: { currentTarget: HTMLImageElement }) {
   const img = e.currentTarget
   if (img.dataset.retried) {
@@ -19,7 +21,9 @@ function retryImage(e: { currentTarget: HTMLImageElement }) {
 
 export function Img({ id, alt = '', className, fallback, eager = false }: { id: string; alt?: string; className?: string; fallback?: ReactNode; eager?: boolean }) {
   if (!hasAsset(id)) return <>{fallback ?? null}</>
-  return <img className={`${className ?? ''} img-wait`} src={assetUrl(id)} alt={alt} draggable={false} loading={eager || EAGER ? 'eager' : 'lazy'} decoding="async" onLoad={e => e.currentTarget.classList.replace('img-wait', 'img-in')} onError={retryImage} />
+  const src = assetUrl(id)
+  if (shown.has(src)) return <img className={className} src={src} alt={alt} draggable={false} decoding="async" onError={retryImage} />
+  return <img className={`${className ?? ''} img-wait`} src={src} alt={alt} draggable={false} loading={eager || EAGER ? 'eager' : 'lazy'} decoding="async" onLoad={e => { shown.add(src); e.currentTarget.classList.replace('img-wait', 'img-in') }} onError={retryImage} />
 }
 
 export function Screen({ children, bg, className = '' }: { children: ReactNode; bg?: string; className?: string }) {
