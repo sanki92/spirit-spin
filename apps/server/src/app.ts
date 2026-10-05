@@ -18,6 +18,7 @@ import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Sessions } from './sessions'
+import { deleteIdleGuests } from './cleanup'
 import { clientIp } from './clientip'
 import { limitEconomy } from './economy'
 import { EdgeClient } from './rt/edge'
@@ -90,6 +91,15 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const mod = new Moderation(db, e => app.log.warn({ err: String(e) }, 'ip tracking failed'))
   const sessions = new Sessions(db)
+  const tidy = async () => {
+    const n = await deleteIdleGuests(db).catch(e => { app.log.warn({ err: String(e) }, 'idle guest cleanup failed'); return 0 })
+    if (n) app.log.info({ removed: n }, 'idle guests removed')
+  }
+  const firstTidy = setTimeout(() => void tidy(), 60_000)
+  const tidyEvery = setInterval(() => void tidy(), 6 * 3600_000)
+  firstTidy.unref?.()
+  tidyEvery.unref?.()
+  app.addHook('onClose', async () => { clearTimeout(firstTidy); clearInterval(tidyEvery) })
   await mod.load()
   const notify = deps.notifier ?? discordNotifier(cfg.discordWebhook, { onError: e => app.log.warn({ err: String(e) }, 'discord post failed') })
   app.addHook('onClose', async () => notify.stop())
