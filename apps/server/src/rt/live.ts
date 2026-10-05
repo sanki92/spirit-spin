@@ -26,8 +26,8 @@ export class LiveMatch implements RoundRunner {
   desyncs = 0
   private cancel: () => void
 
-  constructor(readonly round: number, state: BattleState, private d: LiveDeps) {
-    this.t0 = d.now() + SEQ.leadInMs
+  constructor(readonly round: number, state: BattleState, private d: LiveDeps, leadInMs: number = SEQ.leadInMs) {
+    this.t0 = d.now() + leadInMs
     this.seq = new Sequencer(this.t0)
     this.ver = new Verifier(state)
     this.cancel = d.every(4, () => this.tick())

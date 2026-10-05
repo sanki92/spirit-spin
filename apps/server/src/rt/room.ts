@@ -8,6 +8,9 @@ import { REMOTE, RemoteRound, type EdgeApi, type RoundRunner } from './edge'
 import { LiveMatch, type LiveDeps } from './live'
 import { signTicket } from './tickets'
 
+export const leadInFor = (rtts: (number | undefined)[]): number =>
+  rtts.every(r => typeof r === 'number' && Number.isFinite(r)) ? Math.round(Math.min(SEQ.leadInMs, Math.max(400, Math.max(...(rtts as number[])) + 250))) : SEQ.leadInMs
+
 const TIMING = { countdownMs: 3050, ripGraceMs: 2200, betweenRoundsMs: 3200, readyGapMs: 900, readyTimeoutMs: 25000, quietMs: 2000 }
 
 interface Seat {
@@ -20,6 +23,7 @@ interface Seat {
   hold: ReturnType<typeof setTimeout> | null
   ready: boolean
   rip: RipResult | null
+  rtt?: number | undefined
   bin: (b: Uint8Array) => void
   heard: number
   quiet: boolean
@@ -37,6 +41,7 @@ export class Room {
   round = 0
   startedAt: number | null = null
   phase: 'wait' | 'launch' | 'battle' | 'between' | 'done' = 'wait'
+  private leadIn: number = SEQ.leadInMs
   live: RoundRunner | null = null
   private silence: ReturnType<typeof setInterval> | null = null
   launchAt = 0
@@ -188,18 +193,19 @@ export class Room {
     this.stopSilence()
     this.live = null
     this.views = [null, null]
-    for (const s of this.seats) if (s) s.rip = null
+    for (const s of this.seats) if (s) { s.rip = null; s.rtt = undefined }
     this.launchAt = this.opts.now() + TIMING.countdownMs
     this.broadcast({ k: 'round', round: this.round, launchAt: this.launchAt })
     const round = this.round
     this.later(TIMING.countdownMs + TIMING.ripGraceMs, () => { if (this.round === round && this.phase === 'launch') this.startBattle() })
   }
 
-  onRip(side: Side, msg: { round: number; motion?: MotionSample[] | undefined; swipe?: { points: TouchSample[]; h: number } | undefined; pull100: number }): void {
+  onRip(side: Side, msg: { round: number; motion?: MotionSample[] | undefined; swipe?: { points: TouchSample[]; h: number } | undefined; pull100: number; rtt?: number | undefined }): void {
     const s = this.seats[side]
     if (!s || this.phase !== 'launch' || msg.round !== this.round || s.rip) return
     const j = judgeRip(msg)
     s.rip = j.rip
+    s.rtt = msg.rtt
     this.views[side] = j.view
     if (this.seats.every(x => x?.rip)) this.startBattle()
   }
@@ -211,13 +217,14 @@ export class Room {
     a.ripLog.push(this.views[0]!)
     b.ripLog.push(this.views[1]!)
     this.seed = Math.floor(Math.random() * 2 ** 31)
+    this.leadIn = leadInFor([a.rtt, b.rtt])
     const state = createBattle([assembleTop(a.build), assembleTop(b.build)], [{ rip: a.rip!, hesitate: false }, { rip: b.rip!, hesitate: false }], this.seed)
     this.phase = 'battle'
     const round = this.round
     const e = this.opts.edge
     if (!e) this.runLocal(state)
     else void this.runEdge(e, round, state)
-    const now = this.opts.now() + SEQ.leadInMs
+    const now = this.opts.now() + this.leadIn
     this.seats.forEach((s, i) => {
       if (!s) return
       s.heard = now
@@ -261,7 +268,7 @@ export class Room {
   }
 
   private runLocal(state: BattleState): void {
-    this.live = new LiveMatch(this.round, state, this.liveDeps())
+    this.live = new LiveMatch(this.round, state, this.liveDeps(), this.leadIn)
     this.sendStart()
   }
 
@@ -275,7 +282,7 @@ export class Room {
       }
       if (this.phase !== 'battle' || this.round !== round || this.live) return
       this.certHash = certHash
-      const t0 = await e.startRound(this.matchId, round, SEQ.leadInMs)
+      const t0 = await e.startRound(this.matchId, round, this.leadIn)
       if (this.phase !== 'battle' || this.round !== round || this.live) return
       this.live = new RemoteRound(round, state, t0, e, this.matchId, {
         watch: b => { for (const w of this.spectators.values()) w(b) },
@@ -301,7 +308,7 @@ export class Room {
   }
 
   private sendStart(): void {
-    const heard = this.opts.now() + SEQ.leadInMs
+    const heard = this.opts.now() + this.leadIn
     for (const s of this.seats) if (s) s.heard = heard
     this.seats.forEach((s, i) => { if (s?.online) s.send(this.startMsg(i as Side)) })
     for (const w of this.spectators.keys()) w(this.startMsg(null))

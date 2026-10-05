@@ -17,7 +17,7 @@ export type ClientMsg =
   | { k: 'join'; code: string; build: TopBuild }
   | { k: 'rejoin'; code: string }
   | { k: 'ready' }
-  | { k: 'rip'; round: number; motion?: MotionSample[]; swipe?: { points: TouchSample[]; h: number }; pull100: number }
+  | { k: 'rip'; round: number; motion?: MotionSample[]; swipe?: { points: TouchSample[]; h: number }; pull100: number; rtt?: number }
   | { k: 'ping'; t: number }
   | { k: 'leave' }
   | { k: 'stadium' }

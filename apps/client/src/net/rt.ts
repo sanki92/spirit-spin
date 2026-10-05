@@ -2,6 +2,8 @@ import { decode, encode, RttStats, type ClientMsg, type ServerMsg, type Side, ty
 import { authToken, signOut } from '../state/sync'
 import { log } from '../telemetry'
 
+const DIRECT_RT: Record<string, string> = { 'spiritspin.sankalptripathi.tech': 'spiritspin-rt.sankalptripathi.tech' }
+
 type Handler = (m: ServerMsg) => void
 
 class Realtime {
@@ -90,7 +92,9 @@ class Realtime {
     return new Promise((resolve, reject) => {
       const token = authToken()
       if (!token) return reject(new Error('no-auth'))
-      const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/rt`)
+      const viaDirect = this.direct
+      const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${viaDirect ?? location.host}/rt`)
+      const giveUp = viaDirect ? window.setTimeout(() => { if (!welcomed) ws.close() }, 4000) : 0
       this.ws = ws
       ws.binaryType = 'arraybuffer'
       let welcomed = false
@@ -105,6 +109,7 @@ class Realtime {
         const m = JSON.parse(e.data) as ServerMsg
         if (m.k === 'welcome') {
           welcomed = true
+          clearTimeout(giveUp)
           this.welcomed = true
           this.net = new RttStats()
           this.retry = 0
@@ -124,7 +129,13 @@ class Realtime {
       }
       ws.onclose = e => {
         if (this.ws === ws) this.welcomed = false
-        log('net.close', { code: e.code, welcomed, inRoom: !!this.code })
+        log('net.close', { code: e.code, welcomed, inRoom: !!this.code, direct: !!viaDirect })
+        if (!welcomed && viaDirect && this.ws === ws) {
+          clearTimeout(giveUp)
+          this.direct = null
+          this.open().then(resolve, reject)
+          return
+        }
         if (!welcomed) reject(new Error(`closed ${e.code}`))
         if (this.wantOpen && (this.code || this.watchCode) && e.code !== 4000 && e.code !== 4001) {
           if (this.retry < 6) {
@@ -135,6 +146,8 @@ class Realtime {
       }
     })
   }
+
+  private direct: string | null = DIRECT_RT[location.hostname] ?? null
 
   private pings = new Map<number, (v: { rtt: number; offset: number }) => void>()
 

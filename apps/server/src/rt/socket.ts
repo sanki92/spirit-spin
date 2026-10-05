@@ -19,7 +19,7 @@ const Msg = z.discriminatedUnion('k', [
   z.object({ k: z.literal('create'), build: Build }),
   z.object({ k: z.literal('join'), code: Code, build: Build }),
   z.object({ k: z.literal('rejoin'), code: Code }),
-  z.object({ k: z.literal('rip'), round: z.number().int().min(1).max(100), motion: z.array(Sample).max(260).optional(), swipe: z.object({ points: z.array(z.object({ t: num, x: num, y: num })).max(200), h: num }).optional(), pull100: num }),
+  z.object({ k: z.literal('rip'), round: z.number().int().min(1).max(100), motion: z.array(Sample).max(260).optional(), swipe: z.object({ points: z.array(z.object({ t: num, x: num, y: num })).max(200), h: num }).optional(), pull100: num, rtt: z.number().min(0).max(10_000).optional() }),
   z.object({ k: z.literal('ping'), t: num }),
   z.object({ k: z.literal('leave') }),
   z.object({ k: z.literal('ready') }),

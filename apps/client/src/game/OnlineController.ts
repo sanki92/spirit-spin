@@ -127,7 +127,7 @@ export class OnlineController extends BattleController {
     const p = this.sent ?? bestPayload(this.launchAt, motion, swipe, this.deps.calibration.pull100, !!swipe)
     this.sent = null
     if (this.startedRound === this.ripRound) return
-    const msg: ClientMsg = { k: 'rip', round: this.ripRound, pull100: p.pull100, ...(p.motion ? { motion: p.motion } : {}), ...(p.swipe ? { swipe: p.swipe } : {}) }
+    const msg: ClientMsg = { k: 'rip', round: this.ripRound, pull100: p.pull100, rtt: Math.round(this.rttNow()), ...(p.motion ? { motion: p.motion } : {}), ...(p.swipe ? { swipe: p.swipe } : {}) }
     this.pendingRip = msg
     rt.send(msg)
   }

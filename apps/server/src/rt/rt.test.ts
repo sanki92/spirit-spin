@@ -93,10 +93,14 @@ describe('realtime', () => {
     for (;;) {
       const ra = await a.wait('round'), rb = await b.wait('round')
       expect(ra).toEqual(rb)
-      a.send({ k: 'rip', round: ra.round, swipe: SWIPE, pull100: 7 })
-      b.send({ k: 'rip', round: ra.round, pull100: 7 })
+      const ping = rounds === 0 ? { rtt: 40 } : {}
+      a.send({ k: 'rip', round: ra.round, swipe: SWIPE, pull100: 7, ...ping })
+      b.send({ k: 'rip', round: ra.round, pull100: 7, ...ping })
       const sa = await a.wait('start'), sb = await b.wait('start')
       expect(sa).toEqual(sb)
+      const lead = sa.t0 - Date.now()
+      if (rounds === 0) expect(lead).toBeLessThan(450)
+      else expect(lead).toBeGreaterThan(800)
       expect(sa.rips[0]).toMatchObject({ ok: true })
       expect(sa.rips[1]).toMatchObject({ ok: false, reason: 'no-pull' })
       expect(sa.t0).toBeGreaterThan(0)
