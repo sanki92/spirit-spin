@@ -93,6 +93,8 @@ def emblem_disc(img, size=512):
     a = np.array(img.convert("RGBA"))
     alpha = a[:, :, 3] > 128
     ys, xs = np.nonzero(alpha)
+    if len(xs) < 100:
+        return circle_mask(img, size)
     cx, cy = (xs.min() + xs.max()) / 2, (ys.min() + ys.max()) / 2
     edge = alpha & ~ndimage.binary_erosion(alpha)
     ey, ex = np.nonzero(edge)
@@ -100,6 +102,8 @@ def emblem_disc(img, size=512):
         d = np.hypot(ex - cx, ey - cy)
         r = np.median(d)
         keep = np.abs(d - r) < r * 0.03
+        if keep.sum() < 16:
+            return circle_mask(img, size)
         px, py = ex[keep], ey[keep]
         A = np.c_[2 * px, 2 * py, np.ones(len(px))]
         sol, *_ = np.linalg.lstsq(A, px ** 2 + py ** 2, rcond=None)

@@ -42,7 +42,7 @@ export function Splash() {
   return (
     <div className={`screen intro i-${phase} ${calm ? 'calm' : ''}`} onClick={() => (phase === 'end' ? start() : setPhase('end'))}>
       <div ref={stage} className="intro-stage" aria-hidden="true">
-        <Img id="key-art/hero-portrait" className="intro-art" eager />
+        <Img id="key-art/hero-portrait" className="intro-art" eager fallback={<Img id="key-art/style-anchor-v3" className="intro-art" eager />} />
         <i className="intro-dim" />
         {!calm && <IntroTop side="l" blade="spark" disc="compact" beast="voltfang" />}
         {!calm && <IntroTop side="r" blade="ember" disc="heavy" beast="agnyx" />}
@@ -52,6 +52,8 @@ export function Splash() {
         {!calm && <Img id="vfx/impact-flash" className="intro-flash" eager />}
         <Img id="ui/logo" className="intro-logo" eager fallback={<strong className="intro-word">Spirit Spin</strong>} />
       </div>
+      <h1 className="sr-only">Spirit Spin</h1>
+      {phase !== 'end' && <button className="sr-only" onClick={e => { e.stopPropagation(); setPhase('end') }}>Skip intro</button>}
       {phase === 'end' && (
         <button className="cta gold intro-start" onClick={e => { e.stopPropagation(); start() }} aria-label="Start"><span>Tap to start</span></button>
       )}

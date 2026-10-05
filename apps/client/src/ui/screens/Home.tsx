@@ -1,6 +1,6 @@
 import { BLADES, BOSSES, chapterOf, COSMETICS, DAILY_TRACK, DISCS, loginState, ROOKIE_BUILDS, TIPS, hesitates, levelForXp, towerFloor, TOWER_FLOORS, xpForLevel, type BeastId } from '@spirit/core'
 import { FEATURES } from '../../features'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { lineFor } from '../../game/lines'
 import { useProfile } from '../../state/profile'
@@ -76,7 +76,8 @@ export function Home() {
   const [mode, setMode] = useState<Mode>(readMode)
   const pick = (m: Mode) => { setMode(m); modeStore.set(m); setSheet(null) }
   useEffect(() => {
-    if (first || !hasName || !daily.canClaim || seenStore.get() === today) return
+    if (first || !hasName || !daily.canClaim || seenDay === today || seenStore.get() === today) return
+    seenDay = today
     seenStore.set(today)
     setSheet('daily')
   }, [first, hasName, daily.canClaim, today])
@@ -122,7 +123,7 @@ export function Home() {
         </nav>
       )}
 
-      <button className="h3-hero" style={{ ['--c' as string]: info.color }} onClick={() => nav.push({ k: 'journal' })} aria-label={`${info.name}, open journal`}>
+      <button className="h3-hero" style={{ ['--c' as string]: info.color }} onClick={() => nav.push({ k: 'journal' })} aria-label={`${info.name}${beast ? `, trust ${beast.trust} of 100` : ''}, open journal`}>
         <span className="h2-kind">{info.title}</span>
         <strong className="h2-name">{info.name}</strong>
         {beast && <span className="h2-trust" role="meter" aria-label="Trust" aria-valuemin={0} aria-valuemax={100} aria-valuenow={beast.trust}><i style={{ transform: `scaleX(${beast.trust / 100})` }} /></span>}
@@ -186,6 +187,7 @@ const store = (k: string) => ({
   set: (v: string) => { try { localStorage.setItem(k, v) } catch { return } },
 })
 const modeStore = store('spirit.mode'), seenStore = store('spirit.daily-seen')
+let seenDay = ''
 const readMode = (): Mode => { const v = modeStore.get(); return MODES.find(x => x.k === v && x.open)?.k ?? 'story' }
 
 function untilMidnight(now = new Date()) {
@@ -199,6 +201,12 @@ function useMinute() {
 }
 
 function Sheet({ title, sub, className = '', onClose, children }: { title: string; sub?: string; className?: string; onClose: () => void; children: ReactNode }) {
+  const close = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    close.current?.focus()
+    return () => prev?.focus?.()
+  }, [])
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', esc)
@@ -208,7 +216,7 @@ function Sheet({ title, sub, className = '', onClose, children }: { title: strin
     <div className="sheet-backdrop" onClick={onClose}>
       <section className={`sheet h3-sheet ${className}`} role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
         <span className="sheet-grip" aria-hidden="true" />
-        <button className="sheet-close" onClick={onClose} aria-label="Close">✕</button>
+        <button ref={close} className="sheet-close" onClick={onClose} aria-label="Close">✕</button>
         <header className="h3-sheet-head"><h2>{title}</h2>{sub && <p>{sub}</p>}</header>
         {children}
       </section>

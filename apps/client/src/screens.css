@@ -53,7 +53,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .splash { padding: 0; }
 .splash-hit { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 18px; padding: 0 16px calc(48px + var(--safe-bottom)); border: 0; background: none; cursor: pointer; }
 .splash .logo { width: min(90vw, 560px); }
-.wordmark { font-size: 64px; color: var(--chrome); }
 .tap-hint { color: var(--chrome); font-size: 18px; animation: breathe 1.6s ease-in-out infinite; }
 .year { font-size: 24px; padding: 10px 16px; border-radius: 10px; background: var(--steel); color: var(--chrome); border: 1px solid var(--steel-2); }
 
@@ -221,11 +220,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .hints p, .memories p { margin: 0; font-size: 15px; color: var(--muted); }
 .memories b { color: var(--chrome); margin-right: 6px; }
 
-.awaken-stage { display: grid; place-items: center; width: 100%; flex: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 22%, transparent), transparent); }
-.awaken-art { height: 42vh; width: auto; max-width: 100%; object-fit: contain; filter: brightness(0) drop-shadow(0 0 2px color-mix(in srgb, var(--c) 70%, transparent)); transform: scale(0.92); transition: filter 1.4s ease-out, transform 1.4s cubic-bezier(0.2, 1.4, 0.4, 1); }
-.awaken-art.lit { filter: drop-shadow(0 0 26px color-mix(in srgb, var(--c) 80%, transparent)); transform: scale(1); }
-.reduce-motion .awaken-art { transition: none; }
-.awaken h2 { text-transform: capitalize; }
 
 
 .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }

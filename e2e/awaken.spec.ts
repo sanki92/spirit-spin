@@ -16,7 +16,7 @@ test('awakening reveals the new form and the beast speaks', async ({ page }) => 
     w.__save.getState().setBeast({ ...b, trust: 72, respect: 66, battles: 14, calm: 6, counters: { ...b.counters, comebacks: 1 }, memories: [{ at: '2026-10-01', text: 'We came back from 0-3 against Brick.', importance: 4, tags: ['comeback'] }] })
     w.__nav.getState().reset({ k: 'awaken' })
   })
-  await expect(page.locator('.awaken-art')).toBeVisible()
+  await expect(page.locator('.aw-base')).toBeVisible()
   await page.waitForTimeout(800)
   await page.screenshot({ path: 'e2e/out/awaken-before.png' })
   await page.getByRole('button', { name: /^awaken$/i }).click()

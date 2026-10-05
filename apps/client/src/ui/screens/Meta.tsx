@@ -82,7 +82,7 @@ export function Awaken({ then }: { then?: Route | undefined } = {}) {
       const cur = useSave.getState().beasts[id]
       if (cur) useSave.getState().setBeast({ ...cur, memories: [{ at: todayKey(), text: `We awakened together into the ${form} form.`, importance: 5, tags: ['awakening'] }, ...cur.memories].slice(0, 50) })
     })
-    if (s.settings.reducedMotion) return setPhase('done')
+    if (s.settings.reducedMotion || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return setPhase('done')
     setPhase('charge')
     timers.current.push(window.setTimeout(() => { setPhase('burst'); rt.sound.play('callout') }, CHARGE_MS))
     timers.current.push(window.setTimeout(() => setPhase('done'), CHARGE_MS + BURST_MS))
@@ -95,7 +95,7 @@ export function Awaken({ then }: { then?: Route | undefined } = {}) {
   return (
     <Screen className={`awaken2 aw-${phase}`}>
       <div className="aw-stage" style={{ ['--c' as string]: BEASTS[id].color }} aria-hidden="true">
-        <Img id={`beasts/${id}/card-art`} className="aw-art aw-base awaken-art" eager />
+        <Img id={`beasts/${id}/card-art`} className="aw-art aw-base" eager />
         <Img id={`beasts/${id}/awakened-${form}/card-art`} className="aw-art aw-new" eager fallback={<Img id={`beasts/${id}/awakened-${form}/summon`} className="aw-art aw-new" eager />} />
         <i className="aw-glow" />
         <Img id="vfx/shockwave" className="aw-ring in" eager />
@@ -228,7 +228,7 @@ export function Shop() {
     <Screen className="shop">
       <TopBar title="Shop" />
       <div className="tabs">
-        <div role="tablist" aria-label="Shop" style={{ display: 'contents' }}>
+        <div className="tabs" role="tablist" aria-label="Shop" style={{ flex: 2 }}>
           <button role="tab" aria-selected={tab === 'parts'} className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>Parts</button>
           <button role="tab" aria-selected={tab === 'cosmetics'} className={tab === 'cosmetics' ? 'on' : ''} onClick={() => setTab('cosmetics')}>Cosmetics</button>
         </div>

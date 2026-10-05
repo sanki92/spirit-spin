@@ -33,7 +33,7 @@ const status = (f: Friend) => (f.seen == null ? 'Offline' : online(f) ? 'Online'
 const nice = (b: BeastId) => BEASTS[b].name.charAt(0) + BEASTS[b].name.slice(1).toLowerCase()
 const topName = (b: TopBuild) => [BLADES[b.bladeId]?.name, DISCS[b.discId]?.name, TIPS[b.tipId]?.name].filter(Boolean).join(' · ')
 
-function useFriendLists(active: boolean, onNews: (text: string) => void) {
+function useFriendLists(active: boolean, onNews: (text: string) => void, wantId = false) {
   const [lists, setLists] = useState<Lists | null>(null)
   const [mine, setMine] = useState<string | null>(null)
   const [offline, setOffline] = useState(false)
@@ -60,8 +60,9 @@ function useFriendLists(active: boolean, onNews: (text: string) => void) {
     }
   }, [])
   useEffect(() => {
+    if (!wantId) return
     void fetch('/v1/me', { headers: authHeader() }).then(r => r.json() as Promise<{ friendCode?: string }>).then(m => setMine(m.friendCode ?? null)).catch(() => undefined)
-  }, [])
+  }, [wantId])
   useEffect(() => {
     if (!active) return
     void load()
@@ -180,9 +181,14 @@ export function Friends({ join, challenge: invite }: { join?: string | undefined
     if (await connect()) rt.send({ k: 'join', code: c.toUpperCase(), build: { ...build, launcher } })
   }
   useEffect(() => {
-    if (auto.current) return
-    if (join) { auto.current = true; void enter(join) }
-    else if (invite) { auto.current = true; void host(invite) }
+    if (auto.current || (!join && !invite)) return
+    const t = window.setTimeout(() => {
+      auto.current = true
+      nav.replace({ k: 'friends' })
+      if (join) void enter(join)
+      else if (invite) void host(invite)
+    }, 0)
+    return () => clearTimeout(t)
   }, [join, invite])
 
   const share = () => {
@@ -299,7 +305,7 @@ export function Friends({ join, challenge: invite }: { join?: string | undefined
 export function Social() {
   const nav = useNav()
   const [toast, setToast] = useState<string | null>(null)
-  const { lists, mine, offline, reload } = useFriendLists(true, setToast)
+  const { lists, mine, offline, reload } = useFriendLists(true, setToast, true)
   const username = useProfile(p => p.username)
   const challenge = lists?.challenges[0]
   const decline = (from: string) => fetch('/v1/challenges/decline', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ from }) }).catch(() => undefined)
@@ -326,18 +332,16 @@ export function Social() {
         <div><small>Your ID</small><b>{mine ?? '······'}</b>{username && <span>@{username}</span>}</div>
         <button className="lb-btn gold" onClick={shareId} disabled={!mine}>{typeof navigator.share === 'function' ? 'Share' : 'Copy'}</button>
       </section>
-      <FriendsPanel lists={lists} mine={mine} offline={offline} onChallenge={f => nav.push({ k: 'friends', challenge: f })} reload={reload} notify={setToast} always />
+      <FriendsPanel lists={lists} offline={offline} onChallenge={f => nav.push({ k: 'friends', challenge: f })} reload={reload} notify={setToast} />
       {toast && <p key={toast} className="toast pop" role="status" onAnimationEnd={() => setTimeout(() => setToast(t => (t === toast ? null : t)), 2400)}>{toast}</p>}
     </Screen>
   )
 }
 
-function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify, always = false }: { lists: Lists | null; mine: string | null; offline: boolean; onChallenge: (f: Friend) => void; reload: () => Promise<void>; notify: (t: string) => void; always?: boolean }) {
+function FriendsPanel({ lists, offline, onChallenge, reload, notify }: { lists: Lists | null; offline: boolean; onChallenge: (f: Friend) => void; reload: () => Promise<void>; notify: (t: string) => void }) {
   const [code, setCode] = useState('')
   const [note, setNote] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
   const post = (body: { code: string } | { username: string }) => fetch('/v1/friends', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify(body) }).catch(() => null)
   const add = async (c: string) => {
     setNote(null)
@@ -362,34 +366,22 @@ function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify, alway
     if (r?.ok) notify(text)
     await reload()
   }
-  const copy = () => {
-    if (!mine) return
-    void navigator.clipboard?.writeText(mine).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) })
-  }
   const friends = [...(lists?.friends ?? [])].sort((a, b) => (a.seen ?? Infinity) - (b.seen ?? Infinity))
   const live = friends.filter(online).length
   const empty = lists && friends.length + lists.incoming.length + lists.outgoing.length === 0
   return (
     <section className="lb-friends" aria-label="Friends">
       <header className="lb-friends-head">
-        <h2>{always ? 'Your friends' : 'Friends'}</h2>
+        <h2>Your friends</h2>
         {lists && friends.length > 0 && <span className="lb-online"><i />{live} online</span>}
-        {!always && <button className={`lb-btn ${adding || empty ? 'ghost' : 'cyan'} lb-add-toggle`} onClick={() => setAdding(v => !v)} aria-expanded={adding || !!empty}>{adding ? 'Done' : '+ Add'}</button>}
       </header>
-      {(always || adding || empty) && (
-        <div className="lb-addbox">
-          {!always && (
-            <button className="lb-mycode" onClick={copy} disabled={!mine} aria-label="Copy your friend code">
-              <span>Your ID</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
-            </button>
-          )}
-          <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.replace(/^@/, '').length >= 3) void add(code) }}>
-            <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
-            <button className="lb-btn cyan" disabled={code.replace(/^@/, '').length < 3 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
-          </form>
-          {note && <p className="form-error" role="alert">{note}</p>}
-        </div>
-      )}
+      <div className="lb-addbox">
+        <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.replace(/^@/, '').length >= 3) void add(code) }}>
+          <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
+          <button className="lb-btn cyan" disabled={code.replace(/^@/, '').length < 3 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
+        </form>
+        {note && <p className="form-error" role="alert">{note}</p>}
+      </div>
       {offline ? <p className="fine">Friends need a connection. We'll keep trying.</p> : !lists ? <SkeletonList rows={2} /> : (
         <>
           {lists.incoming.map(f => (

@@ -42,12 +42,7 @@ button.lb-tile:active { transform: scale(0.98); }
 .lb-friends-head h2 { margin: 0; font-size: 24px; color: var(--chrome); }
 .lb-online { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #4ef0a0; }
 .lb-online i { width: 8px; height: 8px; border-radius: 50%; background: #4ef0a0; box-shadow: 0 0 8px #4ef0a0; }
-.lb-add-toggle { margin-left: auto; min-height: 36px; font-size: 18px; }
 .lb-addbox { display: grid; gap: 8px; padding: 10px; background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--line); animation: lbIn 0.25s ease-out both; }
-.lb-mycode { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 8px; padding: 8px 12px; border: 0; background: rgba(255, 201, 60, 0.08); color: var(--chrome); text-align: left; cursor: pointer; }
-.lb-mycode span { font-size: 12px; letter-spacing: 1px; color: var(--muted); }
-.lb-mycode b { grid-row: 2; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 30px; letter-spacing: 6px; color: var(--gold); line-height: 1; }
-.lb-mycode em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-size: 13px; font-weight: 700; color: var(--cyan); }
 .lb-add { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .lb-add input { min-width: 0; padding: 0 12px; min-height: 44px; border: 1px solid var(--line); background: rgba(5, 8, 26, 0.75); color: var(--chrome); font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 4px; text-transform: uppercase; }
 .lb-add input::placeholder { font-family: 'Rajdhani', sans-serif; font-size: 16px; letter-spacing: 0; text-transform: none; color: rgba(143, 156, 196, 0.6); }

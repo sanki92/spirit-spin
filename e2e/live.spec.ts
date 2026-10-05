@@ -24,7 +24,7 @@ async function player(browser: Browser, name: string, beast: string): Promise<Pa
     w.__save.setState({ name: n })
     w.__nav.getState().reset({ k: 'home' })
   }, [name, beast])
-  await page.locator('.h3-daily').waitFor({ timeout: 3000 }).then(() => page.keyboard.press('Escape')).catch(() => undefined)
+  await page.locator('.h3-daily').waitFor({ timeout: 1500 }).then(() => page.keyboard.press('Escape')).catch(() => undefined)
   await page.getByRole('button', { name: /game mode/i }).click()
   await page.getByRole('radio', { name: /live battle/i }).click()
   await expect(page.getByRole('button', { name: /friend battle/i })).toBeVisible()

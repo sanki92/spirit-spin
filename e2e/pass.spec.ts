@@ -18,7 +18,7 @@ test('spirit pass: unlock premium with the dev checkout, claim rewards, equip th
     w.__nav.getState().reset({ k: 'home' })
   })
   await page.waitForTimeout(2600)
-  await page.locator('.h3-daily').waitFor({ timeout: 3000 }).then(() => page.keyboard.press('Escape')).catch(() => undefined)
+  await page.locator('.h3-daily').waitFor({ timeout: 1500 }).then(() => page.keyboard.press('Escape')).catch(() => undefined)
   await page.getByRole('button', { name: 'Profile' }).click()
   await expect(page.locator('.p2-card')).toBeVisible()
   await page.screenshot({ path: 'e2e/out/profile.png', fullPage: true })
