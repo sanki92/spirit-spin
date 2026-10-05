@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'node:crypto'
-import { jwtVerify, SignJWT } from 'jose'
+import { errors, jwtVerify, SignJWT } from 'jose'
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -23,8 +23,17 @@ export class Tokens {
     this.key = new TextEncoder().encode(secret)
   }
 
-  sign(playerId: string): Promise<string> {
-    return new SignJWT({}).setProtectedHeader({ alg: 'HS256' }).setSubject(playerId).setIssuedAt().setExpirationTime('30d').sign(this.key)
+  sign(playerId: string, sid?: string | null): Promise<string> {
+    return new SignJWT(sid ? { sid } : {}).setProtectedHeader({ alg: 'HS256' }).setSubject(playerId).setIssuedAt().setExpirationTime('30d').sign(this.key)
+  }
+
+  async inspect(token: string): Promise<{ id: string; sid: string | null; expired: boolean } | null> {
+    const read = (p: { sub?: unknown; sid?: unknown }, expired: boolean) => (typeof p.sub === 'string' ? { id: p.sub, sid: typeof p.sid === 'string' ? p.sid : null, expired } : null)
+    try {
+      return read((await jwtVerify(token, this.key, { algorithms: ['HS256'] })).payload, false)
+    } catch (e) {
+      return e instanceof errors.JWTExpired ? read(e.payload, true) : null
+    }
   }
 
   async verify(token: string): Promise<string | null> {

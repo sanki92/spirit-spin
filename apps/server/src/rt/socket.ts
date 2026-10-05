@@ -27,7 +27,7 @@ const Msg = z.discriminatedUnion('k', [
 ])
 
 
-export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; onStart?: (room: Room) => void; banned?: (playerId: string, ip: string) => string | null; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
+export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; onStart?: (room: Room) => void; banned?: (playerId: string, ip: string) => string | null; session?: (token: string) => Promise<{ id: string; check: 'ok' | 'signed-out' | 'expired' | 'unknown' } | null>; onKick?: (fn: (playerId: string) => void) => void; nameOf?: (playerId: string) => Promise<string | null>; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
 
 export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opts: RealtimeOpts = {}) {
   await app.register(websocket, { options: { maxPayload: NET.maxMessageBytes } })
@@ -48,6 +48,11 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     opts.closeEdge?.()
   })
   const owned = new Map<string, Room>()
+  const sockets = new Map<string, Set<() => void>>()
+  opts.onKick?.(pid => {
+    for (const k of sockets.get(pid) ?? []) k()
+    sockets.delete(pid)
+  })
 
   app.get('/rt', { websocket: true }, (socket, req) => {
     let playerId: string | null = null
@@ -71,6 +76,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       send({ k: 'error', code })
       if (close) socket.close(4000, code)
     }
+    const kick = () => fail('signed-out')
     const enter = (r: Room, build: Parameters<Room['seat']>[2]) => {
       const s = r.seat(playerId!, name, build, send, replaced, bin)
       if (s === null) return fail('full', false)
@@ -114,11 +120,18 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       const m = parsed
       if (m.k === 'ping') return send({ k: 'pong', t: m.t, server: Date.now() })
       if (m.k === 'hello') {
-        const id = await tokens.verify(m.token)
+        let id: string | null
+        if (opts.session) {
+          const s = await opts.session(m.token)
+          if (s?.check === 'signed-out') return fail('signed-out')
+          id = s?.check === 'ok' ? s.id : null
+        } else id = await tokens.verify(m.token)
         if (!id) return fail('auth')
         if (opts.banned?.(id, req.ip)) return fail('banned')
         playerId = id
-        name = cleanName(m.name)
+        if (!sockets.has(id)) sockets.set(id, new Set())
+        sockets.get(id)!.add(kick)
+        name = (await opts.nameOf?.(id).catch(() => null)) || cleanName(m.name)
         return send({ k: 'welcome', playerId: id })
       }
       if (!playerId) return fail('auth')
@@ -178,6 +191,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
     })
     socket.on('close', () => {
       clearInterval(heartbeat)
+      if (playerId) sockets.get(playerId)?.delete(kick)
 
       if (room && side !== null) room.disconnect(side, send)
       watching?.unwatch(send)

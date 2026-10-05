@@ -9,6 +9,7 @@ async function player(browser: Browser, name: string, beast: string): Promise<Pa
   await page.goto('/?sim')
   await expect(async () => {
     await page.mouse.click(180, 400)
+    if (await page.getByRole('button', { name: 'New player' }).isVisible()) await page.getByRole('button', { name: 'New player' }).click()
     await expect(page.getByRole('button', { name: /continue/i }).or(page.getByText(/tap to ready/i))).toBeVisible({ timeout: 1000 })
   }).toPass({ timeout: 20_000 })
   if (await page.getByRole('button', { name: /continue/i }).isVisible()) await page.getByRole('button', { name: /continue/i }).click()

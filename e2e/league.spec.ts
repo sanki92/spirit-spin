@@ -6,6 +6,7 @@ const API = 'http://localhost:5174'
 async function onboard(page: Page, name: string) {
   await page.goto('/?sim')
   await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'New player' }).click()
   await page.getByRole('button', { name: /continue/i }).click()
   await page.getByText(/tap to ready/i).click()
   await page.waitForFunction(() => !!(window as W).__save && (window as W).__rt?.ready)

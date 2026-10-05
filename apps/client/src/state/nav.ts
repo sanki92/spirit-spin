@@ -24,6 +24,7 @@ export type Route =
   | { k: 'friends'; join?: string; challenge?: { playerId: string; name: string; friendCode: string; beast?: string | null } }
   | { k: 'social' }
   | { k: 'history' }
+  | { k: 'welcome'; recover?: boolean }
   | { k: 'ranked' }
   | { k: 'pass' }
   | { k: 'stadium' }

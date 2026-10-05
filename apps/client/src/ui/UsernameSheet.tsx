@@ -1,5 +1,6 @@
 import { USERNAME, usernameError } from '@spirit/core'
 import { useEffect, useRef, useState } from 'react'
+import { useNav } from '../state/nav'
 import { useProfile } from '../state/profile'
 import { checkUsername, claimUsername, type UsernameReason } from '../state/sync'
 
@@ -58,6 +59,7 @@ export function UsernameSheet({ onClose, required = false }: { onClose: () => vo
           {status ? (status.ok ? 'Available' : WHY[status.why ?? 'offline']) : `${USERNAME.min}–${USERNAME.max} letters, numbers or _`}
         </p>
         <button type="submit" className="slash gold" disabled={!status?.ok || saving}><span>{saving ? 'Saving…' : 'Save username'}</span></button>
+        {required && <button type="button" className="text-btn username-restore" onClick={() => useNav.getState().push({ k: 'welcome', recover: true })}>Already have an account? Restore it with your recovery code</button>}
       </form>
     </div>
   )

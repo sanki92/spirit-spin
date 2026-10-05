@@ -7,6 +7,7 @@ const ROUTES = ['home', 'garage', 'tower', 'collection', 'shop', 'journal', 'set
 test('main screens have no serious or critical accessibility violations', async ({ page }) => {
   await page.goto('/?sim')
   await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'New player' }).click()
   await page.getByRole('button', { name: /continue/i }).click()
   await page.getByText(/tap to ready/i).click()
   await page.waitForFunction(() => !!(window as W).__save && (window as W).__rt?.ready)

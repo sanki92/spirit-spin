@@ -5,7 +5,7 @@ import { declineInvite, fetchInvites } from '../state/sync'
 import { UsernameSheet } from './UsernameSheet'
 
 const POLL_MS = 8000
-const QUIET = new Set(['splash', 'age', 'ready', 'starter', 'safety', 'calibrate', 'battle', 'live', 'ghost', 'stadium', 'awaken', 'friends', 'social'])
+const QUIET = new Set(['splash', 'age', 'ready', 'starter', 'safety', 'calibrate', 'battle', 'live', 'ghost', 'stadium', 'awaken', 'friends', 'social', 'welcome'])
 const key = (i: Invite) => `${i.from.playerId}:${i.at}`
 
 export function GlobalLayer({ routeKey }: { routeKey: string }) {
@@ -48,6 +48,16 @@ export function GlobalLayer({ routeKey }: { routeKey: string }) {
     useProfile.getState().set({ invites: useProfile.getState().invites.filter(x => key(x) !== key(i)) })
   }
 
+  if (profile.signedOut) {
+    return (
+      <div className="banned-wall signed-out" role="alertdialog" aria-modal="true" aria-labelledby="so-title">
+        <h2 id="so-title" className="slant">Signed in on another device</h2>
+        <p>Your account was opened on another phone with your recovery code, so it was signed out here and this device's game data was cleared.</p>
+        <button className="cta gold" onClick={() => { useProfile.getState().set({ signedOut: false }); nav.reset({ k: 'welcome', recover: true }) }}><span>Use my recovery code</span></button>
+        <button className="text-btn" onClick={() => location.reload()}>Start as a new player</button>
+      </div>
+    )
+  }
   if (profile.banned) {
     return (
       <div className="banned-wall" role="alertdialog" aria-modal="true" aria-labelledby="banned-title">

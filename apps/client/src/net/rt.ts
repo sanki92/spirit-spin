@@ -1,5 +1,5 @@
 import { decode, encode, RttStats, type ClientMsg, type ServerMsg, type Side, type TopBuild, type WireMsg } from '@spirit/core'
-import { authToken } from '../state/sync'
+import { authToken, signOut } from '../state/sync'
 import { log } from '../telemetry'
 
 type Handler = (m: ServerMsg) => void
@@ -33,6 +33,7 @@ class Realtime {
   }
 
   private emit(m: ServerMsg): void {
+    if (m.k === 'error' && m.code === 'signed-out') signOut()
     for (const h of this.handlers) h(m)
   }
 

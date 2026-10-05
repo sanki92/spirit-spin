@@ -4,6 +4,7 @@ import { BEASTS } from '../../game/beasts'
 import { useRuntime } from '../../runtime'
 import { useNav } from '../../state/nav'
 import { useSave } from '../../state/save'
+import { recover } from '../../state/sync'
 import { Img, Screen, Slash, Stat } from '../kit'
 import { GuideStrip } from '../hud/LaunchHud'
 
@@ -27,7 +28,8 @@ export function Splash() {
   const calm = useSave(s => s.settings.reducedMotion) || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   const stage = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'wait' | 'go' | 'end'>('wait')
-  const start = () => nav.replace(birthYear ? { k: 'ready' } : { k: 'age' })
+  const fresh = useSave(s => !s.starter)
+  const start = () => nav.replace(fresh ? { k: 'welcome' } : birthYear ? { k: 'ready' } : { k: 'age' })
   useEffect(() => {
     let live = true, t = 0
     const imgs = [...(stage.current?.querySelectorAll('img') ?? [])]
@@ -58,6 +60,53 @@ export function Splash() {
         <button className="cta gold intro-start" onClick={e => { e.stopPropagation(); start() }} aria-label="Start"><span>Tap to start</span></button>
       )}
     </div>
+  )
+}
+
+export function Welcome({ recover: startRecover = false }: { recover?: boolean | undefined }) {
+  const nav = useNav()
+  const [mode, setMode] = useState<'choose' | 'recover'>(startRecover ? 'recover' : 'choose')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const next = () => {
+    const s = useSave.getState()
+    if (startRecover && s.starter) return nav.reset({ k: 'home' })
+    nav.replace(s.birthYear ? { k: 'ready' } : { k: 'age' })
+  }
+  const format = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12).replace(/(.{4})(?=.)/g, '$1-')
+  const submit = async () => {
+    if (busy || code.replace(/-/g, '').length !== 12) return
+    setBusy(true)
+    setError(null)
+    const ok = await recover(code).catch(() => null)
+    setBusy(false)
+    if (ok) return next()
+    setError(ok === null ? "Can't reach the server. Check your connection and try again." : 'That recovery code does not match any account. Check it and try again.')
+  }
+  return (
+    <Screen className="welcome center">
+      <Img id="ui/logo" className="welcome-logo" eager />
+      {mode === 'choose' ? (
+        <div className="welcome-choices">
+          <button className="cta gold" onClick={() => nav.replace(useSave.getState().birthYear ? { k: 'ready' } : { k: 'age' })}><span>New player</span></button>
+          <button className="welcome-alt" onClick={() => setMode('recover')}>
+            <strong>I already play</strong>
+            <small>Restore your account with your recovery code</small>
+          </button>
+        </div>
+      ) : (
+        <form className="welcome-recover" onSubmit={e => { e.preventDefault(); void submit() }}>
+          <h2 className="slant">Restore your account</h2>
+          <p>Enter the recovery code from Settings on your other device. Your account moves to this phone and signs out there.</p>
+          <input value={code} onChange={e => setCode(format(e.target.value))} placeholder="XXXX-XXXX-XXXX" inputMode="text" autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} aria-label="Recovery code" />
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="cta gold" disabled={busy || code.replace(/-/g, '').length !== 12}><span>{busy ? 'Restoring…' : 'Restore account'}</span></button>
+          {!startRecover && <button type="button" className="text-btn" onClick={() => { setMode('choose'); setError(null) }}>Back</button>}
+          {startRecover && <button type="button" className="text-btn" onClick={() => nav.back()}>Cancel</button>}
+        </form>
+      )}
+    </Screen>
   )
 }
 

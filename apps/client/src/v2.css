@@ -686,3 +686,17 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .banned-wall h2 { margin: 0; font-size: 44px; color: #ff4d6a; }
 .banned-wall p { margin: 0; max-width: 34ch; font-size: 17px; font-weight: 700; color: var(--chrome); }
 .banned-wall .fine { font-size: 14px; color: var(--muted); }
+.welcome { gap: 22px; background: radial-gradient(70% 45% at 50% 30%, #141c4a, #070b1f 70%); }
+.welcome-logo { width: min(78vw, 360px); }
+.welcome-choices, .welcome-recover { display: grid; gap: 12px; width: min(100%, 360px); }
+.welcome-choices .cta > span, .welcome-recover .cta > span { min-height: 58px; font-size: 26px; }
+.welcome-alt { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--line); background: linear-gradient(180deg, var(--ink-hi), var(--ink)); color: var(--chrome); font: inherit; cursor: pointer; }
+.welcome-alt strong { font-size: 18px; }
+.welcome-alt small { font-size: 13px; color: var(--muted); }
+.welcome-recover h2 { margin: 0; font-size: 34px; color: #fff; }
+.welcome-recover p { margin: 0; font-size: 15px; color: var(--muted); }
+.welcome-recover input { min-height: 54px; padding: 0 14px; border: 1px solid var(--line); background: #050818; color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 4px; text-align: center; }
+.welcome-recover input:focus { outline: 2px solid var(--cyan); }
+.username-restore { justify-self: center; font-size: 14px; }
+.banned-wall .cta { width: min(80vw, 320px); }
+.banned-wall.signed-out h2 { color: var(--gold); }

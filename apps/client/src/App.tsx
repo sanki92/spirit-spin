@@ -14,6 +14,7 @@ import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
 import { Friends, Social } from './ui/screens/Friends'
 import { History } from './ui/screens/History'
+import { useProfile } from './state/profile'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
@@ -21,7 +22,7 @@ import { Garage } from './ui/screens/Garage'
 import { beastArt, Home } from './ui/screens/Home'
 import { Tower } from './ui/screens/Tower'
 import { Awaken, Collection, Journal, Settings, Shop } from './ui/screens/Meta'
-import { AgeGate, Calibrate, Safety, Splash, StarterSelect } from './ui/screens/Onboarding'
+import { AgeGate, Calibrate, Safety, Splash, StarterSelect, Welcome } from './ui/screens/Onboarding'
 import { ReadyScreen } from './ui/screens/ReadyScreen'
 import { ComingSoon } from './ui/screens/Soon'
 import { FEATURES } from './features'
@@ -43,7 +44,7 @@ export function App() {
     document.documentElement.classList.toggle('reduce-motion', settings.reducedMotion || (import.meta.env.DEV && new URLSearchParams(location.search).has('still')))
   }, [settings, rt])
   useEffect(() => {
-    if (route.k !== 'splash' && route.k !== 'age' && route.k !== 'ready' && !rt.ready) nav.reset({ k: 'ready' })
+    if (route.k !== 'splash' && route.k !== 'age' && route.k !== 'ready' && route.k !== 'welcome' && !rt.ready) nav.reset({ k: 'ready' })
     if (import.meta.env.DEV && route.k === 'splash' && new URLSearchParams(location.search).has('screen')) nav.reset({ k: 'ready' })
   }, [route.k, rt, nav])
   useEffect(() => {
@@ -99,6 +100,7 @@ export function App() {
     case 'friends': return <Friends join={route.join} challenge={route.challenge} />
     case 'social': return <Social />
     case 'history': return <History />
+    case 'welcome': return <Welcome recover={route.recover} />
     case 'live': return <Lazy><LiveRoute route={route} /></Lazy>
     case 'ranked': return FEATURES.ranked ? <Ranked /> : <RankedSoon />
     case 'pass': return <Pass />
@@ -163,7 +165,7 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
     [route, nav],
   )
   const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, { ...d, onAbort: () => nav.replace({ k: 'friends' }) }, route.side), [route, nav])
-  const names = useMemo<[string, string]>(() => [s.name || 'You', route.peer.name || 'Rival'], [route])
+  const names = useMemo<[string, string]>(() => [useProfile.getState().username || s.name || 'You', route.peer.name || 'Rival'], [route])
   return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} names={names} />
 }
 

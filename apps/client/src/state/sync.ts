@@ -9,6 +9,7 @@ let auth: Auth | null = null
 let timer = 0
 let inflight = false
 let applyingRemote = false
+let signedOut = false
 
 interface Me { version: number; save: Record<string, unknown>; token?: string; username?: string | null; friendCode?: string }
 
@@ -39,6 +40,7 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<{ s
   const data = (await res.json().catch(() => ({}))) as T
   const d = data as { error?: string; reason?: string }
   if (res.status === 403 && d.error === 'banned') useProfile.getState().set({ banned: d.reason || 'This account is suspended.' })
+  if (res.status === 401 && d.error === 'signed-out') signOut()
   return { status: res.status, data }
 }
 
@@ -54,7 +56,27 @@ function adopt(remote: Record<string, unknown>, version: number): void {
   storeAuth({ ...(auth as Auth), version })
 }
 
+export function signOut(): void {
+  if (signedOut) return
+  signedOut = true
+  clearTimeout(timer)
+  auth = null
+  applyingRemote = true
+  useSave.getState().reset()
+  applyingRemote = false
+  for (const k of [AUTH_KEY, 'spirit.save']) {
+    try {
+      localStorage.removeItem(k)
+    } catch {
+      continue
+    }
+  }
+  useProfile.getState().set({ signedOut: true, loaded: false, username: null, friendCode: null, invites: [] })
+  log('sync.signed-out', {})
+}
+
 export async function reauth(): Promise<boolean> {
+  if (signedOut) return false
   const prev = auth ?? loadAuth()
   const code = prev?.recoveryCode ?? null
   if (code) {
@@ -95,7 +117,7 @@ export async function startSync(): Promise<void> {
     if (!auth) {
       const g = await api<{ token: string; playerId: string; recoveryCode: string }>('POST', '/v1/auth/guest')
       if (g.status !== 200) return log('sync.guest-failed', { status: g.status })
-      storeAuth({ ...g.data, version: 0 })
+      if (!auth) storeAuth({ ...g.data, version: 0 })
       log('sync.guest', { playerId: g.data.playerId })
     }
     let me = await api<Me>('GET', '/v1/me')
@@ -122,7 +144,7 @@ export async function startSync(): Promise<void> {
 }
 
 async function push(): Promise<void> {
-  if (!auth || inflight) return
+  if (!auth || inflight || signedOut) return
   inflight = true
   try {
     const local = snapshot()
@@ -150,6 +172,8 @@ async function push(): Promise<void> {
 export async function recover(code: string): Promise<boolean> {
   const r = await api<{ token: string; playerId: string }>('POST', '/v1/auth/recover', { code })
   if (r.status !== 200) return false
+  signedOut = false
+  useProfile.getState().set({ signedOut: false })
   storeAuth({ token: r.data.token, playerId: r.data.playerId, recoveryCode: code.toUpperCase(), version: 0 })
   const me = await api<Me>('GET', '/v1/me')
   if (me.status === 200) {

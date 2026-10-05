@@ -16,7 +16,8 @@ import { registerAdmin } from './admin'
 import { PASS_TIERS, SKUS, usernameError, usernameKey } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { Sessions } from './sessions'
 import { EdgeClient } from './rt/edge'
 import { NetLog } from './rt/netlog'
 import { registerRealtime, type RealtimeOpts } from './rt/socket'
@@ -86,6 +87,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKey })
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
   const mod = new Moderation(db, e => app.log.warn({ err: String(e) }, 'ip tracking failed'))
+  const sessions = new Sessions(db)
   await mod.load()
   const notify = deps.notifier ?? discordNotifier(cfg.discordWebhook, { onError: e => app.log.warn({ err: String(e) }, 'discord post failed') })
   app.addHook('onClose', async () => notify.stop())
@@ -97,6 +99,9 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     netlog,
     ...(edge ? { closeEdge: () => edge.close() } : {}),
     banned: (id, ip) => mod.ban(id, ip),
+    session: async token => { const t = await tokens.inspect(token); return t ? { id: t.id, check: await sessions.check(t) } : null },
+    onKick: fn => sessions.onKick(fn),
+    nameOf: async id => (await db.select({ username: players.username }).from(players).where(eq(players.id, id)).limit(1)).at(0)?.username ?? null,
     onStart: room => {
       const [a, b] = room.seats
       if (a && b) notify.say(`⚔️ Live battle started: **${a.name}** (${beastName(a.build.beastId)}) vs **${b.name}** (${beastName(b.build.beastId)})`)
@@ -118,8 +123,12 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   const lastSeen = new Map<string, number>()
   const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
     const h = req.headers.authorization
-    const id = h?.startsWith('Bearer ') ? await tokens.verify(h.slice(7)) : null
-    if (!id) return reply.code(401).send({ error: 'unauthorized' })
+    const t = h?.startsWith('Bearer ') ? await tokens.inspect(h.slice(7)) : null
+    if (!t) return reply.code(401).send({ error: 'unauthorized' })
+    const session = await sessions.check(t)
+    if (session === 'signed-out') return reply.code(401).send({ error: 'signed-out' })
+    if (session !== 'ok') return reply.code(401).send({ error: 'unauthorized' })
+    const id = t.id
     const banned = mod.ban(id, req.ip)
     if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
     req.playerId = id
@@ -174,8 +183,10 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     const ipBanned = mod.ipBan(req.ip)
     if (ipBanned) return reply.code(403).send({ error: 'banned', reason: ipBanned })
     const code = newRecoveryCode()
-    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6) }).returning({ id: players.id })
-    return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
+    const sid = randomBytes(12).toString('base64url')
+    const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6), sessionId: sid }).returning({ id: players.id })
+    sessions.remember(row!.id, sid)
+    return { playerId: row!.id, token: await tokens.sign(row!.id, sid), recoveryCode: code }
   })
 
   app.post(
@@ -186,14 +197,15 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
       if (!row) return reply.code(404).send({ error: 'unknown recovery code' })
       const banned = mod.ban(row.id, req.ip)
       if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
-      return { playerId: row.id, token: await tokens.sign(row.id) }
+      const sid = await sessions.rotate(row.id)
+      return { playerId: row.id, token: await tokens.sign(row.id, sid) }
     },
   )
 
   app.get('/v1/me', { preHandler: requireAuth }, async (req, reply) => {
     const [row] = await db.select().from(players).where(eq(players.id, req.playerId)).limit(1)
     if (!row) return reply.code(401).send({ error: 'unknown player' })
-    return { playerId: row.id, name: row.name, username: row.username ?? null, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id) }
+    return { playerId: row.id, name: row.name, username: row.username ?? null, friendCode: row.friendCode ?? (await assignFriendCode(db, row.id)), version: row.saveVersion, save: await sanitizeSave(db, row.id, row.save), token: await tokens.sign(row.id, await sessions.sid(row.id)) }
   })
 
   const cups = registerTournaments(app, db, requireAuth)

@@ -13,6 +13,7 @@ test('capture every screen', async ({ page }) => {
   await page.waitForLoadState('networkidle')
   await shot(page, '01-splash')
   await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'New player' }).click()
   await expect(page.getByRole('button', { name: /continue/i })).toBeVisible({ timeout: 3000 })
   await shot(page, '02-age')
   await page.getByRole('button', { name: /continue/i }).click()

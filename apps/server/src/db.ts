@@ -18,6 +18,7 @@ export const players = pgTable('players', {
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   bannedAt: timestamp('banned_at', { withTimezone: true }),
   banReason: text('ban_reason'),
+  sessionId: text('session_id'),
   save: jsonb('save').$type<Record<string, unknown>>().notNull().default({}),
   saveVersion: integer('save_version').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -325,6 +326,7 @@ const MIGRATIONS: string[] = [
     detail jsonb,
     at timestamptz NOT NULL DEFAULT now()
   )`,
+  `ALTER TABLE players ADD COLUMN IF NOT EXISTS session_id text`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

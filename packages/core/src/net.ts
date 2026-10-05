@@ -32,7 +32,7 @@ export type ServerMsg =
   | { k: 'end'; round: number; outcome: RoundOutcome; scores: [number, number]; winner: Side | null }
   | { k: 'pong'; t: number; server: number }
   | { k: 'left'; reason: 'forfeit' | 'quit'; winner?: Side }
-  | { k: 'error'; code: 'auth' | 'bad-message' | 'no-room' | 'full' | 'rate' | 'banned' }
+  | { k: 'error'; code: 'auth' | 'bad-message' | 'no-room' | 'full' | 'rate' | 'banned' | 'signed-out' }
   | { k: 'watching'; code: string }
   | { k: 'seats'; seats: ({ name: string; build: TopBuild; online: boolean } | null)[] }
   | { k: 'catchup'; round: number; tl: Timeline }
