@@ -651,3 +651,4 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .garage-stage { overflow-x: clip; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .sr-only:focus { position: fixed; left: 16px; top: calc(16px + var(--safe-top)); width: auto; height: auto; margin: 0; padding: 10px 14px; clip: auto; z-index: 50; background: var(--gold); color: #241300; font-weight: 800; }
+.intro.i-end .intro-top, .intro.i-end .intro-spark, .intro.i-end .intro-flash, .intro.i-end .intro-ring, .intro.i-wait .intro-spark, .intro.i-wait .intro-flash, .intro.i-wait .intro-ring { display: none; }

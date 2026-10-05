@@ -101,7 +101,7 @@ export function Garage() {
     toTop()
   }
 
-  const saved = s.loadout && JSON.stringify({ ...draft, levels: undefined, kit: undefined }) === JSON.stringify({ ...s.loadout, levels: undefined, kit: undefined })
+  const saved = !!s.loadout && (['bladeId', 'discId', 'tipId', 'beastId'] as const).every(k => draft[k] === s.loadout![k])
   const kit = kitFor(draft.beastId, p, beast)
   const tech = TECHNIQUES[draft.beastId]
   const focus: ViewFocus = slot
