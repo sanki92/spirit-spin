@@ -9,6 +9,7 @@ import { todayKey, useSave } from '../../state/save'
 import { spiritMoment } from '../../state/spiritAi'
 import { Coins, Img, Screen, Shards } from '../kit'
 import { InstallBanner } from '../InstallBanner'
+import { usePeek } from '../../state/back'
 
 export function beastArt(id: BeastId, awakened: string | null | undefined): string {
   return awakened ? `beasts/${id}/awakened-${awakened}` : `beasts/${id}`
@@ -73,15 +74,16 @@ export function Home() {
   const daily = loginState(s.login?.last ?? '', s.login?.streak ?? 0, today)
   const questReady = quests.some(q => q.progress >= q.target && !s.quests.claimed.includes(q.id))
   const hasName = useProfile(p => p.loaded && !!p.username)
+  const peek = usePeek()
   const [sheet, setSheet] = useState<'daily' | 'quests' | 'modes' | null>(null)
   const [mode, setMode] = useState<Mode>(readMode)
   const pick = (m: Mode) => { setMode(m); modeStore.set(m); setSheet(null) }
   useEffect(() => {
-    if (first || !hasName || !daily.canClaim || seenDay === today || seenStore.get() === today) return
+    if (peek || first || !hasName || !daily.canClaim || seenDay === today || seenStore.get() === today) return
     seenDay = today
     seenStore.set(today)
     setSheet('daily')
-  }, [first, hasName, daily.canClaim, today])
+  }, [peek, first, hasName, daily.canClaim, today])
   const m = first ? 'story' : mode
   const card = MODES.find(x => x.k === m) ?? MODES[0]!
   const go = () => (m === 'story' ? play() : m === 'live' ? nav.push({ k: 'friends' }) : nav.push({ k: m }))

@@ -1,4 +1,5 @@
 import { GlobalLayer } from './ui/GlobalLayer'
+import { SwipeStack } from './ui/SwipeBack'
 import { BOT_LEVELS, hesitates, towerFloor, type BeastId, type TopBuild } from '@spirit/core'
 import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { MatchResult, MatchSetup } from './game/BattleController'
@@ -35,6 +36,7 @@ const Lazy = ({ children }: { children: ReactNode }) => <Suspense fallback={<Loa
 
 export function App() {
   const route = useNav(currentRoute)
+  const prev = useNav(s => s.stack.at(-2) ?? null)
   const nav = useNav()
   const rt = useRuntime()
   const settings = useSave(s => s.settings)
@@ -80,7 +82,7 @@ export function App() {
     }
   }, [nav])
 
-  const screen = (() => {
+  const render = (route: Route) => {
   switch (route.k) {
     case 'splash': return <Splash />
     case 'age': return <AgeGate />
@@ -111,8 +113,8 @@ export function App() {
     case 'ghost': return (route.kind === 'tournament' ? FEATURES.cups : FEATURES.ranked) ? <Lazy><GhostRoute route={route} /></Lazy> : route.kind === 'tournament' ? <CupsSoon /> : <RankedSoon />
     case 'result': return <Result result={route.result} settlement={route.settlement} opponentName={route.opponentName} then={route.next} />
   }
-  })()
-  return <>{screen}<GlobalLayer routeKey={route.k} /></>
+  }
+  return <><SwipeStack top={render(route)} under={prev ? () => render(prev) : null} /><GlobalLayer routeKey={route.k} /></>
 }
 
 const RankedSoon = () => <ComingSoon title="Ranked" icon="ui/icons/ranked" text="Climb the ladder against other players' recorded battles. We're tuning it now; Live battles with friends and the Spirit Tower are open." />

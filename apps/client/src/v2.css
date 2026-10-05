@@ -732,3 +732,10 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 @keyframes installIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .reduce-motion .install-banner { animation: none; }
 @media (prefers-reduced-motion: reduce) { .install-banner { animation: none; } }
+.swipe-top.swiping { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h); z-index: 3; box-shadow: -12px 0 32px rgba(0, 0, 0, 0.55); will-change: transform; }
+.swipe-under { position: fixed; top: 0; left: 0; right: 0; height: var(--app-h); z-index: 2; transform: translate3d(-30%, 0, 0); pointer-events: none; will-change: transform; overflow: hidden; }
+.swipe-shade { position: absolute; inset: 0; background: #03050f; opacity: 0.5; pointer-events: none; z-index: 50; }
+.sheet.leave-battle { justify-items: center; text-align: center; gap: 10px; z-index: 1; }
+.leave-battle h2 { margin: 0; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 34px; letter-spacing: 1px; color: #fff; }
+.leave-battle p { margin: 0 0 4px; max-width: 32ch; font-size: 16px; font-weight: 600; color: var(--muted); }
+.toast.exit-hint { z-index: 60; text-align: center; }
