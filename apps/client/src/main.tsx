@@ -12,7 +12,7 @@ import { installTelemetry, log } from './telemetry'
 import { fitViewport } from './viewport'
 import { CrashGuard, installCrashReporting } from './crash'
 import { captureInstallEvents } from './state/install'
-import { installBackGuard } from './state/back'
+import { installBackNav } from './state/back'
 import { keepUpdated } from './update'
 import './styles.css'
 import './screens.css'
@@ -21,7 +21,7 @@ import './v2.css'
 installTelemetry()
 installCrashReporting()
 captureInstallEvents()
-installBackGuard()
+installBackNav()
 keepUpdated()
 fitViewport()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })
