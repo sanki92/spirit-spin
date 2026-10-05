@@ -20,6 +20,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import { Sessions } from './sessions'
 import { deleteIdleGuests } from './cleanup'
 import { clientIp } from './clientip'
+import { archiveBuild } from './assetArchive'
 import { limitEconomy } from './economy'
 import { EdgeClient } from './rt/edge'
 import { NetLog } from './rt/netlog'
@@ -153,8 +154,10 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   if (cfg.staticDir && existsSync(cfg.staticDir)) {
     const root = resolve(cfg.staticDir)
+    const archive = cfg.assetArchiveDir ? resolve(cfg.assetArchiveDir) : null
+    if (archive) app.log.info(archiveBuild(root, archive), 'asset archive')
     await app.register(fastifyStatic, {
-      root,
+      root: archive ? [root, archive] : root,
       wildcard: false,
       setHeaders: (res, path) => {
         if (/[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(path)) res.header('cache-control', 'public, max-age=31536000, immutable')
@@ -166,7 +169,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     app.get('/admin', (_req, reply) => reply.header('cache-control', 'no-store').header('x-frame-options', 'DENY').header('referrer-policy', 'no-referrer').sendFile('admin/index.html', root))
     app.setNotFoundHandler((req, reply) => {
       if (req.method === 'GET' && !req.url.startsWith('/v1') && !req.url.startsWith('/rt') && !req.url.includes('.')) return reply.header('cache-control', 'no-cache').sendFile('index.html', root)
-      return reply.code(404).send({ error: 'not found' })
+      return reply.code(404).header('cache-control', 'no-store').send({ error: 'not found' })
     })
   }
 

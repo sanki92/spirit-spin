@@ -12,6 +12,7 @@ import { SpiritBurst } from '../SpiritBurst'
 import type { ViewFocus } from '../TopViewer'
 import { beastArt } from './Home'
 import { canAfford, needMore } from '../../state/shortage'
+import { CrashGuard } from '../../crash'
 
 const TopViewer = lazy(() => import('../TopViewer'))
 
@@ -128,9 +129,11 @@ export function Garage() {
       <div className="garage-stage" style={{ ['--c' as string]: BEASTS[draft.beastId].color }}>
         <div className="viewer-wrap">
           <div className={`viewer-2d ${ready3d ? 'gone' : ''}`} aria-hidden="true"><TopPreview build={draft} size={240} /></div>
+          <CrashGuard fallback={null}>
           <Suspense fallback={null}>
             <TopViewer blade={draft.bladeId} disc={draft.discId} tip={draft.tipId} emblem={`${art}/emblem-disc`} color={BEASTS[draft.beastId].color} focus={focus} still={s.settings.reducedMotion} onReady={() => setReady3d(true)} />
           </Suspense>
+          </CrashGuard>
           {burst > 0 && <SpiritBurst key={burst} beast={draft.beastId} art={art} />}
           <span className="viewer-hint">Drag to turn</span>
         </div>

@@ -29,7 +29,7 @@ export function installCrashReporting(): void {
   addEventListener('unhandledrejection', e => reportCrash('rejection', e.reason))
 }
 
-export class CrashGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class CrashGuard extends Component<{ children: ReactNode; fallback?: ReactNode }, { failed: boolean }> {
   override state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }
   override componentDidCatch(err: unknown) {
@@ -39,6 +39,7 @@ export class CrashGuard extends Component<{ children: ReactNode }, { failed: boo
   }
   override render() {
     if (!this.state.failed) return this.props.children
+    if ('fallback' in this.props) return this.props.fallback
     return (
       <div className="screen page crash" role="alert">
         <h1 className="slant">Something went wrong</h1>

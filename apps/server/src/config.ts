@@ -13,6 +13,7 @@ const Env = z.object({
   TRUST_PROXY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   STATIC_DIR: z.string().optional(),
+  ASSET_ARCHIVE_DIR: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   RT_EDGE_GRPC: z.string().optional(),
   RT_EDGE_SECRET: z.string().optional(),
@@ -35,6 +36,7 @@ export interface Config {
   recoveryPepper?: string | undefined
   trustProxy?: string | boolean | undefined
   staticDir?: string | undefined
+  assetArchiveDir?: string | undefined
   edge?: EdgeConfig | null
   netDashKey?: string | undefined
   discordWebhook?: string | undefined
@@ -62,6 +64,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logLevel: e.LOG_LEVEL,
     openaiKey: e.OPENAI_API_KEY ?? null,
     staticDir: e.STATIC_DIR,
+    assetArchiveDir: e.ASSET_ARCHIVE_DIR,
     netDashKey: e.NET_DASH_KEY,
     discordWebhook: e.DISCORD_WEBHOOK_URL,
     competitive: e.COMPETITIVE === '1',
