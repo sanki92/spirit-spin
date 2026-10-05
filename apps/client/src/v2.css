@@ -739,3 +739,4 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .leave-battle h2 { margin: 0; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 34px; letter-spacing: 1px; color: #fff; }
 .leave-battle p { margin: 0 0 4px; max-width: 32ch; font-size: 16px; font-weight: 600; color: var(--muted); }
 .toast.exit-hint { z-index: 60; text-align: center; }
+.set2-version { margin: 8px 0 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); opacity: 0.8; }

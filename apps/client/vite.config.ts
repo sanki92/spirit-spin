@@ -94,6 +94,7 @@ function deviceLogs(): Plugin {
 }
 
 export default defineConfig({
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC') },
   plugins: [
     {
       name: 'versioned-art-cache',

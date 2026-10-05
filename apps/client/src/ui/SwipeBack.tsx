@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { canSwipeBack, PeekContext } from '../state/back'
 import { useNav } from '../state/nav'
+import { reportCrash } from '../crash'
 
-const EDGE_PX = 28
+const EDGE_PX = 32
 const SETTLE_MS = 260
 const PARALLAX = 30
 
@@ -22,6 +23,12 @@ export function SwipeStack({ top, under }: { top: ReactNode; under: (() => React
     let settling = false
     let last = { x: 0, t: 0 }
     let vx = 0
+    let probed = false
+    const probe = (x: number, outcome: string) => {
+      if (probed) return
+      probed = true
+      reportCrash('diag', new Error(`swipe x=${Math.round(x)} ${outcome} top=${useNav.getState().stack.at(-1)?.k} depth=${useNav.getState().stack.length} standalone=${iosInstalled}`))
+    }
     const width = () => window.innerWidth
     const paint = (dx: number, animate: boolean) => {
       const tr = animate ? `transform ${SETTLE_MS}ms cubic-bezier(.2,.8,.2,1)` : 'none'
@@ -41,7 +48,8 @@ export function SwipeStack({ top, under }: { top: ReactNode; under: (() => React
     const onStart = (e: TouchEvent) => {
       if (settling || e.touches.length !== 1) return
       const t = e.touches[0]!
-      if (t.clientX > EDGE_PX || !canSwipeBack()) return
+      if (t.clientX > EDGE_PX) return
+      if (!canSwipeBack()) return probe(t.clientX, 'blocked')
       start = { x: t.clientX, y: t.clientY }
       last = { x: t.clientX, t: e.timeStamp }
       vx = 0
@@ -68,6 +76,7 @@ export function SwipeStack({ top, under }: { top: ReactNode; under: (() => React
       if (!engaged) { start = null; return }
       const dx = Math.max(0, (e.changedTouches[0]?.clientX ?? last.x) - start.x)
       const done = dx > width() * 0.35 || (vx > 0.35 && dx > 40)
+      probe(start.x, done ? `back dx=${Math.round(dx)}` : `cancel dx=${Math.round(dx)} vx=${vx.toFixed(2)}`)
       settling = true
       paint(done ? width() : 0, true)
       window.setTimeout(() => {
