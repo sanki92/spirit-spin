@@ -7,6 +7,7 @@ interface Profile {
   username: string | null
   friendCode: string | null
   invites: Invite[]
+  banned: string | null
   set(p: Partial<Omit<Profile, 'set'>>): void
 }
 
@@ -15,5 +16,6 @@ export const useProfile = create<Profile>(set => ({
   username: null,
   friendCode: null,
   invites: [],
+  banned: null,
   set: p => set(p),
 }))

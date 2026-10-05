@@ -119,7 +119,8 @@ export default defineConfig({
       manifest: MANIFEST,
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2}'],
-        globIgnores: ['**/__*.html', '**/devices.html'],
+        globIgnores: ['**/__*.html', '**/devices.html', '**/admin/**'],
+        navigateFallbackDenylist: [/^\/admin/, /^\/v1\//, /^\/__/],
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'font-css' } },
           { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'font-files', expiration: { maxEntries: 20, maxAgeSeconds: 31536000 }, cacheableResponse: { statuses: [0, 200] } } },

@@ -23,6 +23,7 @@ export type Route =
   | { k: 'awaken'; then?: Route }
   | { k: 'friends'; join?: string; challenge?: { playerId: string; name: string; friendCode: string; beast?: string | null } }
   | { k: 'social' }
+  | { k: 'history' }
   | { k: 'ranked' }
   | { k: 'pass' }
   | { k: 'stadium' }

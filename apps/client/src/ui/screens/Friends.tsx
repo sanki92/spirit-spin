@@ -24,6 +24,7 @@ const ERRORS: Record<string, string> = {
   auth: 'Could not sign you in. Check your connection and try again.',
   'bad-message': 'The battle server is on a different version. Refresh the page and try again.',
   rate: 'Too many tries in a row. Wait a few seconds, then try again.',
+  banned: 'This account is suspended and cannot join battles.',
 }
 const POLL_MS = 5000
 const REVEAL_MS = 1300

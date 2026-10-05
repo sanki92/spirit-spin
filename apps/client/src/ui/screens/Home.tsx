@@ -120,6 +120,7 @@ export function Home() {
               <Img id="ui/icons/quests" /><span>{doneCount}/{quests.length}</span>{questReady && <b className="h3-dot" aria-hidden="true" />}
             </button>
           )}
+          <button className="h3-icon" onClick={() => nav.push({ k: 'history' })} aria-label="Battle history"><Img id="ui/icons/trophy" /><span>History</span></button>
         </nav>
       )}
 

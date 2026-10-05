@@ -36,7 +36,10 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<{ s
     headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...(auth ? { authorization: `Bearer ${auth.token}` } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
-  return { status: res.status, data: (await res.json().catch(() => ({}))) as T }
+  const data = (await res.json().catch(() => ({}))) as T
+  const d = data as { error?: string; reason?: string }
+  if (res.status === 403 && d.error === 'banned') useProfile.getState().set({ banned: d.reason || 'This account is suspended.' })
+  return { status: res.status, data }
 }
 
 const snapshot = (): SaveData => {
@@ -178,6 +181,14 @@ export async function fetchInvites(): Promise<Invite[] | null> {
   if (!auth) return null
   const r = await api<{ challenges: Invite[] }>('GET', '/v1/challenges').catch(() => null)
   return r && r.status === 200 ? r.data.challenges : null
+}
+
+export interface ServerMatch { id: string; at: number; opponent: string; opponentBeast: string | null; beast: string | null; scores: [number, number]; won: boolean; rounds: { winner: 0 | 1 | null; finish: string }[] }
+
+export async function fetchHistory(): Promise<ServerMatch[] | null> {
+  if (!auth) return null
+  const r = await api<{ matches: ServerMatch[] }>('GET', '/v1/history').catch(() => null)
+  return r && r.status === 200 ? r.data.matches : null
 }
 
 export async function declineInvite(from: string): Promise<void> {

@@ -27,7 +27,7 @@ const Msg = z.discriminatedUnion('k', [
 ])
 
 
-export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
+export interface RealtimeOpts { seatHoldMs?: number; onResult?: (room: Room) => void; onStart?: (room: Room) => void; banned?: (playerId: string, ip: string) => string | null; speed?: number; edge?: EdgeApi | null; netlog?: NetLog; closeEdge?: () => void }
 
 export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opts: RealtimeOpts = {}) {
   await app.register(websocket, { options: { maxPayload: NET.maxMessageBytes } })
@@ -41,7 +41,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
   }
   const make = () => {
     const code = rooms.size < NET.maxRooms ? newCode() : null
-    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, log: o => { app.log.info(o); opts.netlog?.add(o) }, edge: opts.edge ?? null, ...(opts.onResult ? { onResult: opts.onResult } : {}) }) : null
+    return code ? new Room(code, { seatHoldMs: opts.seatHoldMs ?? NET.seatHoldMs, now: Date.now, onDone: r => { rooms.delete(r.code); for (const [k, v] of owned) if (v === r) owned.delete(k) }, speed: opts.speed ?? 1, log: o => { app.log.info(o); opts.netlog?.add(o) }, edge: opts.edge ?? null, ...(opts.onResult ? { onResult: opts.onResult } : {}), ...(opts.onStart ? { onStart: opts.onStart } : {}) }) : null
   }
   app.addHook('onClose', async () => {
     await Promise.all([...rooms.values()].map(r => r.close()))
@@ -116,6 +116,7 @@ export async function registerRealtime(app: FastifyInstance, tokens: Tokens, opt
       if (m.k === 'hello') {
         const id = await tokens.verify(m.token)
         if (!id) return fail('auth')
+        if (opts.banned?.(id, req.ip)) return fail('banned')
         playerId = id
         name = cleanName(m.name)
         return send({ k: 'welcome', playerId: id })

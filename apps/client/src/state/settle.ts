@@ -1,12 +1,14 @@
 import { BLADES, DISCS, LEVEL_UP_SHARDS, levelForXp, SHARDS, TIPS, winStreakBonus, STARTER_BEASTS, towerFloor, type BattleSummary, type BeastId, type BossId, type Change } from '@spirit/core'
 import type { MatchResult } from '../game/BattleController'
-import { todayKey, useSave } from './save'
+import { todayKey, useSave, type HistoryEntry } from './save'
 
 export interface Settlement { coins: number; xp: number; changes: Change[]; unlocked: BeastId | null; part: string | null; shards: number; streak: number; streakCoins: number; levelUps: number }
 
-export function settleMatch(result: MatchResult, floor: number | null, boss: BossId | null, opponentName: string): Settlement {
+export function settleMatch(result: MatchResult, floor: number | null, boss: BossId | null, opponentName: string, mode: HistoryEntry['mode'] = floor ? 'story' : 'practice', opponentBeast: string | null = null): Settlement {
   const save = useSave.getState()
   const won = result.winner === 0
+  const entry: HistoryEntry = { at: Date.now(), mode, opponent: opponentName, opponentBeast, beast: save.loadout?.beastId ?? null, won, scores: [result.match.scores[0], result.match.scores[1]], floor, rounds: result.match.history.map(o => ({ winner: o.winner, finish: o.finish })) }
+  useSave.setState(s => ({ history: [entry, ...(s.history ?? [])].slice(0, 50) }))
   const summary: BattleSummary = {
     won, comeback: result.comeback, finishes: result.finishes, perfectRips: result.perfectRips, overspins: result.overspins,
     spiritCalls: result.spiritCalls, aggression: result.aggression, boss, opponent: opponentName,

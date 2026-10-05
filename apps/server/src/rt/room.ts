@@ -35,6 +35,7 @@ export class Room {
   readonly seats: [Seat | null, Seat | null] = [null, null]
   match: MatchState = newMatch()
   round = 0
+  startedAt: number | null = null
   phase: 'wait' | 'launch' | 'battle' | 'between' | 'done' = 'wait'
   live: RoundRunner | null = null
   private silence: ReturnType<typeof setInterval> | null = null
@@ -44,7 +45,7 @@ export class Room {
   private timers: ReturnType<typeof setTimeout>[] = []
   readonly spectators = new Map<(m: ServerMsg) => void, (b: Uint8Array) => void>()
 
-  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; speed?: number; log?: (o: Record<string, unknown>) => void; edge?: EdgeApi | null }) {
+  constructor(readonly code: string, private opts: { seatHoldMs: number; now: () => number; onDone: (r: Room) => void; onResult?: (r: Room) => void; onStart?: (r: Room) => void; speed?: number; log?: (o: Record<string, unknown>) => void; edge?: EdgeApi | null }) {
     this.matchId = `${code}-${randomUUID().slice(0, 8)}`
   }
 
@@ -118,7 +119,11 @@ export class Room {
   }
 
   private kickoff(): void {
-    if (this.round === 0 && this.phase === 'wait' && this.seats.every(Boolean)) this.nextRound()
+    if (this.round === 0 && this.phase === 'wait' && this.seats.every(Boolean)) {
+      this.startedAt = this.opts.now()
+      this.opts.onStart?.(this)
+      this.nextRound()
+    }
   }
 
   private reconnect(side: Side, send: (m: ServerMsg) => void, close: () => void, bin: (b: Uint8Array) => void): Side {

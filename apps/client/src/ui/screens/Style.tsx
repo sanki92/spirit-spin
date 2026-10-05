@@ -164,6 +164,7 @@ export function Profile() {
         </div>
       </section>
       {editing && <UsernameSheet onClose={() => setEditing(false)} />}
+      <button className="p2-history" onClick={() => nav.push({ k: 'history' })}><span>Battle history</span><small>Every story, live and ranked battle</small></button>
       <dl className="p2-stats">
         <div><dt>Battles</dt><dd>{st.battles}</dd></div>
         <div><dt>Wins</dt><dd>{st.wins}</dd></div>

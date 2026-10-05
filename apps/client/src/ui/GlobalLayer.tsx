@@ -48,6 +48,15 @@ export function GlobalLayer({ routeKey }: { routeKey: string }) {
     useProfile.getState().set({ invites: useProfile.getState().invites.filter(x => key(x) !== key(i)) })
   }
 
+  if (profile.banned) {
+    return (
+      <div className="banned-wall" role="alertdialog" aria-modal="true" aria-labelledby="banned-title">
+        <h2 id="banned-title" className="slant">Account suspended</h2>
+        <p>{profile.banned}</p>
+        <p className="fine">If you think this is a mistake, contact the Spirit Spin team.</p>
+      </div>
+    )
+  }
   return (
     <>
       {toast && !quiet && (

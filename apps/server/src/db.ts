@@ -12,6 +12,12 @@ export const players = pgTable('players', {
   name: text('name').notNull().default('Spinner'),
   friendCode: text('friend_code').unique(),
   username: text('username'),
+  lastIp: text('last_ip'),
+  lastCountry: text('last_country'),
+  lastCity: text('last_city'),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  bannedAt: timestamp('banned_at', { withTimezone: true }),
+  banReason: text('ban_reason'),
   save: jsonb('save').$type<Record<string, unknown>>().notNull().default({}),
   saveVersion: integer('save_version').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -105,6 +111,45 @@ export const entitlements = pgTable('entitlements', {
   item: text('item').notNull(),
   source: text('source'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const playerIps = pgTable('player_ips', {
+  playerId: uuid('player_id').notNull(),
+  ip: text('ip').notNull(),
+  country: text('country'),
+  city: text('city'),
+  firstSeen: timestamp('first_seen', { withTimezone: true }).notNull().defaultNow(),
+  lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const ipBans = pgTable('ip_bans', {
+  ip: text('ip').primaryKey(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const liveMatches = pgTable('live_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: text('code').notNull(),
+  aId: uuid('a_id').notNull(),
+  bId: uuid('b_id').notNull(),
+  aName: text('a_name').notNull(),
+  bName: text('b_name').notNull(),
+  aBeast: text('a_beast'),
+  bBeast: text('b_beast'),
+  scores: jsonb('scores').$type<[number, number]>().notNull(),
+  winner: integer('winner'),
+  rounds: jsonb('rounds').$type<unknown[]>().notNull().default([]),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  endedAt: timestamp('ended_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const adminLog = pgTable('admin_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  action: text('action').notNull(),
+  target: text('target'),
+  detail: jsonb('detail').$type<Record<string, unknown> | null>(),
+  at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const aiCalls = pgTable('ai_calls', {
@@ -235,6 +280,51 @@ const MIGRATIONS: string[] = [
   CREATE UNIQUE INDEX IF NOT EXISTS ghost_matches_one_attempt ON ghost_matches (ref_id, player_id) WHERE ref_id IS NOT NULL`,
   `ALTER TABLE players ADD COLUMN IF NOT EXISTS username text;
   CREATE UNIQUE INDEX IF NOT EXISTS players_username_key ON players (lower(username))`,
+  `ALTER TABLE players ADD COLUMN IF NOT EXISTS last_ip text;
+  ALTER TABLE players ADD COLUMN IF NOT EXISTS last_country text;
+  ALTER TABLE players ADD COLUMN IF NOT EXISTS last_city text;
+  ALTER TABLE players ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
+  ALTER TABLE players ADD COLUMN IF NOT EXISTS banned_at timestamptz;
+  ALTER TABLE players ADD COLUMN IF NOT EXISTS ban_reason text;
+  CREATE TABLE IF NOT EXISTS player_ips (
+    player_id uuid NOT NULL,
+    ip text NOT NULL,
+    country text,
+    city text,
+    first_seen timestamptz NOT NULL DEFAULT now(),
+    last_seen timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (player_id, ip)
+  );
+  CREATE INDEX IF NOT EXISTS player_ips_ip ON player_ips (ip);
+  CREATE TABLE IF NOT EXISTS ip_bans (
+    ip text PRIMARY KEY,
+    reason text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS live_matches (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code text NOT NULL,
+    a_id uuid NOT NULL,
+    b_id uuid NOT NULL,
+    a_name text NOT NULL,
+    b_name text NOT NULL,
+    a_beast text,
+    b_beast text,
+    scores jsonb NOT NULL,
+    winner integer,
+    rounds jsonb NOT NULL DEFAULT '[]',
+    started_at timestamptz,
+    ended_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS live_matches_a ON live_matches (a_id, ended_at DESC);
+  CREATE INDEX IF NOT EXISTS live_matches_b ON live_matches (b_id, ended_at DESC);
+  CREATE TABLE IF NOT EXISTS admin_log (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    action text NOT NULL,
+    target text,
+    detail jsonb,
+    at timestamptz NOT NULL DEFAULT now()
+  )`,
 ]
 
 export type Db = PgDatabase<PgQueryResultHKT>

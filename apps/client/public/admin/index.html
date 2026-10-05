@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Spirit Spin Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --abyss: #070b1f; --ink: #0e1536; --ink-hi: #16204c; --line: #26336e; --text: #dfe6ff; --muted: #8e9bd0; --cyan: #3be6ff; --gold: #ffc93c; --red: #ff4d6a; --green: #4ef0a0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--abyss); color: var(--text); font: 600 15px/1.4 'Rajdhani', system-ui, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; font-weight: 400; letter-spacing: 1px; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 16px; }
+header { position: sticky; top: 0; z-index: 5; background: linear-gradient(180deg, var(--abyss) 80%, transparent); }
+.bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 16px 8px; max-width: 1180px; margin: 0 auto; }
+.bar h1 { font-size: 30px; color: #fff; }
+.bar h1 span { color: var(--cyan); }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav button { padding: 8px 14px; border: 1px solid var(--line); background: var(--ink); cursor: pointer; }
+nav button.on { background: var(--cyan); color: #04122a; border-color: var(--cyan); }
+.spacer { flex: 1; }
+.btn { padding: 8px 14px; border: 0; cursor: pointer; background: var(--ink-hi); border: 1px solid var(--line); }
+.btn.gold { background: var(--gold); color: #241300; border-color: var(--gold); }
+.btn.red { background: var(--red); color: #fff; border-color: var(--red); }
+.btn.cyan { background: var(--cyan); color: #04122a; border-color: var(--cyan); }
+.btn:disabled { opacity: .5; cursor: default; }
+input, select { padding: 8px 10px; background: #050818; border: 1px solid var(--line); outline: none; }
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.card { padding: 14px 16px; background: linear-gradient(180deg, var(--ink-hi), var(--ink)); border: 1px solid var(--line); }
+.card b { display: block; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 38px; line-height: 1; color: #fff; }
+.card small { color: var(--muted); }
+.card.warn b { color: var(--red); }
+section { margin-top: 18px; }
+section > h2 { font-size: 24px; margin-bottom: 8px; color: #fff; }
+table { width: 100%; border-collapse: collapse; background: var(--ink); border: 1px solid var(--line); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(38, 51, 110, .6); vertical-align: top; }
+th { color: var(--muted); font-size: 13px; font-weight: 700; background: #0a1030; position: sticky; top: 0; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--ink-hi); }
+.muted { color: var(--muted); }
+.tag { display: inline-block; padding: 1px 7px; font-size: 12px; font-weight: 700; border: 1px solid currentColor; }
+.tag.red { color: var(--red); } .tag.green { color: var(--green); } .tag.gold { color: var(--gold); } .tag.cyan { color: var(--cyan); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.err { color: var(--red); min-height: 1.4em; }
+.ok { color: var(--green); min-height: 1.4em; }
+#login { max-width: 360px; margin: 12vh auto; padding: 24px; display: grid; gap: 12px; }
+#login h1 { font-size: 40px; }
+.drawer { position: fixed; inset: 0; z-index: 10; display: flex; justify-content: flex-end; background: rgba(3, 5, 16, .7); }
+.drawer > div { width: min(760px, 100%); height: 100%; overflow-y: auto; padding: 18px; background: var(--abyss); border-left: 1px solid var(--line); }
+.drawer h2 { font-size: 34px; color: #fff; }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; margin-top: 10px; }
+.kv > span:nth-child(odd) { color: var(--muted); }
+.actions p { margin: 0; }
+.actions .ok:empty, .actions .err:empty { display: none; }
+.actions { display: grid; gap: 10px; margin-top: 14px; padding: 12px; background: var(--ink); border: 1px solid var(--line); }
+.actions .row input { flex: 1; min-width: 160px; }
+.warnbox { padding: 8px 10px; border-left: 3px solid var(--gold); background: rgba(255, 201, 60, .08); color: var(--gold); }
+.scroll { max-height: 340px; overflow-y: auto; }
+.hidden { display: none !important; }
+@media (max-width: 640px) { .kv { grid-template-columns: 110px 1fr; } th:nth-child(n+5), td:nth-child(n+5) { display: none; } }
+</style>
+</head>
+<body>
+<form id="login" class="card hidden" autocomplete="on">
+  <h1>Spirit Spin <span style="color:var(--cyan)">Admin</span></h1>
+  <input id="lu" name="username" placeholder="Username" autocomplete="username" required>
+  <input id="lp" name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+  <button class="btn cyan" type="submit">Sign in</button>
+  <p class="err" id="lerr" role="alert"></p>
+</form>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="bar">
+      <h1>Spirit Spin <span>Admin</span></h1>
+      <nav id="tabs" aria-label="Sections">
+        <button data-tab="dash" class="on">Dashboard</button>
+        <button data-tab="players">Players</button>
+        <button data-tab="live">Live</button>
+        <button data-tab="bans">Bans</button>
+        <button data-tab="log">Log</button>
+      </nav>
+      <span class="spacer"></span>
+      <button class="btn" id="logout">Sign out</button>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="tab-dash"></div>
+    <div id="tab-players" class="hidden">
+      <form class="row" id="psearch">
+        <input id="pq" placeholder="Username, ID, player UUID or IP" style="flex:1;min-width:220px">
+        <select id="pf"><option value="all">Everyone</option><option value="named">With username</option><option value="banned">Banned</option></select>
+        <button class="btn cyan">Search</button>
+      </form>
+      <section><div id="plist"></div></section>
+    </div>
+    <div id="tab-live" class="hidden"></div>
+    <div id="tab-bans" class="hidden"></div>
+    <div id="tab-log" class="hidden"></div>
+  </main>
+</div>
+<div id="drawer" class="drawer hidden" role="dialog" aria-modal="true" aria-label="Player details"><div id="dbody"></div></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id)
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+  const ago = t => { if (!t) return '—'; const s = (Date.now() - new Date(t).getTime()) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + 'm ago'; if (s < 86400) return Math.floor(s / 3600) + 'h ago'; return Math.floor(s / 86400) + 'd ago' }
+  const when = t => t ? new Date(t).toLocaleString() : '—'
+  const flag = c => c && c.length === 2 ? String.fromCodePoint(...[...c.toUpperCase()].map(x => 127397 + x.charCodeAt(0))) + ' ' + c : esc(c || '—')
+  const who = p => p.username ? '@' + esc(p.username) : esc(p.name || 'Spinner')
+  const cap = s => s ? esc(s[0].toUpperCase() + s.slice(1)) : '—'
+  let token = null
+  try { token = sessionStorage.getItem('spirit-admin') } catch {}
+  let timer = 0, tab = 'dash'
+
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { ...opts, headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Admin ' + token } : {}), ...(opts.headers || {}) } })
+    if (r.status === 401 && path !== '/v1/admin/login') { signOut(); throw new Error('Session expired. Sign in again.') }
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status))
+    return j
+  }
+  const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) })
+
+  function signOut() {
+    token = null
+    try { sessionStorage.removeItem('spirit-admin') } catch {}
+    clearInterval(timer)
+    $('app').classList.add('hidden'); $('drawer').classList.add('hidden'); $('login').classList.remove('hidden')
+  }
+  $('logout').onclick = signOut
+  $('login').onsubmit = async e => {
+    e.preventDefault(); $('lerr').textContent = ''
+    try {
+      const j = await post('/v1/admin/login', { user: $('lu').value, password: $('lp').value })
+      token = j.token
+      try { sessionStorage.setItem('spirit-admin', token) } catch {}
+      $('lp').value = ''
+      boot()
+    } catch (err) { $('lerr').textContent = err.message }
+  }
+
+  $('tabs').onclick = e => { const b = e.target.closest('button'); if (b) show(b.dataset.tab) }
+  function show(t) {
+    tab = t
+    for (const b of $('tabs').children) b.classList.toggle('on', b.dataset.tab === t)
+    for (const k of ['dash', 'players', 'live', 'bans', 'log']) $('tab-' + k).classList.toggle('hidden', k !== t)
+    clearInterval(timer)
+    const load = { dash: dash, players: players, live: live, bans: bans, log: log }[t]
+    load()
+    if (t === 'dash' || t === 'live') timer = setInterval(load, t === 'live' ? 5000 : 15000)
+  }
+
+  async function dash() {
+    try {
+      const s = await api('/v1/admin/stats')
+      const c = (n, l, w) => `<div class="card${w ? ' warn' : ''}"><b>${esc(n)}</b><small>${esc(l)}</small></div>`
+      $('tab-dash').innerHTML = `
+        <section><h2>Players</h2><div class="grid">${c(s.players.total, 'Total accounts')}${c(s.players.named, 'With a username')}${c(s.players.newDay, 'New in 24h')}${c(s.players.activeDay, 'Active in 24h')}${c(s.players.activeWeek, 'Active in 7 days')}${c(s.players.banned, 'Banned', s.players.banned > 0)}</div></section>
+        <section><h2>Live battles</h2><div class="grid">${c(s.live.rooms, 'Open rooms')}${c(s.live.playing, 'Battles in progress')}${c(s.live.seated, 'Players in rooms')}${c(s.matches.today, 'Matches today')}${c(s.matches.total, 'Matches all time')}${c(s.ipBans, 'IP bans', s.ipBans > 0)}</div></section>
+        <section><h2>Netcode health (since restart)</h2><div class="grid">${Object.entries(s.net || {}).map(([k, v]) => c(v, k, (k === 'desyncs' || k === 'lost') && v > 0)).join('') || '<p class="muted">No live rounds yet.</p>'}</div></section>
+        <section><h2>Where players are</h2>${s.countries.length ? `<table><tr><th>Country</th><th>Players</th></tr>${s.countries.map(x => `<tr><td>${flag(x.country)}</td><td>${esc(x.n)}</td></tr>`).join('')}</table>` : '<p class="muted">No locations yet.</p>'}</section>`
+    } catch (err) { $('tab-dash').innerHTML = `<p class="err">${esc(err.message)}</p>` }
+  }
+
+  $('psearch').onsubmit = e => { e.preventDefault(); players() }
+  async function players() {
+    try {
+      const q = $('pq').value.trim()
+      const j = await api('/v1/admin/players?' + new URLSearchParams(q ? { q } : { filter: $('pf').value }))
+      $('plist').innerHTML = j.players.length ? `<table><tr><th>Player</th><th>ID</th><th>Location</th><th>Last seen</th><th>Last IP</th><th>Joined</th><th>Status</th></tr>${j.players.map(p => `
+        <tr class="click" data-id="${esc(p.id)}"><td>${who(p)}</td><td>${esc(p.friendCode)}</td><td>${flag(p.country)}${p.city ? ' · ' + esc(p.city) : ''}</td><td>${ago(p.lastSeenAt)}</td><td>${esc(p.lastIp || '—')}</td><td>${ago(p.createdAt)}</td><td>${p.bannedAt ? '<span class="tag red">Banned</span>' : '<span class="tag green">OK</span>'}</td></tr>`).join('')}</table>` : '<p class="muted">No players match.</p>'
+    } catch (err) { $('plist').innerHTML = `<p class="err">${esc(err.message)}</p>` }
+  }
+  $('plist').onclick = e => { const tr = e.target.closest('tr[data-id]'); if (tr) openPlayer(tr.dataset.id) }
+
+  $('drawer').onclick = e => { if (e.target === $('drawer')) closeDrawer() }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('drawer').classList.contains('hidden')) closeDrawer() })
+  function closeDrawer() { $('drawer').classList.add('hidden'); if (tab === 'players') players(); if (tab === 'bans') bans() }
+
+  async function openPlayer(id) {
+    $('drawer').classList.remove('hidden')
+    $('dbody').innerHTML = '<p class="muted">Loading…</p>'
+    let d
+    try { d = await api('/v1/admin/players/' + encodeURIComponent(id)) } catch (err) { $('dbody').innerHTML = `<p class="err">${esc(err.message)}</p>`; return }
+    const p = d.player, s = d.save
+    $('dbody').innerHTML = `
+      <div class="row"><h2>${who(p)}</h2><span class="spacer"></span><button class="btn" id="dclose">Close</button></div>
+      <div class="row">${p.bannedAt ? `<span class="tag red">Banned ${ago(p.bannedAt)}: ${esc(p.banReason)}</span>` : '<span class="tag green">Active</span>'}${p.ipBanned ? '<span class="tag red">IP banned</span>' : ''}</div>
+      <div class="kv">
+        <span>Player ID</span><span>${esc(p.friendCode)}</span>
+        <span>UUID</span><span style="word-break:break-all">${esc(p.id)}</span>
+        <span>Joined</span><span>${when(p.createdAt)}</span>
+        <span>Last seen</span><span>${when(p.lastSeenAt)} (${ago(p.lastSeenAt)})</span>
+        <span>Last IP</span><span>${esc(p.lastIp || '—')} ${p.playersOnLastIp > 1 ? `<span class="tag gold">${esc(p.playersOnLastIp)} players on this IP</span>` : ''}</span>
+        <span>Location</span><span>${flag(p.country)}${p.city ? ' · ' + esc(p.city) : ''}</span>
+        <span>Progress</span><span>Tower floor ${esc(s.tower)} · ${esc(s.xp)} XP · ${esc(s.coins)} coins · ${esc(s.shards)} shards</span>
+        <span>Parts</span><span>${esc(s.parts.blades)} blades · ${esc(s.parts.discs)} discs · ${esc(s.parts.tips)} tips</span>
+        <span>Beasts</span><span>${s.beasts.map(b => `${cap(b.id)}${b.awakened ? ' <span class="tag gold">' + cap(b.awakened) + '</span>' : ''}`).join(', ') || '—'}</span>
+      </div>
+      <div class="actions">
+        <h3>Actions</h3>
+        ${p.bannedAt ? '<div class="row"><button class="btn cyan" id="aunban">Unban player</button></div>' : '<form class="row" id="aban"><input name="reason" placeholder="Ban reason (shown to the player)" maxlength="200" required><button class="btn red">Ban player</button></form>'}
+        ${p.lastIp && !p.ipBanned ? `<form class="row" id="aipban"><input name="reason" placeholder="IP ban reason" maxlength="200" required><button class="btn red">Ban IP ${esc(p.lastIp)}</button></form><div class="warnbox">Mobile carriers share one IP across many people. An IP ban blocks everyone on ${esc(p.lastIp)} (${esc(p.playersOnLastIp)} known player${p.playersOnLastIp === 1 ? '' : 's'} so far). Prefer a player ban.</div>` : ''}
+        <form class="row" id="agrant"><input name="coins" type="number" min="0" max="1000000" placeholder="Coins"><input name="shards" type="number" min="0" max="100000" placeholder="Shards"><button class="btn gold">Grant</button></form>
+        ${p.username ? '<div class="row"><button class="btn" id="areset">Reset username</button><span class="muted">They pick a new one next time they open the game.</span></div>' : ''}
+        <p class="ok" id="aok" role="status"></p><p class="err" id="aerr" role="alert"></p>
+      </div>
+      <section><h2>Live matches</h2>${d.matches.length ? `<div class="scroll"><table><tr><th>When</th><th>Opponent</th><th>Score</th><th>Result</th></tr>${d.matches.map(m => { const opp = m.side === 0 ? m.b : m.a; const mine = m.scores[m.side], theirs = m.scores[1 - m.side]; return `<tr><td>${ago(m.at)}</td><td>${esc(opp)}</td><td>${esc(mine)}–${esc(theirs)}</td><td>${m.winner === m.side ? '<span class="tag green">Won</span>' : m.winner === null ? '<span class="tag">No result</span>' : '<span class="tag red">Lost</span>'}</td></tr>` }).join('')}</table></div>` : '<p class="muted">No live matches yet.</p>'}</section>
+      <section><h2>Story battles</h2>${s.history.length ? `<div class="scroll"><table><tr><th>When</th><th>Mode</th><th>Opponent</th><th>Result</th></tr>${s.history.map(h => `<tr><td>${ago(h.at)}</td><td>${esc(h.mode === 'story' ? 'Floor ' + (h.floor ?? '?') : h.mode)}</td><td>${esc(h.opponent)}</td><td>${h.won ? '<span class="tag green">Won</span>' : '<span class="tag red">Lost</span>'} ${esc((h.scores || []).join('–'))}</td></tr>`).join('')}</table></div>` : '<p class="muted">No story battles synced yet.</p>'}</section>
+      <section><h2>IP history</h2>${d.ips.length ? `<table><tr><th>IP</th><th>Location</th><th>First seen</th><th>Last seen</th></tr>${d.ips.map(i => `<tr><td>${esc(i.ip)}</td><td>${flag(i.country)}${i.city ? ' · ' + esc(i.city) : ''}</td><td>${when(i.firstSeen)}</td><td>${ago(i.lastSeen)}</td></tr>`).join('')}</table>` : '<p class="muted">Not seen yet.</p>'}</section>
+      <section><h2>Purchases and grants</h2>${d.entitlements.length ? `<table><tr><th>Item</th><th>Source</th><th>When</th></tr>${d.entitlements.map(x => `<tr><td>${esc(x.item)}</td><td>${esc(x.source)}</td><td>${when(x.at)}</td></tr>`).join('')}</table>` : '<p class="muted">None.</p>'}</section>`
+    $('dclose').onclick = closeDrawer
+    $('dclose').focus()
+    const done = async (fn, msg) => { $('aok').textContent = ''; $('aerr').textContent = ''; try { await fn(); $('aok').textContent = msg; setTimeout(() => openPlayer(id), 700) } catch (err) { $('aerr').textContent = err.message } }
+    const f = (sel, fn) => { const el = $(sel); if (el) el.onsubmit = e => { e.preventDefault(); fn(new FormData(el)) } }
+    const b = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn }
+    f('aban', fd => done(() => post(`/v1/admin/players/${id}/ban`, { reason: fd.get('reason') }), 'Banned.'))
+    b('aunban', () => done(() => post(`/v1/admin/players/${id}/unban`), 'Unbanned.'))
+    f('aipban', fd => done(() => post('/v1/admin/ip-bans', { ip: p.lastIp, reason: fd.get('reason') }), 'IP banned.'))
+    f('agrant', fd => done(() => post(`/v1/admin/players/${id}/grant`, { coins: Number(fd.get('coins') || 0), shards: Number(fd.get('shards') || 0) }), 'Granted. Their game picks it up on next sync.'))
+    b('areset', () => done(() => post(`/v1/admin/players/${id}/reset-username`), 'Username reset.'))
+  }
+
+  async function live() {
+    try {
+      const j = await api('/v1/admin/live')
+      const seat = s => s ? `${esc(s.name)} <span class="muted">(${cap(s.beast)})</span>${s.online ? '' : ' <span class="tag gold">away</span>'}` : '<span class="muted">empty</span>'
+      $('tab-live').innerHTML = `
+        <section><h2>Rooms right now <span class="muted" style="font-size:16px">auto-refresh 5s</span></h2>${j.rooms.length ? `<table><tr><th>Code</th><th>Player 1</th><th>Player 2</th><th>Phase</th><th>Round</th><th>Score</th></tr>${j.rooms.map(r => `<tr><td>${esc(r.code)}</td><td>${seat(r.seats[0])}</td><td>${seat(r.seats[1])}</td><td><span class="tag cyan">${esc(r.phase)}</span></td><td>${esc(r.round)}</td><td>${esc(r.scores.join('–'))}</td></tr>`).join('')}</table>` : '<p class="muted">No open rooms.</p>'}</section>
+        <section><h2>Recent matches</h2>${j.recent.length ? `<table><tr><th>Finished</th><th>Player 1</th><th>Player 2</th><th>Score</th><th>Winner</th></tr>${j.recent.map(m => `<tr><td>${ago(m.at)}</td><td>${esc(m.a)} <span class="muted">(${cap(m.aBeast)})</span></td><td>${esc(m.b)} <span class="muted">(${cap(m.bBeast)})</span></td><td>${esc(m.scores.join('–'))}</td><td>${m.winner === null ? '—' : esc(m.winner === 0 ? m.a : m.b)}</td></tr>`).join('')}</table>` : '<p class="muted">No matches yet.</p>'}</section>`
+    } catch (err) { $('tab-live').innerHTML = `<p class="err">${esc(err.message)}</p>` }
+  }
+
+  async function bans() {
+    try {
+      const j = await api('/v1/admin/bans')
+      $('tab-bans').innerHTML = `
+        <section><h2>Banned players</h2>${j.players.length ? `<table><tr><th>Player</th><th>ID</th><th>Reason</th><th>When</th><th></th></tr>${j.players.map(p => `<tr><td>${who(p)}</td><td>${esc(p.friendCode)}</td><td>${esc(p.banReason)}</td><td>${ago(p.bannedAt)}</td><td><button class="btn" data-unban="${esc(p.id)}">Unban</button> <button class="btn" data-open="${esc(p.id)}">Open</button></td></tr>`).join('')}</table>` : '<p class="muted">Nobody is banned.</p>'}</section>
+        <section><h2>IP bans</h2>
+          <form class="row" id="newip" style="margin-bottom:8px"><input name="ip" placeholder="IP address" required><input name="reason" placeholder="Reason" required style="flex:1"><button class="btn red">Ban IP</button></form>
+          <p class="err" id="iperr" role="alert"></p>
+          ${j.ips.length ? `<table><tr><th>IP</th><th>Reason</th><th>When</th><th></th></tr>${j.ips.map(b => `<tr><td>${esc(b.ip)}</td><td>${esc(b.reason)}</td><td>${ago(b.createdAt)}</td><td><button class="btn" data-unip="${esc(b.ip)}">Lift</button></td></tr>`).join('')}</table>` : '<p class="muted">No IP bans.</p>'}</section>`
+      $('newip').onsubmit = async e => { e.preventDefault(); const fd = new FormData(e.target); try { await post('/v1/admin/ip-bans', { ip: fd.get('ip'), reason: fd.get('reason') }); bans() } catch (err) { $('iperr').textContent = err.message } }
+    } catch (err) { $('tab-bans').innerHTML = `<p class="err">${esc(err.message)}</p>` }
+  }
+  $('tab-bans').onclick = async e => {
+    const t = e.target.closest('button'); if (!t) return
+    try {
+      if (t.dataset.unban) { await post(`/v1/admin/players/${t.dataset.unban}/unban`); bans() }
+      if (t.dataset.unip) { await api('/v1/admin/ip-bans/' + encodeURIComponent(t.dataset.unip), { method: 'DELETE' }); bans() }
+      if (t.dataset.open) openPlayer(t.dataset.open)
+    } catch (err) { const e2 = $('iperr'); if (e2) e2.textContent = err.message }
+  }
+
+  async function log() {
+    try {
+      const j = await api('/v1/admin/log')
+      $('tab-log').innerHTML = `<section><h2>Admin actions</h2>${j.log.length ? `<table><tr><th>When</th><th>Action</th><th>Target</th><th>Details</th></tr>${j.log.map(l => `<tr><td>${when(l.at)}</td><td><span class="tag cyan">${esc(l.action)}</span></td><td style="word-break:break-all">${esc(l.target)}</td><td class="muted">${esc(JSON.stringify(l.detail || {}))}</td></tr>`).join('')}</table>` : '<p class="muted">No actions yet.</p>'}</section>`
+    } catch (err) { $('tab-log').innerHTML = `<p class="err">${esc(err.message)}</p>` }
+  }
+
+  function boot() { $('login').classList.add('hidden'); $('app').classList.remove('hidden'); show('dash') }
+  if (token) boot(); else $('login').classList.remove('hidden')
+})()
+</script>
+</body>
+</html>

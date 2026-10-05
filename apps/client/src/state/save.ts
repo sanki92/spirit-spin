@@ -38,6 +38,19 @@ export interface SaveData {
   outros: number[]
   login: { last: string; streak: number }
   winStreak: number
+  history: HistoryEntry[]
+}
+
+export interface HistoryEntry {
+  at: number
+  mode: 'story' | 'practice' | 'ranked' | 'cup' | 'live'
+  opponent: string
+  opponentBeast: string | null
+  beast: string | null
+  won: boolean
+  scores: [number, number]
+  floor: number | null
+  rounds: { winner: 0 | 1 | null; finish: string }[]
 }
 
 export interface SaveActions {
@@ -94,6 +107,7 @@ const fresh = (): SaveData => ({
   outros: [],
   login: { last: '', streak: 0 },
   winStreak: 0,
+  history: [],
 })
 
 const addUnique = (list: string[], id: string) => (list.includes(id) ? list : [...list, id])

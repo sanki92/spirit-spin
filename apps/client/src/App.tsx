@@ -13,6 +13,7 @@ import type { ControllerFactory } from './ui/screens/BattleScreen'
 import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
 import { Friends, Social } from './ui/screens/Friends'
+import { History } from './ui/screens/History'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
@@ -97,6 +98,7 @@ export function App() {
     case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
     case 'friends': return <Friends join={route.join} challenge={route.challenge} />
     case 'social': return <Social />
+    case 'history': return <History />
     case 'live': return <Lazy><LiveRoute route={route} /></Lazy>
     case 'ranked': return FEATURES.ranked ? <Ranked /> : <RankedSoon />
     case 'pass': return <Pass />
@@ -136,7 +138,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
   const onEnd = useCallback(
     (r: MatchResult) => {
       useSave.getState().markOnboarded('firstBattle')
-      const settlement = settleMatch(r, route.floor, route.boss, route.opponentName)
+      const settlement = settleMatch(r, route.floor, route.boss, route.opponentName, route.floor ? 'story' : 'practice', route.opponent.beastId ?? null)
       nav.replace({ k: 'result', result: r, settlement, opponentName: route.opponentName, ...(route.floor ? { next: { k: 'tower' } as const } : {}) })
     },
     [route, nav],
@@ -155,7 +157,7 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
   )
   const onEnd = useCallback(
     (r: MatchResult) => {
-      const settlement = settleMatch(r, null, null, route.peer.name)
+      const settlement = settleMatch(r, null, null, route.peer.name, 'live', route.peer.build.beastId ?? null)
       nav.replace({ k: 'result', result: r, settlement, opponentName: route.peer.name })
     },
     [route, nav],
@@ -176,7 +178,7 @@ function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
   const controller = useCallback<ControllerFactory>((g, st, d) => new GhostController(g, st, d, issued, b => `beasts/${b.beastId}`), [issued])
   const onEnd = useCallback(
     (r: MatchResult) => {
-      const settlement = settleMatch(r, null, null, issued.opponent.name)
+      const settlement = settleMatch(r, null, null, issued.opponent.name, route.kind === 'tournament' ? 'cup' : 'ranked', issued.opponent.deck[0]?.beastId ?? null)
       nav.replace({ k: 'result', result: r, settlement, opponentName: issued.opponent.name, ...(route.kind === 'tournament' && route.cupId ? { next: { k: 'cup', id: route.cupId } } : { next: { k: 'ranked' } }) })
     },
     [issued, route, nav],

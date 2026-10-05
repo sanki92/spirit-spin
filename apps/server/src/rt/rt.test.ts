@@ -115,6 +115,11 @@ describe('realtime', () => {
     expect(fa.incoming).toHaveLength(0)
     const ra = (await app.inject({ method: 'GET', url: '/v1/ranked', headers: { authorization: `Bearer ${a.token}` } })).json() as { ghostRips: number }
     expect(ra.ghostRips).toBeGreaterThan(0)
+    const ha = (await app.inject({ method: 'GET', url: '/v1/history', headers: { authorization: `Bearer ${a.token}` } })).json() as { matches: { opponent: string; scores: number[]; won: boolean; rounds: unknown[] }[] }
+    const hb = (await app.inject({ method: 'GET', url: '/v1/history', headers: { authorization: `Bearer ${b.token}` } })).json() as { matches: { opponent: string; scores: number[]; won: boolean }[] }
+    expect(ha.matches).toHaveLength(1)
+    expect(ha.matches[0]).toMatchObject({ opponent: 'Boscript', rounds: expect.any(Array) })
+    expect(hb.matches[0]).toMatchObject({ opponent: 'Aki', scores: [ha.matches[0]!.scores[1], ha.matches[0]!.scores[0]], won: !ha.matches[0]!.won })
     a.ws.close(); b.ws.close()
   }, 120000)
 

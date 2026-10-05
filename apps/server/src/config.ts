@@ -22,6 +22,9 @@ const Env = z.object({
   RT_EDGE_WT: z.string().optional(),
   RT_EDGE_WS: z.string().optional(),
   NET_DASH_KEY: z.string().min(16).optional(),
+  DISCORD_WEBHOOK_URL: z.string().url().optional(),
+  ADMIN_USER: z.string().min(3).optional(),
+  ADMIN_PASSWORD_HASH: z.string().optional(),
 })
 
 export interface Config {
@@ -37,6 +40,8 @@ export interface Config {
   payments?: { provider: 'razorpay' | 'dev' | 'none'; keyId?: string | undefined; keySecret?: string | undefined; webhookSecret?: string | undefined }
   edge?: EdgeConfig | null
   netDashKey?: string | undefined
+  discordWebhook?: string | undefined
+  admin?: { user: string; passwordHash: string } | null
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -60,6 +65,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     openaiKey: e.OPENAI_API_KEY ?? null,
     staticDir: e.STATIC_DIR,
     netDashKey: e.NET_DASH_KEY,
+    discordWebhook: e.DISCORD_WEBHOOK_URL,
+    admin: e.ADMIN_USER && e.ADMIN_PASSWORD_HASH ? { user: e.ADMIN_USER, passwordHash: e.ADMIN_PASSWORD_HASH } : null,
     edge: e.RT_EDGE_GRPC ? { grpc: e.RT_EDGE_GRPC, secret: e.RT_EDGE_SECRET!, wt: e.RT_EDGE_WT ?? 'https://{host}:4433/wt', ws: e.RT_EDGE_WS ?? '/edge/ws' } : null,
     payments: e.RAZORPAY_KEY_ID && e.RAZORPAY_KEY_SECRET
       ? { provider: 'razorpay', keyId: e.RAZORPAY_KEY_ID, keySecret: e.RAZORPAY_KEY_SECRET, webhookSecret: e.RAZORPAY_WEBHOOK_SECRET }

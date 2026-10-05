@@ -9,7 +9,10 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import { z } from 'zod'
 import { cleanName, hashRecoveryCode, newRecoveryCode, randomCode, Tokens } from './auth'
 import type { Config } from './config'
-import { openDb, players, aiCalls, entitlements, friendships, type Db } from './db'
+import { openDb, players, aiCalls, entitlements, friendships, liveMatches, type Db } from './db'
+import { discordNotifier, type Notifier } from './discord'
+import { Moderation } from './moderation'
+import { registerAdmin } from './admin'
 import { PASS_TIERS, SKUS, usernameError, usernameKey } from '@spirit/core'
 import { directSpirit, moderate, type DirectorResult } from './spirit/director'
 import type { MomentInput } from './spirit/prompt'
@@ -39,7 +42,7 @@ declare module 'fastify' {
 
 export type App = Awaited<ReturnType<typeof buildApp>>
 
-export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: Pick<RealtimeOpts, 'seatHoldMs' | 'speed'>; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments }
+export interface Deps { director?: (m: MomentInput, model: string) => Promise<DirectorResult>; moderator?: (text: string) => Promise<boolean>; perPlayerDaily?: number; realtime?: Pick<RealtimeOpts, 'seatHoldMs' | 'speed'>; devShutdown?: () => void; guestPerMinute?: number; payments?: Payments; notifier?: Notifier }
 
 const Trait = z.number().int().min(-10).max(10)
 const MomentBody = z.object({
@@ -82,15 +85,31 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   await app.register(cors, { origin: cfg.corsOrigins.includes('*') ? true : cfg.corsOrigins })
   await app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: rateKey })
   const edge = cfg.edge ? new EdgeClient(cfg.edge) : null
+  const mod = new Moderation(db, e => app.log.warn({ err: String(e) }, 'ip tracking failed'))
+  await mod.load()
+  const notify = deps.notifier ?? discordNotifier(cfg.discordWebhook, { onError: e => app.log.warn({ err: String(e) }, 'discord post failed') })
+  app.addHook('onClose', async () => notify.stop())
+  const beastName = (b: unknown) => (typeof b === 'string' && b ? b[0]!.toUpperCase() + b.slice(1) : '?')
   const netlog = new NetLog()
   const rooms = await registerRealtime(app, tokens, {
     ...deps.realtime,
     edge,
     netlog,
     ...(edge ? { closeEdge: () => edge.close() } : {}),
+    banned: (id, ip) => mod.ban(id, ip),
+    onStart: room => {
+      const [a, b] = room.seats
+      if (a && b) notify.say(`⚔️ Live battle started: **${a.name}** (${beastName(a.build.beastId)}) vs **${b.name}** (${beastName(b.build.beastId)})`)
+    },
     onResult: room => {
       const [a, b] = room.seats
       if (!a || !b || a.playerId === b.playerId) return
+      const w = room.match.winner
+      if (w !== null) {
+        const win = w === 0 ? a : b, lose = w === 0 ? b : a
+        notify.say(`🏆 **${win.name}** beat **${lose.name}** ${room.match.scores[w]}-${room.match.scores[1 - w]}`)
+      }
+      void db.insert(liveMatches).values({ code: room.code, aId: a.playerId, bId: b.playerId, aName: a.name, bName: b.name, aBeast: a.build.beastId ?? null, bBeast: b.build.beastId ?? null, scores: room.match.scores, winner: w, rounds: room.match.history, startedAt: room.startedAt ? new Date(room.startedAt) : null }).catch(e => app.log.warn({ err: String(e) }, 'live match record failed'))
       const work = [a, b].map(s => recordGhostHistory(db, s.playerId, s.ripLog, s.tiltN ? s.tiltSum / s.tiltN : null))
       void Promise.all(work).catch(e => app.log.warn({ err: String(e) }, 'live result bookkeeping failed'))
     },
@@ -101,8 +120,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     const h = req.headers.authorization
     const id = h?.startsWith('Bearer ') ? await tokens.verify(h.slice(7)) : null
     if (!id) return reply.code(401).send({ error: 'unauthorized' })
+    const banned = mod.ban(id, req.ip)
+    if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
     req.playerId = id
     lastSeen.set(id, Date.now())
+    mod.touch(id, req.ip)
   }
 
   if (cfg.staticDir && existsSync(cfg.staticDir)) {
@@ -117,6 +139,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
         else res.header('cache-control', 'no-cache')
       },
     })
+    app.get('/admin', (_req, reply) => reply.header('cache-control', 'no-store').header('x-frame-options', 'DENY').header('referrer-policy', 'no-referrer').sendFile('admin/index.html', root))
     app.setNotFoundHandler((req, reply) => {
       if (req.method === 'GET' && !req.url.startsWith('/v1') && !req.url.startsWith('/rt') && !req.url.includes('.')) return reply.header('cache-control', 'no-cache').sendFile('index.html', root)
       return reply.code(404).send({ error: 'not found' })
@@ -147,7 +170,9 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     })
   }
 
-  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 120, timeWindow: '1 minute' } } }, async () => {
+  app.post('/v1/auth/guest', { config: { rateLimit: { max: deps.guestPerMinute ?? 120, timeWindow: '1 minute' } } }, async (req, reply) => {
+    const ipBanned = mod.ipBan(req.ip)
+    if (ipBanned) return reply.code(403).send({ error: 'banned', reason: ipBanned })
     const code = newRecoveryCode()
     const [row] = await db.insert(players).values({ recoveryHash: hashRecoveryCode(code, pepper), friendCode: randomCode(6) }).returning({ id: players.id })
     return { playerId: row!.id, token: await tokens.sign(row!.id), recoveryCode: code }
@@ -159,6 +184,8 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     async (req, reply) => {
       const [row] = await db.select({ id: players.id }).from(players).where(eq(players.recoveryHash, hashRecoveryCode(req.body.code, pepper))).limit(1)
       if (!row) return reply.code(404).send({ error: 'unknown recovery code' })
+      const banned = mod.ban(row.id, req.ip)
+      if (banned) return reply.code(403).send({ error: 'banned', reason: banned })
       return { playerId: row.id, token: await tokens.sign(row.id) }
     },
   )
@@ -273,13 +300,26 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     if (reason) return reply.code(400).send({ error: 'invalid', reason })
     if (!(await moderator(username))) return reply.code(400).send({ error: 'invalid', reason: 'blocked' })
     if (await usernameTaken(username, req.playerId)) return reply.code(409).send({ error: 'taken' })
+    const [before] = await db.select({ username: players.username, friendCode: players.friendCode, country: players.lastCountry }).from(players).where(eq(players.id, req.playerId)).limit(1)
     try {
       await db.update(players).set({ username, name: username, updatedAt: new Date() }).where(eq(players.id, req.playerId))
     } catch {
       return reply.code(409).send({ error: 'taken' })
     }
+    if (before && !before.username) notify.say(`🆕 New player joined: **@${username}**${before.friendCode ? ` · ID ${before.friendCode}` : ''}${before.country && before.country !== 'LAN' ? ` · ${before.country}` : ''}`)
     return { username }
   })
+  app.get('/v1/history', { preHandler: requireAuth }, async req => {
+    const me = req.playerId
+    const rows = await db.select().from(liveMatches).where(sql`${liveMatches.aId} = ${me} OR ${liveMatches.bId} = ${me}`).orderBy(desc(liveMatches.endedAt)).limit(50)
+    return {
+      matches: rows.map(r => {
+        const side = r.aId === me ? 0 : 1
+        return { id: r.id, at: r.endedAt.getTime(), opponent: side === 0 ? r.bName : r.aName, opponentBeast: side === 0 ? r.bBeast : r.aBeast, beast: side === 0 ? r.aBeast : r.bBeast, scores: side === 0 ? r.scores : [r.scores[1], r.scores[0]], won: r.winner === side, rounds: side === 0 ? r.rounds : (r.rounds as { winner: number | null }[]).map(o => ({ ...o, winner: o.winner === null ? null : 1 - o.winner })) }
+      }),
+    }
+  })
+  registerAdmin(app, { db, mod, notify, rooms, netlog, admin: cfg.admin ?? null, secret: cfg.jwtSecret })
   const dayStart = () => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d }
 
   app.post('/v1/spirit/moment', { preHandler: requireAuth, config: { rateLimit: { max: 20, timeWindow: '1 minute' } }, schema: { body: MomentBody } }, async req => {
