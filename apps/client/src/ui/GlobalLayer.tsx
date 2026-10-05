@@ -5,7 +5,7 @@ import { declineInvite, fetchInvites } from '../state/sync'
 import { UsernameSheet } from './UsernameSheet'
 
 const POLL_MS = 8000
-const QUIET = new Set(['splash', 'age', 'ready', 'starter', 'safety', 'calibrate', 'battle', 'live', 'ghost', 'stadium', 'awaken'])
+const QUIET = new Set(['splash', 'age', 'ready', 'starter', 'safety', 'calibrate', 'battle', 'live', 'ghost', 'stadium', 'awaken', 'friends', 'social'])
 const key = (i: Invite) => `${i.from.playerId}:${i.at}`
 
 export function GlobalLayer({ routeKey }: { routeKey: string }) {

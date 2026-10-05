@@ -340,7 +340,7 @@ await scenario(17, 'Challenge from the friends list: B accepts and both enter th
   const [A, B] = await mkAB(mk, {}, { beast: 'nagara', launcher: 'launcher-nagara' })
   const ca = (await api(A, 'GET', '/v1/me')).json.friendCode, cb = (await api(B, 'GET', '/v1/me')).json.friendCode
   await api(A, 'POST', '/v1/friends', { code: cb }); await api(B, 'POST', '/v1/friends', { code: ca })
-  await go(A, { k: 'friends' }); await go(B, { k: 'friends' })
+  await go(A, { k: 'social' }); await go(B, { k: 'friends' })
   await A.page.locator('.lb-row', { hasText: 'Bea' }).waitFor({ timeout: 12000 })
   await A.page.locator('.lb-row', { hasText: 'Bea' }).getByRole('button').click()
   const banner = await B.page.getByText(/Aki_\w* challenges you/i).waitFor({ timeout: 12000 }).then(() => true).catch(() => false)

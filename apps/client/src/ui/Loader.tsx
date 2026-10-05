@@ -27,8 +27,29 @@ export function Loader({ label = 'Loading', tips = true, full = false }: { label
     const i = window.setInterval(() => setTip(t => (t + 1) % TIPS.length), 2800)
     return () => clearInterval(i)
   }, [tips])
+  if (full) {
+    const form = s.beasts[beast]?.awakened
+    const hero = art(form ? `beasts/${beast}/awakened-${form}/card-art` : `beasts/${beast}/card-art`) ?? art(`beasts/${beast}/card-art`)
+    return (
+      <div className="loader full ld2" role="status" aria-live="polite" style={{ ['--c' as string]: BEASTS[beast].color }}>
+        {hero && <img className="ld2-art" src={hero} alt="" />}
+        <div className="ld2-foot">
+          <div className="ld2-head">
+            <span className="ld2-top" aria-hidden="true">
+              {disc && <img className="loader-disc" src={disc} alt="" />}
+              {blade && <img className="loader-blade" src={blade} alt="" />}
+              {emblem && <img className="loader-emblem" src={emblem} alt="" />}
+            </span>
+            <span className="ld2-text"><small>{BEASTS[beast].name}</small><strong>{label}</strong></span>
+          </div>
+          <span className="ld2-bar" aria-hidden="true"><i /></span>
+          {tips && <p key={tip} className="ld2-tip"><b>Tip</b>{TIPS[tip]}</p>}
+        </div>
+      </div>
+    )
+  }
   return (
-    <div className={`loader ${full ? 'full' : ''}`} role="status" aria-live="polite" style={{ ['--c' as string]: BEASTS[beast].color }}>
+    <div className="loader" role="status" aria-live="polite" style={{ ['--c' as string]: BEASTS[beast].color }}>
       <div className="loader-top" aria-hidden="true">
         <i className="loader-ring" />
         {disc && <img className="loader-disc" src={disc} alt="" />}

@@ -21,7 +21,8 @@ export type Route =
   | { k: 'battle'; opponent: TopBuild; floor: number | null; boss: BossId | null; opponentName: string }
   | { k: 'result'; result: MatchResult; settlement: Settlement; opponentName: string; next?: Route }
   | { k: 'awaken'; then?: Route }
-  | { k: 'friends'; join?: string }
+  | { k: 'friends'; join?: string; challenge?: { playerId: string; name: string; friendCode: string; beast?: string | null } }
+  | { k: 'social' }
   | { k: 'ranked' }
   | { k: 'pass' }
   | { k: 'stadium' }

@@ -3,7 +3,8 @@ import QRCode from 'qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BEASTS } from '../../game/beasts'
 import { rt } from '../../net/rt'
-import { useNav } from '../../state/nav'
+import { useNav, type Route } from '../../state/nav'
+import { useProfile } from '../../state/profile'
 import { launcherId, useSave } from '../../state/save'
 import { authHeader } from '../../state/sync'
 import { log } from '../../telemetry'
@@ -94,7 +95,7 @@ function Card({ beast, label, name, sub, empty }: { beast?: BeastId | undefined;
   )
 }
 
-export function Friends({ join }: { join?: string | undefined }) {
+export function Friends({ join, challenge: invite }: { join?: string | undefined; challenge?: Extract<Route, { k: 'friends' }>['challenge'] }) {
   const nav = useNav()
   const [phase, setPhase] = useState<Phase>({ k: 'idle' })
   const [code, setCode] = useState(join ?? '')
@@ -111,7 +112,7 @@ export function Friends({ join }: { join?: string | undefined }) {
   const name = useSave(s => s.name)
   const busy = phase.k === 'connecting' || phase.k === 'joining'
   const lobby = phase.k === 'connecting' || phase.k === 'hosting' || phase.k === 'joining' || phase.k === 'waiting' || foe !== null
-  const { lists, mine, offline, reload } = useFriendLists(!lobby, setToast)
+  const { lists, reload } = useFriendLists(!lobby, setToast)
 
   useEffect(() => rt.on((m: ServerMsg) => {
     if (m.k === 'room') {
@@ -179,11 +180,10 @@ export function Friends({ join }: { join?: string | undefined }) {
     if (await connect()) rt.send({ k: 'join', code: c.toUpperCase(), build: { ...build, launcher } })
   }
   useEffect(() => {
-    if (join && !auto.current) {
-      auto.current = true
-      void enter(join)
-    }
-  }, [join])
+    if (auto.current) return
+    if (join) { auto.current = true; void enter(join) }
+    else if (invite) { auto.current = true; void host(invite) }
+  }, [join, invite])
 
   const share = () => {
     if (navigator.share) void navigator.share({ title: 'Spirit Spin battle', text: `Battle me in Spirit Spin! Code ${phase.k === 'hosting' ? phase.code : ''}`, url: link }).catch(() => undefined)
@@ -283,7 +283,10 @@ export function Friends({ join }: { join?: string | undefined }) {
         </form>
       </div>
       {phase.k === 'error' && <p className="form-error lb-error" role="alert">{phase.text}</p>}
-      <FriendsPanel lists={lists} mine={mine} offline={offline} onChallenge={f => void host(f)} reload={reload} notify={setToast} />
+      <button className="lb-social" onClick={() => nav.push({ k: 'social' })}>
+        <Img id="ui/icons/live" className="lb-tile-icon" />
+        <span><strong>Challenge a friend</strong><small>{lists && lists.friends.length ? `${lists.friends.filter(online).length} of ${lists.friends.length} friends online` : 'Add friends by ID or @username'}</small></span>
+      </button>
       <button className="lb-stadium" onClick={() => nav.push({ k: 'stadium' })}>
         <strong>Stadium Mode</strong>
         <span>Big screen shows the battle, two phones launch</span>
@@ -293,7 +296,43 @@ export function Friends({ join }: { join?: string | undefined }) {
   )
 }
 
-function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { lists: Lists | null; mine: string | null; offline: boolean; onChallenge: (f: Friend) => void; reload: () => Promise<void>; notify: (t: string) => void }) {
+export function Social() {
+  const nav = useNav()
+  const [toast, setToast] = useState<string | null>(null)
+  const { lists, mine, offline, reload } = useFriendLists(true, setToast)
+  const username = useProfile(p => p.username)
+  const challenge = lists?.challenges[0]
+  const decline = (from: string) => fetch('/v1/challenges/decline', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeader() }, body: JSON.stringify({ from }) }).catch(() => undefined)
+  const shareId = () => {
+    if (!mine) return
+    const text = `Add me on Spirit Spin! ID ${mine}${username ? ` or @${username}` : ''}`
+    if (typeof navigator.share === 'function') void navigator.share({ title: 'Spirit Spin', text }).catch(() => undefined)
+    else void navigator.clipboard?.writeText(text).then(() => setToast('Copied your ID'))
+  }
+  return (
+    <Screen className="friends lb social">
+      <TopBar title="Friends" />
+      {challenge && (
+        <section className="lb-challenge" role="alert">
+          <Avatar beast={lists?.friends.find(f => f.playerId === challenge.from.playerId)?.beast} name={challenge.from.name} dot="on" />
+          <div><strong>{challenge.from.name} challenges you!</strong><span>Battle code {challenge.code}</span></div>
+          <div className="lb-challenge-acts">
+            <button className="lb-btn gold" onClick={() => { void decline(challenge.from.playerId); nav.push({ k: 'friends', join: challenge.code }) }}>Accept</button>
+            <button className="lb-btn ghost" onClick={() => { void decline(challenge.from.playerId).then(reload) }}>Not now</button>
+          </div>
+        </section>
+      )}
+      <section className="sc-id">
+        <div><small>Your ID</small><b>{mine ?? '······'}</b>{username && <span>@{username}</span>}</div>
+        <button className="lb-btn gold" onClick={shareId} disabled={!mine}>{typeof navigator.share === 'function' ? 'Share' : 'Copy'}</button>
+      </section>
+      <FriendsPanel lists={lists} mine={mine} offline={offline} onChallenge={f => nav.push({ k: 'friends', challenge: f })} reload={reload} notify={setToast} always />
+      {toast && <p key={toast} className="toast pop" role="status" onAnimationEnd={() => setTimeout(() => setToast(t => (t === toast ? null : t)), 2400)}>{toast}</p>}
+    </Screen>
+  )
+}
+
+function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify, always = false }: { lists: Lists | null; mine: string | null; offline: boolean; onChallenge: (f: Friend) => void; reload: () => Promise<void>; notify: (t: string) => void; always?: boolean }) {
   const [code, setCode] = useState('')
   const [note, setNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -333,15 +372,17 @@ function FriendsPanel({ lists, mine, offline, onChallenge, reload, notify }: { l
   return (
     <section className="lb-friends" aria-label="Friends">
       <header className="lb-friends-head">
-        <h2>Friends</h2>
+        <h2>{always ? 'Your friends' : 'Friends'}</h2>
         {lists && friends.length > 0 && <span className="lb-online"><i />{live} online</span>}
-        <button className={`lb-btn ${adding || empty ? 'ghost' : 'cyan'} lb-add-toggle`} onClick={() => setAdding(v => !v)} aria-expanded={adding || !!empty}>{adding ? 'Done' : '+ Add'}</button>
+        {!always && <button className={`lb-btn ${adding || empty ? 'ghost' : 'cyan'} lb-add-toggle`} onClick={() => setAdding(v => !v)} aria-expanded={adding || !!empty}>{adding ? 'Done' : '+ Add'}</button>}
       </header>
-      {(adding || empty) && (
+      {(always || adding || empty) && (
         <div className="lb-addbox">
-          <button className="lb-mycode" onClick={copy} disabled={!mine} aria-label="Copy your friend code">
-            <span>Your ID</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
-          </button>
+          {!always && (
+            <button className="lb-mycode" onClick={copy} disabled={!mine} aria-label="Copy your friend code">
+              <span>Your ID</span><b>{mine ?? '······'}</b><em>{copied ? 'Copied' : 'Tap to copy'}</em>
+            </button>
+          )}
           <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.replace(/^@/, '').length >= 3) void add(code) }}>
             <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
             <button className="lb-btn cyan" disabled={code.replace(/^@/, '').length < 3 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>

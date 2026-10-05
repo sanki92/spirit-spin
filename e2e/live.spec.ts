@@ -24,7 +24,10 @@ async function player(browser: Browser, name: string, beast: string): Promise<Pa
     w.__save.setState({ name: n })
     w.__nav.getState().reset({ k: 'home' })
   }, [name, beast])
-  await expect(page.getByRole('button', { name: /battle a friend/i })).toBeVisible()
+  await page.locator('.h3-daily').waitFor({ timeout: 3000 }).then(() => page.keyboard.press('Escape')).catch(() => undefined)
+  await page.getByRole('button', { name: /game mode/i }).click()
+  await page.getByRole('radio', { name: /live battle/i }).click()
+  await expect(page.getByRole('button', { name: /friend battle/i })).toBeVisible()
   return page
 }
 
@@ -34,14 +37,14 @@ test('two phones play a full live match', async ({ browser }) => {
   const a = await player(browser, 'Aki', 'voltfang')
   const b = await player(browser, 'Bo', 'nagara')
 
-  await a.getByRole('button', { name: /battle a friend/i }).click()
+  await a.getByRole('button', { name: /friend battle/i }).click()
   await a.getByRole('button', { name: /create battle/i }).click()
   const code = (await a.locator('.room-code').textContent())!.trim()
   expect(code).toMatch(/^[A-Z2-9]{4}$/)
   await a.getByRole('button', { name: 'Show QR' }).click()
   await expect(a.locator('.qr')).toBeVisible()
 
-  await b.getByRole('button', { name: /battle a friend/i }).click()
+  await b.getByRole('button', { name: /friend battle/i }).click()
   await b.getByLabel('Battle code').fill(code.toLowerCase())
   await b.getByRole('button', { name: /^go$/i }).click()
 
@@ -58,7 +61,7 @@ test('two phones play a full live match', async ({ browser }) => {
   console.log('A result', JSON.stringify(ra.result.match.scores), 'B', JSON.stringify(rb.result.match.scores), 'stats', JSON.stringify(stats))
   await a.screenshot({ path: 'e2e/out/a-result.png' })
   await b.screenshot({ path: 'e2e/out/b-result.png' })
-  await a.evaluate(() => { (window as W).__net.reset(); (window as W).__nav.getState().reset({ k: 'home' }); (window as W).__nav.getState().push({ k: 'friends' }) })
-  await expect(a.locator('.lb-mycode b')).toHaveText(/^[A-Z2-9]{6}$/, { timeout: 10_000 })
+  await a.evaluate(() => { (window as W).__net.reset(); (window as W).__nav.getState().reset({ k: 'home' }); (window as W).__nav.getState().push({ k: 'social' }) })
+  await expect(a.locator('.sc-id b')).toHaveText(/^[A-Z2-9]{6}$/, { timeout: 10_000 })
   await a.screenshot({ path: 'e2e/out/a-friends.png' })
 })

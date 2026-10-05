@@ -12,7 +12,7 @@ import { reconcileStory, settleMatch } from './state/settle'
 import type { ControllerFactory } from './ui/screens/BattleScreen'
 import type { StadiumTheme } from './game/Game'
 import { OnlineController } from './game/OnlineController'
-import { Friends } from './ui/screens/Friends'
+import { Friends, Social } from './ui/screens/Friends'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
@@ -95,7 +95,8 @@ export function App() {
     case 'settings': return <Settings />
     case 'awaken': return <Awaken then={route.then} />
     case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
-    case 'friends': return <Friends join={route.join} />
+    case 'friends': return <Friends join={route.join} challenge={route.challenge} />
+    case 'social': return <Social />
     case 'live': return <Lazy><LiveRoute route={route} /></Lazy>
     case 'ranked': return FEATURES.ranked ? <Ranked /> : <RankedSoon />
     case 'pass': return <Pass />

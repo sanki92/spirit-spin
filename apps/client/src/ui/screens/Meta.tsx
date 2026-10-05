@@ -205,9 +205,11 @@ export function Shop() {
   return (
     <Screen className="shop">
       <TopBar title="Shop" />
-      <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'parts'} className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>Parts</button>
-        <button role="tab" aria-selected={tab === 'cosmetics'} className={tab === 'cosmetics' ? 'on' : ''} onClick={() => setTab('cosmetics')}>Cosmetics</button>
+      <div className="tabs">
+        <div role="tablist" aria-label="Shop" style={{ display: 'contents' }}>
+          <button role="tab" aria-selected={tab === 'parts'} className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>Parts</button>
+          <button role="tab" aria-selected={tab === 'cosmetics'} className={tab === 'cosmetics' ? 'on' : ''} onClick={() => setTab('cosmetics')}>Cosmetics</button>
+        </div>
         <button onClick={() => nav.push({ k: 'pass' })}>Spirit Pass ›</button>
       </div>
       {tab === 'cosmetics' ? <CosmeticShop /> : (<>
