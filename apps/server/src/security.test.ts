@@ -124,6 +124,15 @@ describe('audit fixes', () => {
     expect((await app.inject({ method: 'POST', url: '/v1/security/flag', headers: h(g.token), payload: { reason: 'debugger' } })).statusCode).toBe(200)
     expect((await app.inject({ method: 'POST', url: '/v1/security/flag', headers: h(g.token), payload: { reason: 'hax' } })).statusCode).toBe(400)
   })
+
+  it('a crash report from the app is accepted without login but bounded and rate limited', async () => {
+    const send = (payload: object) => app.inject({ method: 'POST', url: '/v1/client-error', remoteAddress: '203.0.113.9', payload })
+    expect((await send({ kind: 'render', msg: 'boom', screen: 'garage' })).statusCode).toBe(200)
+    expect((await send({ kind: 'render', msg: 'x'.repeat(5000) })).statusCode).toBe(400)
+    const codes = new Set<number>()
+    for (let i = 0; i < 6; i++) codes.add((await send({ kind: 'render', msg: 'again' })).statusCode)
+    expect(codes.has(429)).toBe(true)
+  })
 })
 
 describe('static files are never rate limited', () => {

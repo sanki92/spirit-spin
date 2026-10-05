@@ -10,11 +10,13 @@ import { useSave } from './state/save'
 import { useHud } from './state/hud'
 import { installTelemetry, log } from './telemetry'
 import { fitViewport } from './viewport'
+import { CrashGuard, installCrashReporting } from './crash'
 import './styles.css'
 import './screens.css'
 import './v2.css'
 
 installTelemetry()
+installCrashReporting()
 fitViewport()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })
 const runtime = new Runtime()
@@ -37,7 +39,9 @@ if (import.meta.env.PROD) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RuntimeContext.Provider value={runtime}>
-      <App />
+      <CrashGuard>
+        <App />
+      </CrashGuard>
     </RuntimeContext.Provider>
   </StrictMode>,
 )

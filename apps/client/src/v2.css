@@ -712,3 +712,4 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .shortage-ways li::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 10px; background: var(--gold); transform: rotate(45deg); vertical-align: 2px; }
 .shortage-acts { display: grid; gap: 8px; width: 100%; max-width: 380px; }
 .shortage-acts .cta > span { min-height: 52px; font-size: 22px; }
+.crash { display: grid; place-content: center; justify-items: center; gap: 14px; min-height: 100%; padding: 24px 16px; text-align: center; }
