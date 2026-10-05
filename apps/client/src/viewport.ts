@@ -18,7 +18,9 @@ export function fitViewport(): void {
     const full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height)
     const top = inset('top')
     const underStatusBar = top > 0 && innerHeight + top >= full - 2 && innerHeight < full
-    if (isStandalone() || underStatusBar) root.style.setProperty('--app-h', `${Math.max(full, innerHeight)}px`)
+    const ios = 'standalone' in navigator
+    if (ios && (isStandalone() || underStatusBar)) root.style.setProperty('--app-h', `${Math.max(full, innerHeight)}px`)
+    else if (isStandalone()) root.style.setProperty('--app-h', `${innerHeight}px`)
     else root.style.removeProperty('--app-h')
   }
   const report = (why: string) => {
