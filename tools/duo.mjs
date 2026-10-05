@@ -40,7 +40,7 @@ async function device(label, { beast, launcher, name, swipe = false, skewMs = 0,
   await page.getByRole('button', { name: /continue/i }).click()
   await page.getByText(/tap to ready/i).click()
   await page.waitForFunction(() => !!window.__save && window.__rt?.ready)
-  await page.waitForFunction(() => !!window.__claimUsername && !!window.__profile?.getState().loaded, null, { timeout: 15000 }); await page.evaluate(() => window.__claimUsername('T' + Math.random().toString(36).slice(2, 11)))
+  await page.waitForFunction(() => !!window.__claimUsername && !!window.__profile?.getState().loaded, null, { timeout: 15000 }); await page.evaluate(n => window.__claimUsername((n || 'T') + '_' + Math.random().toString(36).slice(2, 8)), name ?? null)
   const [bladeId, discId, tipId] = ROOKIE[beast]
   await page.evaluate(({ beast, launcher, name, swipe, bladeId, discId, tipId }) => {
     const s = window.__save.getState()
@@ -343,7 +343,7 @@ await scenario(17, 'Challenge from the friends list: B accepts and both enter th
   await go(A, { k: 'friends' }); await go(B, { k: 'friends' })
   await A.page.locator('.lb-row', { hasText: 'Bea' }).waitFor({ timeout: 12000 })
   await A.page.locator('.lb-row', { hasText: 'Bea' }).getByRole('button').click()
-  const banner = await B.page.getByText(/Aki challenges you/i).waitFor({ timeout: 12000 }).then(() => true).catch(() => false)
+  const banner = await B.page.getByText(/Aki_\w* challenges you/i).waitFor({ timeout: 12000 }).then(() => true).catch(() => false)
   check(sc, 'B sees "Aki challenges you!" without refreshing', banner)
   if (!banner) return
   await B.page.getByRole('button', { name: /^Accept$/ }).click()
