@@ -14,6 +14,7 @@ import { CrashGuard, installCrashReporting } from './crash'
 import { captureInstallEvents } from './state/install'
 import { installBackNav } from './state/back'
 import { keepUpdated } from './update'
+import { installClickSound } from './ui/clickSound'
 import './styles.css'
 import './screens.css'
 import './v2.css'
@@ -26,6 +27,7 @@ keepUpdated()
 fitViewport()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })
 const runtime = new Runtime()
+installClickSound(runtime.sound)
 if (import.meta.env.DEV) {
   Object.assign(window, { __nav: useNav, __save: useSave, __rt: runtime, __hud: useHud })
   void import('./net/rt').then(m => Object.assign(window, { __net: m.rt }))

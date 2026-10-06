@@ -85,7 +85,6 @@ export function Garage() {
 
   const choose = (id: string) => {
     if (id === currentId) return
-    rt.sound.play('ui', { volume: 0.5 })
     toTop()
     if (slot === 'beast') { setBurst(n => n + 1); rt.sound.play('spirit', { volume: 0.7 }) }
     setDraft(d => (slot === 'blade' ? { ...d, bladeId: id } : slot === 'disc' ? { ...d, discId: id } : slot === 'tip' ? { ...d, tipId: id } : { ...d, beastId: id as BeastId }))
