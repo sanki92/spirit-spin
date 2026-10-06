@@ -24,9 +24,19 @@ export class Sound {
     })
   }
 
-  async loadAll(): Promise<void> {
+  unlock(): void {
+    if ((this.ctx.state as AudioContextState | 'interrupted') !== 'running') void this.ctx.resume().catch(() => undefined)
+  }
+
+  loadAll(): Promise<void> {
+    return this.load(Object.keys(audioManifest) as SoundId[])
+  }
+
+  async load(ids: SoundId[]): Promise<void> {
+    const manifest = audioManifest as Record<string, string[]>
     await Promise.all(
-      Object.entries(audioManifest as Record<string, string[]>).map(async ([id, urls]) => {
+      ids.filter(id => !this.buffers.has(id)).map(async id => {
+        const urls = manifest[id] ?? []
         const decoded = await Promise.all(
           urls.map(async url => {
             try {
