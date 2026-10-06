@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { tracePlausible, swipePlausible } from './plausibility'
 import { pullTrace } from './rip.fixtures'
+import { judgeRip } from './ghost'
 
 describe('tracePlausible', () => {
   it('a realistic jittery noisy trace passes', () => expect(tracePlausible(pullTrace({ start: 0 }))).toEqual({ ok: true, reasons: [] }))
@@ -35,5 +36,22 @@ describe('swipePlausible', () => {
     expect(swipePlausible([{ t: 0, x: 0, y: 0 }, { t: 120, x: 0, y: 900 }])).toBe(false)
     expect(swipePlausible(pts(6, 150))).toBe(false)
     expect(swipePlausible(pts(8, 0))).toBe(false)
+  })
+})
+
+describe('real phone sensor streams', () => {
+  const real = { start: 0, noise: 0.04 }
+  it('an iPhone pull (fine-grained, quiet sensor) is a real launch', () => {
+    for (const seed of [1, 2, 3, 4, 5]) expect(judgeRip({ motion: pullTrace({ ...real, seed }), pull100: 7 }).view).toMatchObject({ ok: true })
+  })
+  it('an Android Chrome pull (every value rounded to 0.1 m/s² as the spec requires) is a real launch', () => {
+    for (const seed of [1, 2, 3, 4, 5]) expect(judgeRip({ motion: pullTrace({ ...real, seed, quantum: 0.1 }), pull100: 7 }).view).toMatchObject({ ok: true })
+  })
+  it('an Android pull held in a trembling hand is a real launch', () => {
+    for (const seed of [6, 7, 8]) expect(judgeRip({ motion: pullTrace({ start: 0, noise: 0.12, seed, quantum: 0.1 }), pull100: 7 }).view).toMatchObject({ ok: true })
+  })
+  it('a rounded trace with forged repeated readings is still rejected', () => {
+    const tr = pullTrace({ start: 0, noise: 0.04, quantum: 0.1 }); for (let i = 10; i < 22; i++) tr[i] = { ...(tr[i] as typeof tr[number]), ax: 1, ay: 2, az: 3 }
+    expect(tracePlausible(tr).reasons).toContain('repeated-samples')
   })
 })

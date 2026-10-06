@@ -19,20 +19,24 @@ export function tracePlausible(samples: readonly MotionSample[]): { ok: boolean;
   for (let i = 1; i < samples.length; i++) intervals.push((samples[i] as MotionSample).t - (samples[i - 1] as MotionSample).t)
   if (stdev(intervals) < 0.2) reasons.push('no-interval-jitter')
 
+  const quantized = samples.every(s => onGrid(s.ax) && onGrid(s.ay) && onGrid(s.az))
   const rest = samples.filter(s => Math.sqrt(s.ax ** 2 + s.ay ** 2 + s.az ** 2) < 3).map(s => s.ax)
   if (rest.length < 6) reasons.push('no-rest-baseline')
-  else if (stdev(rest) ** 2 <= 1e-4) reasons.push('no-sensor-noise')
+  else if (!quantized && stdev(rest) ** 2 <= 1e-4) reasons.push('no-sensor-noise')
 
   if (samples.some(s => Math.sqrt(s.ax ** 2 + s.ay ** 2 + s.az ** 2) > 160)) reasons.push('impossible-accel')
 
   let run = 1
   for (let i = 1; i < samples.length; i++) {
     const a = samples[i - 1] as MotionSample, b = samples[i] as MotionSample
-    run = a.ax === b.ax && a.ay === b.ay && a.az === b.az ? run + 1 : 1
+    const still = quantized && b.ax === 0 && b.ay === 0 && b.az === 0
+    run = !still && a.ax === b.ax && a.ay === b.ay && a.az === b.az ? run + 1 : 1
     if (run > 8) { reasons.push('repeated-samples'); break }
   }
   return { ok: reasons.length === 0, reasons }
 }
+
+const onGrid = (v: number) => Math.abs(v * 10 - Math.round(v * 10)) < 1e-6
 
 function stdev(v: readonly number[]): number {
   if (v.length < 2) return 0
