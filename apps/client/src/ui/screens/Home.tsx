@@ -179,9 +179,10 @@ export function Home() {
   )
 }
 
-type Mode = 'story' | 'live' | 'stadium' | 'ranked' | 'cups'
+type Mode = 'story' | 'training' | 'live' | 'stadium' | 'ranked' | 'cups'
 const MODES: { k: Mode; name: string; cta: string; sub: string; icon: string; open: boolean }[] = [
   { k: 'story', name: 'Spirit Tower', cta: 'Story', sub: 'Climb floors, beat bosses, unlock beasts', icon: 'ui/icons/tower', open: true },
+  { k: 'training', name: 'Training', cta: 'Learn the basics', sub: 'Launch, steer and unleash your spirit, step by step', icon: 'ui/icons/motion', open: true },
   { k: 'live', name: 'Live battle', cta: 'Friend battle', sub: 'Create a battle or join with a code', icon: 'ui/icons/live', open: true },
   { k: 'stadium', name: 'Stadium mode', cta: 'Big screen', sub: 'A big screen shows the battle, two phones launch', icon: 'ui/icons/trophy', open: true },
   { k: 'ranked', name: 'Ranked', cta: 'Climb the ladder', sub: "Battle other players' recorded tops", icon: 'ui/icons/ranked', open: FEATURES.ranked },

@@ -24,7 +24,7 @@ export interface SaveData {
   tower: number
   quests: { date: string; list: Quest[]; claimed: string[] }
   settings: Settings
-  onboarded: { safety: boolean; calibrated: boolean; firstBattle: boolean }
+  onboarded: { safety: boolean; calibrated: boolean; firstBattle: boolean; training?: boolean }
   stats: { battles: number; wins: number; bestRpm: number }
   greet: { day: string; beast: BeastId; line: string; mood: Mood } | null
   cosmetics: { frame: string; title: string; launcher: string | null; stadium: string }

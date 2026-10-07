@@ -1,6 +1,6 @@
 import { GlobalLayer } from './ui/GlobalLayer'
 import { SwipeStack } from './ui/SwipeBack'
-import { BOT_LEVELS, hesitates, towerFloor, type BeastId, type TopBuild } from '@spirit/core'
+import { BOT_LEVELS, hesitates, ROOKIE_BUILDS, towerFloor, type BeastId, type TopBuild } from '@spirit/core'
 import { lazy, Suspense, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { MatchResult, MatchSetup } from './game/BattleController'
 import { setHaptics } from './input/haptics'
@@ -19,6 +19,7 @@ import { useProfile } from './state/profile'
 import { CupScreen, Cups, Ranked } from './ui/screens/League'
 import { Pass, Profile } from './ui/screens/Style'
 import { GhostController } from './game/GhostController'
+import { TrainingController } from './game/TrainingController'
 import { Garage } from './ui/screens/Garage'
 import { beastArt, Home } from './ui/screens/Home'
 import { Tower } from './ui/screens/Tower'
@@ -99,6 +100,7 @@ export function App() {
     case 'settings': return <Settings />
     case 'awaken': return <Awaken then={route.then} />
     case 'battle': return <Lazy><BattleRoute route={route} /></Lazy>
+    case 'training': return <Lazy><TrainingRoute /></Lazy>
     case 'friends': return <Friends join={route.join} challenge={route.challenge} />
     case 'social': return <Social />
     case 'history': return <History />
@@ -135,7 +137,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
       playerHesitates: !firstBattle && !!beast && hesitates(beast),
       seed: (Date.now() ^ (route.floor ?? 0) * 2654435761) >>> 0,
       art: [beastArt(player.beastId, beast?.awakened), `beasts/${opponentBeast}`],
-      coach: firstBattle,
+      coach: firstBattle && !s.onboarded.training,
     }),
     [route],
   )
@@ -148,6 +150,25 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     [route, nav],
   )
   return <BattleScreen setup={setup} theme={towerTheme(route.floor)} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
+}
+
+function TrainingRoute() {
+  const nav = useNav()
+  const s = useSave.getState()
+  const player = storyBuild(s, s.loadout as TopBuild)
+  const dummy = ROOKIE_BUILDS[player.beastId === 'aegiron' ? 'nagara' : 'aegiron']
+  const setup = useMemo<MatchSetup>(
+    () => ({ player, opponent: dummy, bot: BOT_LEVELS.rookie, playerHesitates: false, seed: Date.now() >>> 0, art: [beastArt(player.beastId, s.beasts[player.beastId]?.awakened), `beasts/${dummy.beastId}`], coach: true }),
+    [],
+  )
+  const onEnd = useCallback(() => {
+    const save = useSave.getState()
+    save.markOnboarded('training')
+    if (save.onboarded.firstBattle) return nav.back()
+    nav.replace({ k: 'battle', opponent: towerFloor(1).opponent, floor: 1, boss: null, opponentName: 'Floor 1 Spinner' })
+  }, [nav])
+  const controller = useCallback<ControllerFactory>((g, st, d) => new TrainingController(g, st, d), [])
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
 }
 
 function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {

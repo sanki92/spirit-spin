@@ -497,6 +497,7 @@ export class BattleController {
       this.hudTimer = 0
       useHud.getState().set({
         spin: [b.tops[0].spin, b.tops[1].spin],
+        guard: [1 - b.tops[0].shatter, 1 - b.tops[1].shatter],
         gauge: [b.tops[0].gauge, b.tops[1].gauge],
         spiritActive: [b.tops[0].spiritTicks > 0, b.tops[1].spiritTicks > 0],
       })

@@ -188,7 +188,7 @@ export function Safety() {
         <li><b>Rip</b> On LAUNCH, pull it sharply down toward you, then stop.</li>
         <li><b>Safe</b> Never let go and never throw. Timing beats strength.</li>
       </ol>
-      <Slash onClick={() => { mark('safety'); nav.reset({ k: 'home' }) }}>Got it</Slash>
+      <Slash onClick={() => { mark('safety'); nav.reset({ k: 'home' }); if (!useSave.getState().onboarded.training) nav.push({ k: 'training' }) }}>Got it</Slash>
     </Screen>
   )
 }

@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import { create } from 'zustand'
 import { useNav, type Route } from './nav'
 
-const BATTLE = new Set<Route['k']>(['battle', 'live', 'ghost'])
+const BATTLE = new Set<Route['k']>(['battle', 'live', 'ghost', 'training'])
 const ROOT = new Set<Route['k']>(['home', 'splash', 'age', 'ready', 'starter', 'safety', 'calibrate', 'welcome'])
 const EXIT_WINDOW_MS = 2000
 

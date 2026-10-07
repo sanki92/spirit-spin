@@ -4,6 +4,15 @@ import { create } from 'zustand'
 export type BattlePhase = 'idle' | 'grip' | 'countdown' | 'coach' | 'launch' | 'battle' | 'roundEnd' | 'matchEnd' | 'paused'
 export type Countdown = '3' | '2' | '1' | 'LAUNCH' | null
 export interface Callout { quality: RipQuality | 'OVERSPIN' | 'FAIL'; rpm: number; note?: string }
+export interface Lesson {
+  id: string
+  title: string
+  text: string
+  target?: string
+  arrow?: '←' | '→' | '↑' | '↓'
+  tap?: string
+}
+
 export type Banner = FinishKind | 'victory' | 'defeat' | 'vs' | 'spiritCall' | 'shout' | null
 
 export interface HudState {
@@ -12,6 +21,7 @@ export interface HudState {
   round: number
   scores: [number, number]
   spin: [number, number]
+  guard: [number, number]
   gauge: [number, number]
   spiritActive: [boolean, boolean]
   callout: Callout | null
@@ -26,6 +36,10 @@ export interface HudState {
   pull: number
   coach: boolean
   coachTip: { title: string; text: string } | null
+  lesson: Lesson | null
+  lessonTaps: number
+  lessonSkip: number
+  training: boolean
   set: (p: Partial<HudState>) => void
 }
 
@@ -35,6 +49,7 @@ export const useHud = create<HudState>(set => ({
   round: 1,
   scores: [0, 0],
   spin: [0, 0],
+  guard: [1, 1],
   gauge: [0, 0],
   spiritActive: [false, false],
   callout: null,
@@ -49,5 +64,9 @@ export const useHud = create<HudState>(set => ({
   pull: 0,
   coach: false,
   coachTip: null,
+  lesson: null,
+  lessonTaps: 0,
+  lessonSkip: 0,
+  training: false,
   set: p => set(p),
 }))
