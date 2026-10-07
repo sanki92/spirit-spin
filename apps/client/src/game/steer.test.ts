@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CALIBRATION } from '@spirit/core'
+import { useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
 import type { SensorFeed } from '../input/sensors'
@@ -25,5 +26,12 @@ describe('steering input', () => {
     c.setManualTilt(1, 0)
     p.prepRound()
     expect(p.playerInput()).toMatchObject({ tiltX: 0, tiltY: 0 })
+  })
+
+  it('HUD bars start each round clean instead of showing the last round', () => {
+    const { p } = rig(false)
+    useHud.getState().set({ spin: [0.7, 0], guard: [0.2, 0], gauge: [1, 0.4], spiritActive: [true, false] })
+    p.prepRound()
+    expect(useHud.getState()).toMatchObject({ spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false] })
   })
 })
