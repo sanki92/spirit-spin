@@ -1354,6 +1354,11 @@
   "w": 524,
   "h": 640
  },
+ "onboarding/tilt-phone": {
+  "url": "/assets/onboarding/tilt-phone.webp?v=fb75aa40",
+  "w": 640,
+  "h": 575
+ },
  "parts/blade-bastion": {
   "url": "/assets/parts/blade-bastion.webp?v=bf7b7efc",
   "w": 512,
@@ -1838,6 +1843,11 @@
   "url": "/assets/ui/permission-motion-mic.webp?v=0580f5b1",
   "w": 768,
   "h": 551
+ },
+ "ui/tutorial-arrow": {
+  "url": "/assets/ui/tutorial-arrow.webp?v=77d5ac36",
+  "w": 768,
+  "h": 744
  },
  "ui/type-attack": {
   "url": "/assets/ui/type-attack.webp?v=26e00894",

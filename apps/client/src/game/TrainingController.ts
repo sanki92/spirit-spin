@@ -7,7 +7,7 @@ import { BEASTS } from './beasts'
 type Stage = 'launch' | 'lessons' | 'real' | 'done'
 const IDLE: TickInput = { tiltX: 0, tiltY: 0, spirit: false }
 const DIRS = { '←': { x: -1, y: 0 }, '→': { x: 1, y: 0 }, '↑': { x: 0, y: 1 }, '↓': { x: 0, y: -1 } } as const
-const MOVE_HOLD_MS = 1300
+const MOVE_HOLD_MS = 750
 const SPIRIT_HOLD_MS = 3800
 const TILT_DONE = 0.35
 
@@ -86,7 +86,8 @@ export class TrainingController extends BattleController {
     const tilt = sensors?.live ? sensors.tilt() : this.manualTilt
     if (tilt.x * this.waitDir.x + tilt.y * this.waitDir.y < TILT_DONE) return
     this.waitDir = null
-    this.resume()
+    this.paused = false
+    useHud.getState().set({ lesson: { id: 'nice', title: 'Nice!', text: '' } })
     this.later(MOVE_HOLD_MS, () => this.next())
   }
 

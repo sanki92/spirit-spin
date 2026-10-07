@@ -456,7 +456,7 @@ export class Game {
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1])
         const o = b.tops[(1 - i) as 0 | 1]
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
-        top.fade(t.phaseTicks > 0 ? 0.18 : 1, dt)
+        top.fade(t.phaseTicks > 0 ? 0.5 : 1, dt)
       }
       if (this.techFx && this.specs) {
         const sp = this.specs
