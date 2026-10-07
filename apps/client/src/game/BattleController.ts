@@ -54,6 +54,7 @@ export class BattleController {
   protected spiritRequest = false
   protected lastSpiritVia: 'shout' | 'button' | null = null
   protected manualTilt = { x: 0, y: 0 }
+  protected needNeutral = false
   protected events: BattleEvent[] = []
   protected hudTimer = 0
   protected timers: number[] = []
@@ -305,15 +306,16 @@ export class BattleController {
   }
 
   protected enterBattlePhase(): void {
+    this.needNeutral = true
     this.later(1100, () => {
       if (useHud.getState().phase === 'launch') useHud.getState().set({ phase: 'battle', callout: null })
-      this.deps.sensors?.calibrateNeutral()
     })
   }
 
   protected currentTilt(): { x: number; y: number } {
     const m = this.manualTilt, sensors = this.deps.sensors
     if (!sensors?.live) return m
+    if (this.needNeutral) { sensors.calibrateNeutral(); this.needNeutral = false }
     const s = sensors.tilt()
     return { x: Math.max(-1, Math.min(1, s.x + m.x)), y: Math.max(-1, Math.min(1, s.y + m.y)) }
   }

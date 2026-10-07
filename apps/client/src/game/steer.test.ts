@@ -34,4 +34,18 @@ describe('steering input', () => {
     p.prepRound()
     expect(useHud.getState()).toMatchObject({ spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false] })
   })
+
+  it('tilt neutral is taken once, at the first sim input after launch', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('window', { setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms) })
+    const { p, sensors } = rig()
+    p.enterBattlePhase()
+    p.playerInput()
+    p.playerInput()
+    vi.advanceTimersByTime(2000)
+    expect(sensors.calibrateNeutral).toHaveBeenCalledTimes(1)
+    expect(sensors.calibrateNeutral.mock.invocationCallOrder[0]).toBeLessThan(sensors.tilt.mock.invocationCallOrder[0]!)
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
 })
