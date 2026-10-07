@@ -3,14 +3,14 @@ import type { TopSpec } from '../parts'
 import { T } from './tuning'
 import type { BattleEvent, Side, TickInput, TopState } from './types'
 
-export function updateSpirit(t: TopState, spec: TopSpec, foe: TopState, input: TickInput, side: Side, tick: number, out: BattleEvent[]): void {
+export function updateSpirit(t: TopState, spec: TopSpec, foe: TopState, input: TickInput, side: Side, tick: number, out: BattleEvent[], rivalOut: boolean): void {
   if (t.spiritTicks > 0) {
     t.spiritTicks--
     if (t.spiritTicks === 0) { t.strikeArmed = false; t.strikes = 0; t.stealArmed = false; t.shieldTicks = 0; out.push({ k: 'spiritEnd', tick, side }) }
     return
   }
   t.gauge = Math.min(1, t.gauge + T.gaugePerSec / 60)
-  if (!input.spirit || t.gauge < 1) return
+  if (!input.spirit || t.gauge < 1 || rivalOut) return
 
   if (t.hesitate) {
     t.hesitate = false

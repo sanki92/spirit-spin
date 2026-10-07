@@ -19,13 +19,14 @@ export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInpu
     }
     return
   }
+  const out0 = s.tops[0].spiritTicks > 0, out1 = s.tops[1].spiritTicks > 0
   for (let i = 0; i < 2; i++) {
     const side = i as Side
     const t = s.tops[side], spec = s.specs[side], foe = s.tops[(1 - side) as Side]
     const raw = inputs[side]
     const held = t.stunTicks > 0 || (t.spiritTicks > 0 && t.summonTicks === 0)
     const input: TickInput = { tiltX: held ? 0 : clampTilt(raw.tiltX), tiltY: held ? 0 : clampTilt(raw.tiltY), spirit: raw.spirit === true }
-    updateSpirit(t, spec, foe, input, side, s.tick, out)
+    updateSpirit(t, spec, foe, input, side, s.tick, out, side === 0 ? out1 : out0)
     tickTechnique(t, spec, foe, side, s.tick, out)
     moveTop(s, t, spec, input, foe)
   }

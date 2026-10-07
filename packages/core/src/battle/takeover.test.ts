@@ -46,15 +46,25 @@ describe('summon', () => {
     expect(s.tops[0].spiritTicks).toBe(s.tops[1].spiritTicks)
   })
 
-  it('an opponent summon during my takeover pauses my takeover clock', () => {
+  it('a call while the rival\'s beast is out is ignored and the gauge stays full', () => {
     const s = duel('aegiron', 'voltfang')
-    play(s, T.summonTicks + 1, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
-    play(s, 20, () => [IDLE, IDLE])
-    const left = s.tops[0].spiritTicks
     s.tops[1].gauge = 1
-    play(s, 1, () => [IDLE, CALL])
-    play(s, T.summonTicks - 1, () => [IDLE, IDLE])
-    expect(s.tops[0].spiritTicks).toBe(left - 1)
+    s.tops[1].hesitate = true
+    const ev = play(s, 1, () => [CALL, IDLE])
+    ev.push(...play(s, T.summonTicks, () => [IDLE, CALL]))
+    expect(s.tops[0].summonTicks).toBe(0)
+    ev.push(...play(s, 20, () => [IDLE, CALL]))
+    expect(s.tops[0].spiritTicks).toBeGreaterThan(0)
+    expect(ev.some(e => (e.k === 'spirit' || e.k === 'hesitate') && e.side === 1)).toBe(false)
+    expect(s.tops[1].gauge).toBe(1)
+    expect(s.tops[1].hesitate).toBe(true)
+    expect(s.tops[1].spiritTicks).toBe(0)
+    play(s, s.tops[0].spiritTicks, () => [IDLE, IDLE])
+    expect(s.tops[0].spiritTicks).toBe(0)
+    s.tops[1].hesitate = false
+    const ev2 = play(s, 1, () => [IDLE, CALL])
+    expect(ev2.some(e => e.k === 'spirit' && e.side === 1)).toBe(true)
+    expect(s.tops[1].summonTicks).toBe(T.summonTicks)
   })
 
   it('the owner\'s tilt is ignored during the takeover', () => {

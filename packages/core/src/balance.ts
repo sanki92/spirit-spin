@@ -93,7 +93,7 @@ export const BALANCE_TARGETS = {
   timeoutRate: [0, 0.1],
   matchup: [0.35, 0.65],
   mirror: [0.4, 0.6],
-  finish: { spin: [0.2, 0.45], ringout: [0.2, 0.45], shatter: [0.08, 0.25], spirit: [0.05, 0.2] },
+  finish: { spin: [0.2, 0.45], ringout: [0.2, 0.45], shatter: [0.08, 0.25], spirit: [0.35, 0.55] },
   greatVsWeak: [0.65, 1],
   overspinVsGreat: [0, 0.5],
 } as const
