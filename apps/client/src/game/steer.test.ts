@@ -57,3 +57,24 @@ describe('steering input', () => {
     vi.useRealTimers()
   })
 })
+
+describe('swipe launch', () => {
+  it('a swipe still held on the glass at the launch deadline counts', () => {
+    const { c } = rig(false)
+    const pts = [{ t: 0, x: 100, y: 200 }, { t: 40, x: 100, y: 400 }, { t: 400, x: 101, y: 401 }]
+    useHud.getState().set({ phase: 'countdown' })
+    c.trackSwipe(pts)
+    expect((c as unknown as { launchSwipe(): unknown }).launchSwipe()).toEqual(pts)
+  })
+
+  it('a finished swipe wins over the one still being tracked, and neither leaks into the next round', () => {
+    const { c, p } = rig(false)
+    const done = [{ t: 0, x: 0, y: 0 }, { t: 30, x: 0, y: 300 }]
+    useHud.getState().set({ phase: 'countdown' })
+    c.trackSwipe([{ t: 0, x: 0, y: 0 }])
+    c.submitSwipe(done)
+    expect((c as unknown as { launchSwipe(): unknown }).launchSwipe()).toEqual(done)
+    p.prepRound()
+    expect((c as unknown as { launchSwipe(): unknown }).launchSwipe()).toBeNull()
+  })
+})

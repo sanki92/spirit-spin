@@ -49,7 +49,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
   const swipeCleanup = useRef<(() => void) | null>(null)
   const onSwipeZone = useCallback((el: HTMLDivElement | null) => {
     swipeCleanup.current?.()
-    swipeCleanup.current = el ? captureSwipe(el, pts => ctrl.current?.submitSwipe(pts)) : null
+    swipeCleanup.current = el ? captureSwipe(el, pts => ctrl.current?.submitSwipe(pts), pts => ctrl.current?.trackSwipe(pts)) : null
   }, [])
   const onStick = useCallback((x: number, y: number) => ctrl.current?.setManualTilt(x, y), [])
   const onSpirit = useCallback(() => ctrl.current?.requestSpirit(), [])

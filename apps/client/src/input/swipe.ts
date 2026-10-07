@@ -1,6 +1,6 @@
 import type { TouchSample } from '@spirit/core'
 
-export function captureSwipe(el: HTMLElement, onDone: (pts: TouchSample[]) => void): () => void {
+export function captureSwipe(el: HTMLElement, onDone: (pts: TouchSample[]) => void, onMove?: (pts: TouchSample[]) => void): () => void {
   let pts: TouchSample[] = []
   let active = false
   const down = (e: PointerEvent) => {
@@ -14,6 +14,7 @@ export function captureSwipe(el: HTMLElement, onDone: (pts: TouchSample[]) => vo
       const t = c.timeStamp || performance.now()
       if (t > (pts[pts.length - 1]?.t ?? -Infinity)) pts.push({ t, x: c.clientX, y: c.clientY })
     }
+    onMove?.(pts)
   }
   const up = () => {
     if (!active) return

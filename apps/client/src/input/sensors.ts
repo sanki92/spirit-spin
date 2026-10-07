@@ -3,7 +3,8 @@ import type { GravitySample, MotionSample } from '@spirit/core'
 const IOS = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1))
 const KEEP_MS = 3000
 const TILT_RANGE = 0.3
-const NEUTRAL_DRIFT = 1 / 240
+const DRIFT_S = 4
+const DRIFT_NEAR = 0.15 * TILT_RANGE
 export const deadzone = (v: number, dz = 0.08) => (Math.abs(v) < dz ? 0 : (v - Math.sign(v) * dz) / (1 - dz))
 
 export interface Tilt { x: number; y: number }
@@ -36,15 +37,22 @@ export class SensorFeed {
 
   tilt(): Tilt {
     const m = Math.hypot(this.g.x, this.g.y, this.g.z) || 1
-    const nx = this.g.x / m, ny = this.g.y / m, nz = this.g.z / m
-    this.neutral.x += (nx - this.neutral.x) * NEUTRAL_DRIFT
-    this.neutral.y += (ny - this.neutral.y) * NEUTRAL_DRIFT
-    this.neutral.z += (nz - this.neutral.z) * NEUTRAL_DRIFT
+    const nx = this.g.x / m, ny = this.g.y / m
     const tx = clamp(deadzone(-(nx - this.neutral.x) / TILT_RANGE))
     const ty = clamp(deadzone((this.neutral.y - ny) / TILT_RANGE))
     this.smooth.x += (tx - this.smooth.x) * 0.35
     this.smooth.y += (ty - this.smooth.y) * 0.35
     return { x: this.smooth.x, y: this.smooth.y }
+  }
+
+  private drift(dt: number): void {
+    const m = Math.hypot(this.g.x, this.g.y, this.g.z) || 1
+    const nx = this.g.x / m, ny = this.g.y / m, nz = this.g.z / m
+    if (Math.abs(nx - this.neutral.x) > DRIFT_NEAR || Math.abs(ny - this.neutral.y) > DRIFT_NEAR) return
+    const k = dt / DRIFT_S
+    this.neutral.x += (nx - this.neutral.x) * k
+    this.neutral.y += (ny - this.neutral.y) * k
+    this.neutral.z += (nz - this.neutral.z) * k
   }
 
   measuredHz(): number {
@@ -63,10 +71,12 @@ export class SensorFeed {
     const flip = IOS ? -1 : 1
     const gx = ag.x * flip, gy = ag.y * flip, gz = ag.z * flip
     const t = performance.now()
+    const dt = this.lastEvent ? Math.min(0.1, (t - this.lastEvent) / 1000) : 0
     this.lastEvent = t
     this.g.x += (gx - this.g.x) * 0.2
     this.g.y += (gy - this.g.y) * 0.2
     this.g.z += (gz - this.g.z) * 0.2
+    this.drift(dt)
     const lin = e.acceleration
     const ax = lin?.x != null ? lin.x * flip : gx - this.g.x
     const ay = lin?.y != null ? lin.y * flip : gy - this.g.y

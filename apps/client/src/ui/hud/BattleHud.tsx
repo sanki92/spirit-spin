@@ -135,8 +135,9 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
   useEffect(() => {
     const keys = new Set<string>()
     const apply = () => onStick((keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0), (keys.has('ArrowUp') || keys.has('w') ? 1 : 0) - (keys.has('ArrowDown') || keys.has('s') ? 1 : 0))
-    const down = (e: KeyboardEvent) => { keys.add(e.key); apply() }
-    const up = (e: KeyboardEvent) => { keys.delete(e.key); apply() }
+    const key = (e: KeyboardEvent) => (e.key.length === 1 ? e.key.toLowerCase() : e.key)
+    const down = (e: KeyboardEvent) => { keys.add(key(e)); apply() }
+    const up = (e: KeyboardEvent) => { keys.delete(key(e)); apply() }
     const blur = () => { keys.clear(); apply() }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
@@ -156,6 +157,7 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
       }}
       onPointerUp={release}
       onPointerCancel={release}
+      onLostPointerCapture={release}
     >
       {knob && origin.current && (
         <>

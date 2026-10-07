@@ -16,6 +16,7 @@ import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
+const ZOOM_LEAD = 0.2
 const THEME_ACCENT: Record<StadiumTheme, number> = { classic: 0x3be6ff, volcano: 0xff6a1a, 'frozen-moon': 0xa8e8ff }
 
 interface Snap { x: number; y: number }
@@ -69,6 +70,8 @@ export class Game {
   private hist: ReplayFrame[] = []
   private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
+  private zoomSide: 0 | 1 | null = null
+  private zoomUntil = 0
   private onFrame: ((dt: number) => void) | null = null
 
   private constructor(readonly canvas: HTMLCanvasElement, fx: Fx) {
@@ -184,6 +187,7 @@ export class Game {
 
   setBattle(b: BattleState | null): void {
     this.battle = b
+    this.endZoom()
     this.hist = []
     this.pendingClash = null
     this.stepper.reset()
@@ -198,6 +202,25 @@ export class Game {
 
   hitstop(ms: number): void {
     this.hitstopUntil = Math.max(this.hitstopUntil, performance.now() + ms)
+  }
+
+  spiritZoom(side: 0 | 1, ms: number): void {
+    if (this.cine) return
+    this.zoomSide = side
+    this.zoomUntil = performance.now() + ms
+  }
+
+  private endZoom(): void {
+    if (this.zoomSide === null) return
+    this.zoomSide = null
+    if (!this.cine) this.stage.cinematic(false)
+  }
+
+  private followZoom(now: number): void {
+    if (this.zoomSide === null) return
+    const t = this.battle?.tops[this.zoomSide]
+    if (this.cine || !t || t.out || now > this.zoomUntil) return this.endZoom()
+    this.stage.cinematic(true, t.x, -t.y - ZOOM_LEAD)
   }
 
   slowmo(scale: number, ms: number): void {
@@ -217,6 +240,7 @@ export class Game {
       this.last = now
       this.stepper.scale = !this.timeWarp ? this.netScale : now < this.hitstopUntil ? 0 : now < this.slowUntil ? this.slowScale : 1
       const alpha = this.battle && !this.anim ? this.stepper.advance(dtMs) : 0
+      this.followZoom(now)
       this.stadium?.update(dtMs / 1000, this.battle && !this.anim ? this.battle.tops : null)
       for (const s of this.shatters ?? []) s.update(dtMs / 1000 * (this.cine ? 0.35 : 1))
       this.draw(alpha, dtMs / 1000)
@@ -275,6 +299,7 @@ export class Game {
   finishCam(loser: 0 | 1 | null, done: () => void): boolean {
     this.record()
     if (this.hist.length < FINISH_CAM.minFrames) return false
+    this.zoomSide = null
     this.cine = { frames: [...this.hist], t: 0, dur: FINISH_CAM.replayMs, fired: 0, impact: false, hold: 0, loser, done }
     this.slowUntil = 0
     return true

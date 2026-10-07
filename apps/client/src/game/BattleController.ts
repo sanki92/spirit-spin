@@ -51,6 +51,7 @@ export class BattleController {
   protected botRng: RngState
   protected launchAt = 0
   protected swipe: TouchSample[] | null = null
+  protected swipeLive: TouchSample[] | null = null
   protected spiritRequest = false
   protected lastSpiritVia: 'shout' | 'button' | null = null
   protected manualTilt = { x: 0, y: 0 }
@@ -118,8 +119,21 @@ export class BattleController {
   }
 
   submitSwipe(points: TouchSample[]): void {
+    this.swipeLive = null
+    if (this.swipeOpen()) this.swipe = points
+  }
+
+  trackSwipe(points: TouchSample[]): void {
+    if (this.swipeOpen()) this.swipeLive = points
+  }
+
+  private swipeOpen(): boolean {
     const p = useHud.getState().phase
-    if ((p === 'countdown' || p === 'grip' || p === 'coach') && this.resolvedAt !== this.launchAt) this.swipe = points
+    return (p === 'countdown' || p === 'grip' || p === 'coach') && this.resolvedAt !== this.launchAt
+  }
+
+  protected launchSwipe(): TouchSample[] | null {
+    return this.swipe ?? (this.swipeLive ? [...this.swipeLive] : null)
   }
 
   requestSpirit(): void {
@@ -143,6 +157,7 @@ export class BattleController {
   protected prepRound(): void {
     this.game.skipCine(false)
     this.swipe = null
+    this.swipeLive = null
     this.manualTilt = { x: 0, y: 0 }
     this.windowFrom = -Infinity
     this.pullShown = 0
@@ -237,6 +252,8 @@ export class BattleController {
     const t0 = this.launchAt
     if (this.resolvedAt === t0 || this.disposed) return
     this.resolvedAt = t0
+    this.swipe = this.launchSwipe()
+    this.swipeLive = null
     const coaching = useHud.getState().phase === 'coach'
     let res: RipResult | RipFail
     const from = Math.max(t0 - 1100, this.windowFrom)
@@ -384,6 +401,7 @@ export class BattleController {
         this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
         g.slowmo(0.3, 1000)
+        g.spiritZoom(e.side, 1300)
         s.play('spirit')
         buzz([30, 40, 60])
         this.later(1300, () => useHud.getState().set({ cutin: null }))
