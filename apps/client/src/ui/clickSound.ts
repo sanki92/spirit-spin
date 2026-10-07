@@ -6,7 +6,7 @@ export function installClickSound(sound: Sound): void {
   void sound.load(['ui'])
   document.addEventListener('click', e => {
     const el = (e.target as Element | null)?.closest?.(CLICKABLE)
-    if (!el || el.matches(':disabled, [aria-disabled="true"], [data-silent]') || el.closest('.battle-screen')) return
+    if (!el || el.matches(':disabled, [aria-disabled="true"], [data-silent]') || (el.closest('.battle-screen') && !el.closest('.lesson, .lesson-skip'))) return
     sound.unlock()
     sound.play('ui', { volume: 0.45, rate: 0.97 + Math.random() * 0.06 })
   }, { capture: true })

@@ -746,6 +746,13 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .lesson-shade > rect { fill: rgba(3, 5, 16, 0.78); }
 .lesson.acting .lesson-shade > rect { fill: rgba(3, 5, 16, 0.45); }
 .lesson.nice .lesson-shade > rect { fill: transparent; }
+.lesson.lifting .lesson-shade > rect { fill: rgba(3, 5, 16, 0.88); transition: fill 0.3s; }
+.lesson-lift { position: absolute; transform-origin: 50% 50%; transition: transform 0.5s cubic-bezier(.2, .9, .25, 1.08); pointer-events: none; filter: drop-shadow(0 0 0 rgba(59, 230, 255, 0)); }
+.lesson-lift.up { filter: drop-shadow(0 0 3px rgba(59, 230, 255, 0.7)); transition: transform 0.5s cubic-bezier(.2, .9, .25, 1.08), filter 0.4s 0.3s; }
+.lesson-card.after-lift { transition: opacity 0.25s 0.35s, transform 0.25s 0.35s; }
+.lesson-card.after-lift.wait { opacity: 0; transform: translateY(8px); animation: none; }
+.reduce-motion .lesson-lift, .reduce-motion .lesson-card.after-lift { transition: none; }
+@media (prefers-reduced-motion: reduce) { .lesson-lift, .lesson-card.after-lift { transition: none; } }
 .lesson-card { position: absolute; left: 16px; right: 16px; max-width: 420px; margin: 0 auto; padding: 14px 16px; display: grid; gap: 8px; background: linear-gradient(180deg, #16204f, #0a0f28); border: 1px solid rgba(59, 230, 255, 0.35); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); animation: lessonIn 0.18s ease-out both; }
 .lesson-card.center { top: 50%; transform: translateY(-50%); animation-name: lessonInCenter; }
 .lesson-card.low { bottom: calc(var(--safe-bottom) + 150px); }
