@@ -137,10 +137,13 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
     const apply = () => onStick((keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0), (keys.has('ArrowUp') || keys.has('w') ? 1 : 0) - (keys.has('ArrowDown') || keys.has('s') ? 1 : 0))
     const down = (e: KeyboardEvent) => { keys.add(e.key); apply() }
     const up = (e: KeyboardEvent) => { keys.delete(e.key); apply() }
+    const blur = () => { keys.clear(); apply() }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
+    window.addEventListener('blur', blur)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur) }
   }, [onStick])
+  const release = () => { origin.current = null; setKnob(null); onStick(0, 0) }
   return (
     <div
       className="stick-zone"
@@ -151,7 +154,8 @@ function Stick({ onStick }: { onStick: (x: number, y: number) => void }) {
         setKnob({ x: origin.current.x + dx * 70, y: origin.current.y + dy * 70 })
         onStick(dx, -dy)
       }}
-      onPointerUp={() => { origin.current = null; setKnob(null); onStick(0, 0) }}
+      onPointerUp={release}
+      onPointerCancel={release}
     >
       {knob && origin.current && (
         <>

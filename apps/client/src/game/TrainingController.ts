@@ -83,8 +83,7 @@ export class TrainingController extends BattleController {
   protected override frame(dt: number): void {
     super.frame(dt)
     if (!this.waitDir) return
-    const sensors = this.deps.sensors
-    const tilt = sensors?.live ? sensors.tilt() : this.manualTilt
+    const tilt = this.currentTilt()
     if (tilt.x * this.waitDir.x + tilt.y * this.waitDir.y < TILT_DONE) return
     this.waitDir = null
     this.paused = false

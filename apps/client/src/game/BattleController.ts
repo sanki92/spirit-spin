@@ -142,6 +142,7 @@ export class BattleController {
   protected prepRound(): void {
     this.game.skipCine(false)
     this.swipe = null
+    this.manualTilt = { x: 0, y: 0 }
     this.windowFrom = -Infinity
     this.pullShown = 0
     this.game.setBattle(null)
@@ -310,9 +311,15 @@ export class BattleController {
     })
   }
 
+  protected currentTilt(): { x: number; y: number } {
+    const m = this.manualTilt, sensors = this.deps.sensors
+    if (!sensors?.live) return m
+    const s = sensors.tilt()
+    return { x: Math.max(-1, Math.min(1, s.x + m.x)), y: Math.max(-1, Math.min(1, s.y + m.y)) }
+  }
+
   protected playerInput(): TickInput {
-    const sensors = this.deps.sensors
-    const tilt = sensors?.live ? sensors.tilt() : this.manualTilt
+    const tilt = this.currentTilt()
     this.tiltSum += Math.min(1, Math.hypot(tilt.x, tilt.y))
     this.tiltTicks++
     const spirit = this.spiritRequest
