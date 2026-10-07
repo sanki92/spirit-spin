@@ -106,11 +106,12 @@ describe('battle rules', () => {
     run(s, 1)
     expect(s.outcome).toEqual({ winner: 0, finish: 'spin', points: 1 })
   })
-  it('spirit call with full gauge manifests the beast for ~4 s', () => {
+  it('spirit call with full gauge starts a 1 s summon then a 2.5 s takeover', () => {
     const s = fresh(); s.tops[0].gauge = 1
     const ev = run(s, 1, [{ tiltX: 0, tiltY: 0, spirit: true }, IDLE])
     expect(ev.some(e => e.k === 'spirit' && e.side === 0)).toBe(true)
-    expect(s.tops[0].spiritTicks).toBeGreaterThan(230)
+    expect(s.tops[0].summonTicks).toBe(60)
+    expect(s.tops[0].spiritTicks).toBe(150)
     expect(s.tops[0].gauge).toBe(0)
   })
   it('spirit call without full gauge does nothing', () => {

@@ -34,7 +34,8 @@ function launchTop(spec: TopSpec, l: LaunchParams, side: Side): TopState {
     hesitate: l.hesitate,
     overspinTicks: l.rip.overspin ? Math.round(T.overspinTicks) : 0,
     lastHitTick: -1000,
-    stunTicks: 0, shieldTicks: 0, pullTicks: 0, phaseTicks: 0, burnTicks: 0, steps: 0, strikes: 0, strikeMul: 1, stealArmed: false, ambushUsed: false,
+    stunTicks: 0, shieldTicks: 0, pullTicks: 0, burnTicks: 0, strikes: 0, strikeMul: 1, stealArmed: false, ambushUsed: false,
+    summonTicks: 0, act: 0, actTicks: 0,
     out: false, stopped: false, shattered: false,
   }
 }
@@ -44,7 +45,7 @@ export function battleHash(s: BattleState): string {
   for (const t of s.tops) {
     n.push(t.x, t.y, t.vx, t.vy, t.spin, t.wobble, t.shatter, t.gauge, t.spiritTicks, t.overspinTicks,
       t.lastHitTick, +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered,
-      t.stunTicks, t.shieldTicks, t.pullTicks, t.phaseTicks, t.burnTicks, t.steps, t.strikes, t.strikeMul, +t.stealArmed, +t.ambushUsed)
+      t.stunTicks, t.shieldTicks, t.pullTicks, t.burnTicks, t.strikes, t.strikeMul, +t.stealArmed, +t.ambushUsed, t.summonTicks, t.act, t.actTicks)
   }
   return hashNumbers(n)
 }

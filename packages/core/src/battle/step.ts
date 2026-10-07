@@ -3,7 +3,7 @@ import type { TopSpec } from '../parts'
 import { rngNext } from '../rng'
 import { resolveClash, resolveWall } from './collide'
 import { updateSpirit } from './spirit'
-import { isTideOn, tickTechnique } from './technique'
+import { tickTechnique } from './technique'
 import { DT, ROUND_TICKS, T, TIP } from './tuning'
 import type { BattleEvent, BattleState, RoundOutcome, Side, TickInput, TopState } from './types'
 
@@ -12,15 +12,22 @@ const clampTilt = (v: number) => (Number.isFinite(v) ? (v > 1 ? 1 : v < -1 ? -1 
 export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInput], out: BattleEvent[]): void {
   if (s.outcome) return
   s.tick++
+  if (s.tops[0].summonTicks > 0 || s.tops[1].summonTicks > 0) {
+    for (let i = 0; i < 2; i++) {
+      const t = s.tops[i as Side]
+      if (t.summonTicks > 0 && --t.summonTicks === 0) out.push({ k: 'takeover', tick: s.tick, side: i as Side })
+    }
+    return
+  }
   for (let i = 0; i < 2; i++) {
     const side = i as Side
     const t = s.tops[side], spec = s.specs[side], foe = s.tops[(1 - side) as Side]
     const raw = inputs[side]
-    const stunned = t.stunTicks > 0
-    const input: TickInput = { tiltX: stunned ? 0 : clampTilt(raw.tiltX), tiltY: stunned ? 0 : clampTilt(raw.tiltY), spirit: raw.spirit === true }
+    const held = t.stunTicks > 0 || (t.spiritTicks > 0 && t.summonTicks === 0)
+    const input: TickInput = { tiltX: held ? 0 : clampTilt(raw.tiltX), tiltY: held ? 0 : clampTilt(raw.tiltY), spirit: raw.spirit === true }
     updateSpirit(t, spec, foe, input, side, s.tick, out)
-    tickTechnique(t, spec, foe)
-    moveTop(s, t, spec, input, foe, s.specs[(1 - side) as Side])
+    tickTechnique(t, spec, foe, side, s.tick, out)
+    moveTop(s, t, spec, input, foe)
   }
   resolveClash(s, out)
   for (let i = 0; i < 2; i++) resolveWall(s.tops[i as Side], s.specs[i as Side], i as Side, s.tick, out)
@@ -30,18 +37,14 @@ export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInpu
   if (o) { s.outcome = o; out.push({ k: 'finish', tick: s.tick, outcome: o }) }
 }
 
-function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput, foe: TopState, foeSpec: TopSpec): void {
+function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput, foe: TopState): void {
   const tip = TIP[spec.tip]
   const X = T.tech
-  const centerMul = tip.center * (isTideOn(t, spec) ? T.tideCenter : 1)
+  const centerMul = tip.center
   let ax = -T.slope * centerMul * t.x, ay = -T.slope * centerMul * t.y
   if (foe.pullTicks > 0) {
     const px = foe.x - t.x, py = foe.y - t.y, pl = Math.sqrt(px * px + py * py)
     if (pl > 1e-3) { ax += (px / pl) * X.pullForce; ay += (py / pl) * X.pullForce }
-  }
-  if (isTideOn(foe, foeSpec) && foeSpec.ultimate) {
-    const d = Math.sqrt(t.x * t.x + t.y * t.y)
-    if (d > 1e-3) { ax += (t.x / d) * X.tidePush; ay += (t.y / d) * X.tidePush }
   }
 
   // Velocity controller. Desired velocity = cruise speed along (heading curved by grip + player tilt);
@@ -53,7 +56,7 @@ function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput, f
   let dx = hx + hy * turn + input.tiltX * T.steerTurn, dy = hy - hx * turn + input.tiltY * T.steerTurn
   const dl = Math.sqrt(dx * dx + dy * dy); if (dl > 1e-6) { dx /= dl; dy /= dl } else { dx = hx; dy = hy }
   const cruise = tip.drive * spec.driveMod * Math.max(t.spin, 0) * T.vmax * (0.5 + 0.05 * spec.stats.speed)
-    * (t.stunTicks > 0 ? X.stunCruise : 1) * (isTideOn(foe, foeSpec) ? X.tideSlow : 1) * (spec.trait && spec.beastId === 'zephyra' ? X.tailwind : 1)
+    * (t.stunTicks > 0 ? X.stunCruise : 1) * (spec.trait && spec.beastId === 'zephyra' ? X.tailwind : 1)
   const grip = (speed > cruise * 1.05 ? tip.brake : tip.gain) * (t.stunTicks > 0 ? X.stunGrip : 1)
   ax += (dx * cruise - t.vx) * grip
   ay += (dy * cruise - t.vy) * grip

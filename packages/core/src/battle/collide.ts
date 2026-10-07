@@ -1,6 +1,5 @@
 /** Top-vs-top clash and top-vs-wall/pocket resolution. Only + - * / and sqrt: bit-identical across engines. */
 import type { TopSpec } from '../parts'
-import { isTideOn } from './technique'
 import { T, POCKETS, POCKET_COS, TYPE_EDGE } from './tuning'
 import type { BattleEvent, BattleState, Side, TopState } from './types'
 
@@ -28,7 +27,6 @@ export function resolveWall(t: TopState, spec: TopSpec, side: Side, tick: number
 
 export function resolveClash(s: BattleState, out: BattleEvent[]): void {
   const [a, b] = s.tops, [sa, sb] = s.specs
-  if (a.phaseTicks > 0 || b.phaseTicks > 0) return
   const X = T.tech
   const dx = b.x - a.x, dy = b.y - a.y
   const dist = Math.sqrt(dx * dx + dy * dy)
@@ -56,8 +54,6 @@ export function resolveClash(s: BattleState, out: BattleEvent[]): void {
   if (b.strikeArmed) { kBonA *= b.strikeMul; shatterMulA = T.strikeShatterMul }
   if (b.shieldTicks > 0 && !a.strikeArmed) { kAonB *= T.bastionTaken; kBonA *= sb.ultimate ? X.reflectUlt : T.bastionReflect }
   if (a.shieldTicks > 0 && !b.strikeArmed) { kBonA *= T.bastionTaken; kAonB *= sa.ultimate ? X.reflectUlt : T.bastionReflect }
-  if (isTideOn(a, sa) && !b.strikeArmed) kBonA *= T.tideGuard
-  if (isTideOn(b, sb) && !a.strikeArmed) kAonB *= T.tideGuard
   if (a.pullTicks > 0 && b.shieldTicks <= 0) kAonB *= X.pullClash
   if (b.pullTicks > 0 && a.shieldTicks <= 0) kBonA *= X.pullClash
   if (sa.trait && sa.beastId === 'umbrax' && !a.ambushUsed) { kAonB *= X.ambush; a.ambushUsed = true }

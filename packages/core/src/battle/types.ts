@@ -18,13 +18,14 @@ export interface TopState {
   stunTicks: number
   shieldTicks: number
   pullTicks: number
-  phaseTicks: number
   burnTicks: number
-  steps: number
   strikes: number
   strikeMul: number
   stealArmed: boolean
   ambushUsed: boolean
+  summonTicks: number
+  act: number
+  actTicks: number
   out: boolean; stopped: boolean; shattered: boolean
 }
 
@@ -32,12 +33,16 @@ export type FinishKind = 'spin' | 'ringout' | 'shatter' | 'spirit' | 'draw'
 export interface RoundOutcome { winner: 0 | 1 | null; finish: FinishKind; points: 0 | 1 | 2 | 3 }
 
 export type Side = 0 | 1
+export type BeastMove = 'dash' | 'anchor' | 'shockwave' | 'orbit' | 'dive' | 'vortex' | 'fling' | 'pounce' | 'strike'
+
 export type BattleEvent =
   | { k: 'clash'; tick: number; energy: number; x: number; y: number }
   | { k: 'wall'; tick: number; side: Side }
   | { k: 'spirit'; tick: number; side: Side }
   | { k: 'hesitate'; tick: number; side: Side }
   | { k: 'spiritEnd'; tick: number; side: Side }
+  | { k: 'takeover'; tick: number; side: Side }
+  | { k: 'beast'; tick: number; side: Side; move: BeastMove; x: number; y: number }
   | { k: 'finish'; tick: number; outcome: RoundOutcome }
 
 export interface BattleState {
