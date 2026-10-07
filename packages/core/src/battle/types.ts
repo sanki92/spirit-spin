@@ -11,6 +11,7 @@ export interface TopState {
   shatter: number // 0..1, shattered at 1
   gauge: number // spirit gauge 0..1
   spiritTicks: number // > 0 while the beast is manifested
+  spirits: number // spirit calls used this round
   strikeArmed: boolean // next clash gets the type's one-shot bonus (attack / balance)
   hesitate: boolean // beast will refuse its first call this round
   overspinTicks: number

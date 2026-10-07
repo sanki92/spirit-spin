@@ -6,7 +6,8 @@ import type { TipKind, TopType } from '../parts'
 
 export const TICK_HZ = 60
 export const DT = 1 / TICK_HZ
-export const ROUND_TICKS = 40 * TICK_HZ
+export const ROUND_TICKS = 60 * TICK_HZ
+export const STRETCH_TICKS = 45 * TICK_HZ
 
 export const T = {
   slope: 2.2146, // bowl pull toward center (a = -slope * pos)
@@ -28,8 +29,8 @@ export const T = {
   shatterMin: 0.3146, // received impact below this never builds shatter
   shatterGain: 0.4528,
   shatterCap: 0.1853,
-  gaugeClash: 0.08,
-  gaugePerSec: 0.0925,
+  gaugeClash: 0.04,
+  gaugePerSec: 0.04625,
   spiritTicks: 4 * TICK_HZ,
   strikeV: 2.8, // attack Surge Strike dash speed
   strikeMul: 2.8, strikeShatterMul: 3.5,
@@ -42,6 +43,10 @@ export const T = {
   overspinDrain: 0.1553,
   overspinTicks: 81.297,
   spinBase: 0.4, spinFromRpm: 0.6, overspinBonus: 0.1,
+  spiritsPerRound: 1,
+  staminaStatWeight: 0, // 0: every top gets the full stamina multiplier; 1: it scales with the top's stamina stat
+  stamina: 3, // spin and shatter change at 1/stamina of the raw physics until the final stretch
+  finalStamina: 0.5, // by the round limit wear runs at 1/finalStamina so rounds end on the stadium floor
   tech: {
     stun: 45, stunUlt: 84, stunCruise: 0.35, stunGrip: 2.2, fangMul: 2.4,
     shield: 215, reflectUlt: 1.45,
@@ -51,6 +56,14 @@ export const T = {
     phase: 72, stepDash: 2.4785, stepMul: 2.0436,
     staticCharge: 1.2, bedrock: 1.15, ebb: 0.92, embersAtk: 1.25, embersSpin: 0.3, tailwind: 1.08, ambush: 1.25,
   },
+}
+
+export function wear(tick: number, staminaStat: number): number {
+  const share = 1 - T.staminaStatWeight + T.staminaStatWeight * Math.min(1, Math.max(0, staminaStat) / 10)
+  const stamina = 1 + (T.stamina - 1) * share
+  if (tick <= STRETCH_TICKS) return 1 / stamina
+  const p = Math.min(1, (tick - STRETCH_TICKS) / (ROUND_TICKS - STRETCH_TICKS))
+  return 1 / (stamina + (T.finalStamina - stamina) * p)
 }
 
 /** gain = how hard the tip accelerates toward its cruising speed; brake = sliding friction when knocked faster

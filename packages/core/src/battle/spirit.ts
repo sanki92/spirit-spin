@@ -10,6 +10,7 @@ export function updateSpirit(t: TopState, spec: TopSpec, foe: TopState, input: T
     if (t.spiritTicks === 0) { t.strikeArmed = false; t.strikes = 0; t.stealArmed = false; out.push({ k: 'spiritEnd', tick, side }) }
     return
   }
+  if (t.spirits >= T.spiritsPerRound) return
   t.gauge = Math.min(1, t.gauge + T.gaugePerSec / 60)
   if (!input.spirit || t.gauge < 1) return
 
@@ -20,6 +21,7 @@ export function updateSpirit(t: TopState, spec: TopSpec, foe: TopState, input: T
     return
   }
   t.gauge = 0
+  t.spirits++
   t.spiritTicks = T.spiritTicks
   out.push({ k: 'spirit', tick, side })
   activateTechnique(t, spec, foe)

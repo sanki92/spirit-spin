@@ -4,7 +4,7 @@ import { rngNext } from '../rng'
 import { resolveClash, resolveWall } from './collide'
 import { updateSpirit } from './spirit'
 import { isTideOn, tickTechnique } from './technique'
-import { DT, ROUND_TICKS, T, TIP } from './tuning'
+import { DT, ROUND_TICKS, T, TIP, wear } from './tuning'
 import type { BattleEvent, BattleState, RoundOutcome, Side, TickInput, TopState } from './types'
 
 const clampTilt = (v: number) => (Number.isFinite(v) ? (v > 1 ? 1 : v < -1 ? -1 : v) : 0)
@@ -12,6 +12,8 @@ const clampTilt = (v: number) => (Number.isFinite(v) ? (v > 1 ? 1 : v < -1 ? -1 
 export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInput], out: BattleEvent[]): void {
   if (s.outcome) return
   s.tick++
+  const before = [s.tops[0].spin, s.tops[1].spin, s.tops[0].shatter, s.tops[1].shatter] as const
+  const overspin = [s.tops[0].overspinTicks > 0, s.tops[1].overspinTicks > 0] as const
   for (let i = 0; i < 2; i++) {
     const side = i as Side
     const t = s.tops[side], spec = s.specs[side], foe = s.tops[(1 - side) as Side]
@@ -24,6 +26,13 @@ export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInpu
   }
   resolveClash(s, out)
   for (let i = 0; i < 2; i++) resolveWall(s.tops[i as Side], s.specs[i as Side], i as Side, s.tick, out)
+  for (let i = 0; i < 2; i++) {
+    const t = s.tops[i as Side]
+    const w = wear(s.tick, s.specs[i as Side].stats.stamina)
+    t.spin = before[i]! + (t.spin - before[i]!) * w - (overspin[i] ? T.overspinDrain * DT * (1 - w) : 0)
+    t.shatter = before[2 + i]! + (t.shatter - before[2 + i]!) * w
+    t.shattered = t.shatter >= 1
+  }
   for (const t of s.tops) if (t.spin <= T.stopSpin) { t.spin = Math.max(t.spin, 0); t.stopped = true }
 
   const o = judge(s)

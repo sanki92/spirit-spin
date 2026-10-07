@@ -2,7 +2,7 @@
  * Data-driven balance harness: bot-vs-bot simulation reporting round length, finish mix and matchup win rates.
  * Tuning changes in battle/tuning.ts must keep BALANCE_TARGETS green (spec pillars P1 and P3).
  */
-import { createBattle, stepBattle, TICK_HZ, type BattleEvent, type FinishKind, type TickInput } from './battle'
+import { createBattle, ROUND_TICKS, stepBattle, TICK_HZ, type BattleEvent, type FinishKind, type TickInput } from './battle'
 import { botInput, botRip, type BotBrain } from './bot'
 import { applyRound, newMatch } from './match'
 import { assembleTop, BEAST_IDS, STARTER_BUILDS, type BeastId, type TopSpec } from './parts'
@@ -22,7 +22,7 @@ export function playRound(specs: [TopSpec, TopSpec], rips: [RipResult, RipResult
     stepBattle(s, [a, b], ev)
     ev.length = 0
   }
-  return { seconds: s.tick / TICK_HZ, finish: s.outcome.finish, winner: s.outcome.winner, timeout: s.tick >= 40 * TICK_HZ }
+  return { seconds: s.tick / TICK_HZ, finish: s.outcome.finish, winner: s.outcome.winner, timeout: s.tick >= ROUND_TICKS }
 }
 
 export function playMatch(specs: [TopSpec, TopSpec], brains: [BotBrain, BotBrain], rng: RngState): { winner: 0 | 1; rounds: RoundStat[] } {
@@ -89,7 +89,7 @@ export function runBalance(matchesPerMatchup: number, brain: BotBrain, seed = 1)
 }
 
 export const BALANCE_TARGETS = {
-  meanRoundSeconds: [8, 25],
+  meanRoundSeconds: [15, 30],
   timeoutRate: [0, 0.1],
   matchup: [0.35, 0.65],
   mirror: [0.4, 0.6],

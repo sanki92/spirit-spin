@@ -25,7 +25,8 @@ const PARAMS: P[] = [
   tip('ball', 'center', 1, 2.2), tip('needle', 'center', 0.8, 2), tip('flat', 'decay', 0.035, 0.07), tip('semi', 'decay', 0.022, 0.045),
   tp('recoil', 0.2, 1.4), tp('clashE', 0.2, 0.75), tp('clashSpinLoss', 0.01, 0.09), tp('clashFriction', 0.001, 0.02),
   tp('shatterMin', 0.3, 1.6), tp('shatterGain', 0.1, 0.8), tp('ringoutV', 0.15, 0.9), tp('slope', 1.4, 3.2),
-  tp('gaugePerSec', 0.05, 0.1), tp('gaugeClash', 0.08, 0.25), tp('wallSpinLoss', 0.005, 0.09), tp('spinFromRpm', 0.4, 0.8),
+  tp('gaugePerSec', 0.025, 0.08), tp('gaugeClash', 0.03, 0.15), tp('knockWindowTicks', 30, 150), tp('attackMomentum', 0.1, 1), tp('wobbleForce', 0.3, 1.2), tp('stamina', 2.6, 3.2),
+  tip('flat', 'drive', 0.6, 1.1), tip('flat', 'gain', 1.5, 3.5), tp('wallSpinLoss', 0.005, 0.09), tp('spinFromRpm', 0.4, 0.8),
 ]
 const inR = (v: number, [lo, hi]: readonly [number, number]) => (v < lo ? (lo - v) / (hi - lo || 1) : v > hi ? (v - hi) / (hi - lo || 1) : 0)
 function score(r: BalanceReport): number {
@@ -39,7 +40,7 @@ function score(r: BalanceReport): number {
 if (process.argv[4]) for (const [k, v] of Object.entries(JSON.parse(readFileSync(process.argv[4], 'utf8')).params as Record<string, number>)) PARAMS.find(p => p.name === k)?.set(v)
 if (process.argv[5] === 'tech-only') PARAMS.splice(19)
 const N = Number(process.argv[2] ?? 14), ITERS = Number(process.argv[3] ?? 250)
-const evalNow = () => score(runBalance(N, BOT_LEVELS.hard, 77))
+const evalNow = () => score(runBalance(N, BOT_LEVELS.hard, 77)) + score(runBalance(N, BOT_LEVELS.normal, 78))
 const rng = createRng(2024)
 let best = evalNow(), bestVals = PARAMS.map(p => p.get())
 let cur = best, curVals = [...bestVals]
