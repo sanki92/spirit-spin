@@ -66,15 +66,17 @@ export function GripGuide({ motion, round, coach }: { motion: boolean; round: nu
 
 export function CoachOverlay({ motion }: { motion: boolean }) {
   return (
-    <div className="coach" role="dialog" aria-label="Launch lesson">
+    <>
       <div className="coach-talk">
         <Pic id="characters/commentator/pointing" className="coach-face" />
         <p>{motion ? 'Time out! Hold your phone like a launcher. When you’re ready, pull it down fast and straight.' : 'Time out! Put your thumb on the screen. When you’re ready, swipe down fast and straight.'}</p>
       </div>
-      {motion ? <GuideStrip size="big" active={2} /> : <div className="coach-swipe" aria-hidden="true"><span>⌄</span><span>⌄</span><span>⌄</span></div>}
-      <strong className="coach-go">{motion ? 'Pull when you’re ready' : 'Swipe down to launch'}</strong>
-      <small className="coach-calm">No rush. The clock is stopped.</small>
-    </div>
+      <div className="coach" role="dialog" aria-label="Launch lesson">
+        {motion ? <GuideStrip size="big" active={2} /> : <div className="coach-swipe" aria-hidden="true"><span>⌄</span><span>⌄</span><span>⌄</span></div>}
+        <strong className="coach-go">{motion ? 'Pull when you’re ready' : 'Swipe down to launch'}</strong>
+        <small className="coach-calm">No rush. The clock is stopped.</small>
+      </div>
+    </>
   )
 }
 

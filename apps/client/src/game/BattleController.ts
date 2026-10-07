@@ -145,7 +145,7 @@ export class BattleController {
     this.windowFrom = -Infinity
     this.pullShown = 0
     this.game.setBattle(null)
-    this.game.spirits?.forEach(sp => sp.show(false))
+    this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
     this.game.arm()
     useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })

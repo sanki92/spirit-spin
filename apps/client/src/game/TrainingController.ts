@@ -57,6 +57,7 @@ export class TrainingController extends BattleController {
     if (this.stage === 'real' && this.match.history.length > 0) {
       this.stage = 'done'
       this.at = this.steps.length - 1
+      useHud.getState().set({ banner: null })
       return this.show()
     }
     super.beginRound()

@@ -43,7 +43,7 @@
 @keyframes guideOn { from { filter: brightness(1); } to { filter: brightness(1.25); } }
 
 .coach { display: grid; justify-items: center; gap: 12px; width: min(94vw, 440px); animation: cardIn 0.4s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
-.coach-talk { display: grid; grid-template-columns: 64px 1fr; align-items: end; gap: 8px; width: 100%; }
+.coach-talk { position: absolute; top: calc(var(--safe-top) + 100px); left: 12px; right: 52px; z-index: 1; display: grid; grid-template-columns: 64px 1fr; align-items: end; gap: 8px; }
 .coach-face { width: 64px; height: 64px; object-fit: contain; }
 .coach-talk p { position: relative; margin: 0; padding: 10px 14px; font-size: 17px; font-weight: 700; line-height: 1.25; color: #241300; background: var(--gold); clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
 .coach-go { font-family: 'Bebas Neue'; font-weight: 400; font-size: clamp(36px, 10vw, 48px); letter-spacing: 2px; line-height: 1; color: var(--gold); text-shadow: 0 0 22px rgba(255, 207, 74, 0.55); animation: pulse 0.9s ease-in-out infinite alternate; }

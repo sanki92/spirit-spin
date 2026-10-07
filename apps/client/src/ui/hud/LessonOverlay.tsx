@@ -15,6 +15,7 @@ export function LessonOverlay() {
   const training = useHud(s => s.training)
   const lesson = useHud(s => s.lesson)
   const motion = useHud(s => s.inputMode === 'motion')
+  const cutin = useHud(s => !!s.cutin)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [lift, setLift] = useState<Lift | null>(null)
   const [lifted, setLifted] = useState(false)
@@ -25,8 +26,9 @@ export function LessonOverlay() {
     setLifted(false)
     if (!lesson?.target) return setRect(null)
     const el = document.querySelector<HTMLElement>(lesson.target)
-    const r = el?.getBoundingClientRect() ?? null
-    setRect(r)
+    setRect(el?.getBoundingClientRect() ?? null)
+    const frame = el?.closest<HTMLElement>('.side') ?? el
+    const r = frame?.getBoundingClientRect() ?? null
     if (!el || !r || !lesson.tap) return
     const scale = Math.min(3.5, Math.min(window.innerWidth - 64, 320) / r.width)
     setLift({ from: r, scale, dx: window.innerWidth / 2 - (r.left + r.width / 2), dy: window.innerHeight * LIFT_Y - (r.top + r.height / 2) })
@@ -37,11 +39,18 @@ export function LessonOverlay() {
   useLayoutEffect(() => {
     const box = host.current, el = lesson?.target ? document.querySelector<HTMLElement>(lesson.target) : null
     if (!box || !lift || !el) return
-    const copy = el.cloneNode(true) as HTMLElement
+    const frame = el.closest<HTMLElement>('.side') ?? el
+    const copy = frame.cloneNode(true) as HTMLElement
     copy.style.margin = '0'
     copy.style.width = `${lift.from.width}px`
     box.replaceChildren(copy)
-    return () => box.replaceChildren()
+    const focusClass = el.classList[0]
+    const focus = focusClass ? copy.querySelector<HTMLElement>(`.${focusClass}`) : null
+    focus?.classList.add('lesson-focus')
+    for (const part of copy.querySelectorAll<HTMLElement>('.name, .pips, .spinbar, .guardbar')) if (part !== focus) part.classList.add('lesson-faded')
+    const pips = lesson?.id === 'points' && focus ? [...focus.querySelectorAll('i')] : []
+    const timers = pips.map((p, i) => window.setTimeout(() => p.classList.add('on'), 650 + i * 280))
+    return () => { timers.forEach(clearTimeout); box.replaceChildren() }
   }, [lift, lesson])
 
   if (!training) return null
@@ -52,7 +61,7 @@ export function LessonOverlay() {
   const cardStyle = lift ? { top: liftBottom + 28 } : cut ? (below ? { top: Math.max(cut.bottom + PAD + 16, SKIP_BOTTOM) } : { bottom: window.innerHeight - cut.top + PAD + 16 }) : undefined
   return (
     <>
-      <button className="lesson-skip" onClick={skip}>Skip tutorial</button>
+      {!cutin && lesson?.id !== 'done' && <button className="lesson-skip" onClick={skip}>Skip tutorial</button>}
       {lesson && (
         <div className={`lesson ${lesson.tap ? 'tapping' : 'acting'} ${lesson.id === 'nice' ? 'nice' : ''} ${lift ? 'lifting' : ''}`} onClick={lesson.tap ? tap : undefined} role="dialog" aria-label={lesson.title}>
           <svg className="lesson-shade" width="100%" height="100%" aria-hidden="true">

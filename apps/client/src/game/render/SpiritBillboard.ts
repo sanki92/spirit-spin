@@ -47,6 +47,10 @@ export class SpiritBillboard {
     }
   }
 
+  reset(): void {
+    this.hide()
+  }
+
   get summoning(): boolean {
     return this.state === 'wait' || this.state === 'in'
   }

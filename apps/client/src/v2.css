@@ -763,7 +763,7 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .lesson-card .cta > span { min-height: 46px; font-size: 22px; }
 @keyframes lessonIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes lessonInCenter { from { opacity: 0; transform: translateY(calc(-50% + 6px)); } to { opacity: 1; transform: translateY(-50%); } }
-.lesson-phone { position: absolute; left: 50%; top: calc(var(--safe-top) + 104px); width: 150px; height: 150px; margin-left: -75px; perspective: 600px; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 98%); mask-image: linear-gradient(180deg, #000 72%, transparent 98%); }
+.lesson-phone { position: absolute; left: 50%; top: calc(var(--safe-top) + 104px); width: 150px; height: 150px; margin-left: -75px; perspective: 380px; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 98%); mask-image: linear-gradient(180deg, #000 72%, transparent 98%); }
 .lesson-phone img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.6)); animation: 1.3s cubic-bezier(.45, 0, .2, 1) infinite; }
 .lesson-phone.tilt-left img { animation-name: tiltL; }
 .lesson-phone.tilt-right img { animation-name: tiltR; }
@@ -790,3 +790,10 @@ button.shop-item:active, button.c2-part:active { transform: scale(0.98); }
 .lesson-skip:active { background: rgba(255, 255, 255, 0.16); }
 .reduce-motion .lesson-arrow, .reduce-motion .lesson-phone img, .reduce-motion .lesson-card { animation: none; }
 @media (prefers-reduced-motion: reduce) { .lesson-arrow, .lesson-phone img, .lesson-card { animation: none; } }
+.lesson-lift .pips i { transition: background 0.25s, box-shadow 0.25s; }
+.lesson-lift > .side { box-shadow: none; }
+.lesson-lift .lesson-faded { opacity: 0.28; transition: opacity 0.3s 0.35s; }
+.lesson-lift .lesson-focus { position: relative; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 0 10px var(--edge); }
+.lesson-lift .pips.lesson-focus { box-shadow: none; filter: drop-shadow(0 0 4px rgba(255, 207, 74, 0.7)); }
+.lesson-lift .pips.lesson-focus i { background: rgba(255, 255, 255, 0.35); }
+.lesson-lift .pips.lesson-focus i.on { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
