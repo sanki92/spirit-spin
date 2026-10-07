@@ -15,11 +15,11 @@ const edge = (a: keyof typeof TYPE_EDGE, b: keyof typeof TYPE_EDGE, lo: number, 
 const tech = T.tech as unknown as Record<string, number>
 const xp = (k: keyof typeof T.tech, lo: number, hi: number): P => ({ name: `tech.${k}`, lo, hi, get: () => tech[k]!, set: v => { tech[k] = v } })
 const PARAMS: P[] = [
-  xp('stun', 30, 90), xp('fangMul', 1.6, 3.4), xp('shield', 60, 220), xp('tideDrain', 0, 0.08), xp('tideSlow', 0.6, 1), xp('pullForce', 0.5, 4.5),
-  xp('pullClash', 1, 2.2), xp('pull', 60, 160), xp('phase', 40, 110), xp('stepMul', 1.4, 3.2), xp('stepDash', 1.5, 3.2), tp('strikeV', 1.8, 3.4), tp('tideCenter', 1, 2), xp('pullMass', 1, 2.6), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('tideRegen', 0.03, 0.15), tp('turnSteal', 0.12, 0.35), xp('phoenixDash', 0.3, 1.2),
+  xp('stun', 30, 90), xp('pullForce', 0.5, 4.5), xp('pullClash', 1, 2.2), xp('pullMass', 1, 2.6), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('turnSteal', 0.12, 0.35),
+  xp('fangDash', 2, 4), xp('fangMul', 1.6, 3.4), xp('slamPush', 1, 4), xp('slamRange', 0.4, 1), xp('coilDrain', 0.05, 0.4), xp('coilPush', 0.5, 2.5), xp('diveV', 2, 4.5), xp('diveMul', 1, 3), xp('pull', 60, 120), xp('fling', 0.8, 2.6), xp('pounceMul', 1.4, 3.2), xp('pounceDash', 1.5, 3.2),
   edge('attack', 'stamina', 1, 1.6), edge('attack', 'defense', 0.5, 1), edge('defense', 'attack', 1, 1.6), edge('defense', 'stamina', 0.6, 1),
   edge('stamina', 'attack', 0.6, 1), edge('balance', 'defense', 0.9, 1.4), edge('balance', 'attack', 0.8, 1.3), edge('attack', 'balance', 0.8, 1.3),
-  tp('shatterCap', 0.15, 0.6), tp('steerTurn', 1, 4), tp('overspinBonus', 0, 0.1), tp('bastionMass', 1.5, 4), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('tideGuard', 0.25, 1), tp('tideRegen', 0.03, 0.15), tp('turnSteal', 0.12, 0.3), tp('overspinDrain', 0.04, 0.25), tp('wobbleForce', 0.5, 4), tp('overspinTicks', 60, 300),
+  tp('shatterCap', 0.15, 0.6), tp('steerTurn', 1, 4), tp('overspinBonus', 0, 0.1), tp('bastionMass', 1.5, 4), tp('bastionReflect', 0.8, 1.5), tp('bastionTaken', 0.2, 0.8), tp('turnSteal', 0.12, 0.3), tp('overspinDrain', 0.04, 0.25), tp('wobbleForce', 0.5, 4), tp('overspinTicks', 60, 300),
   tip('ball', 'decay', 0.024, 0.045), tip('needle', 'decay', 0.012, 0.026),
   tip('ball', 'brake', 0.3, 2), tip('ball', 'gain', 1, 3.5), tip('semi', 'gain', 1, 3.5),
   tip('ball', 'center', 1, 2.2), tip('needle', 'center', 0.8, 2), tip('flat', 'decay', 0.035, 0.07), tip('semi', 'decay', 0.022, 0.045),

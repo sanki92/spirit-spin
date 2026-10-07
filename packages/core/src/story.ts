@@ -14,34 +14,34 @@ export interface BeastKitInfo { technique: Ability; trait: Ability; ultimate: Ab
 
 export const TECHNIQUES: Record<BeastId, BeastKitInfo> = {
   voltfang: {
-    technique: { name: 'Thunder Fang', text: 'Lightning locks the rival in place for a moment while you lunge in. Your next hit lands over twice as hard and cuts through shields and tides.' },
+    technique: { name: 'Thunder Fang Rush', text: 'Your wolf takes over and dashes at the rival three times. Every hit lands over twice as hard and locks them in place for a moment.' },
     trait: { name: 'Static Charge', text: 'Clashes fill your Spirit gauge 20% faster.' },
-    ultimate: { name: 'Storm Fang', text: 'The lock lasts longer and you get two empowered hits.' },
+    ultimate: { name: 'Storm Fang', text: 'Each lock lasts almost twice as long.' },
   },
   aegiron: {
-    technique: { name: 'Crystal Bastion', text: 'A crystal shield for four seconds: you barely move when hit, rivals bounce off you, spin thieves get half and vortexes lose their grip.' },
+    technique: { name: 'Bastion Slam', text: 'Your golem plants the top in the center behind a crystal shield, then slams the ground and blasts the rival toward the wall.' },
     trait: { name: 'Bedrock', text: 'Much harder to knock out of the stadium.' },
-    ultimate: { name: 'Mirror Bastion', text: 'The shield throws rivals back even harder.' },
+    ultimate: { name: 'Mirror Bastion', text: 'The blast hits 25% harder and the shield throws rivals back harder.' },
   },
   nagara: {
-    technique: { name: 'Moon Tide', text: 'A tide that slows the rival, guards you and pulls you to the calm center while you regain spin.' },
+    technique: { name: 'Tidal Coil', text: 'Your serpent circles the rival in a tightening spiral, draining their spin into yours, then throws them outward.' },
     trait: { name: 'Ebb', text: 'Your spin fades 8% slower.' },
-    ultimate: { name: 'Eclipse Tide', text: 'The tide also pushes the rival away from the center, toward the edge.' },
+    ultimate: { name: 'Eclipse Coil', text: 'The coil drains 25% more spin.' },
   },
   agnyx: {
-    technique: { name: 'Phoenix Turn', text: 'Swoop at the rival and steal their spin on contact.' },
+    technique: { name: 'Phoenix Dive', text: 'Your phoenix rises, then dives onto the rival, stealing spin and leaving them burning.' },
     trait: { name: 'Embers', text: 'When your spin drops low, your hits get 25% stronger.' },
-    ultimate: { name: 'Rebirth Flame', text: 'Steal twice as much and leave the rival burning, losing spin.' },
+    ultimate: { name: 'Rebirth Flame', text: 'The dive steals twice as much spin.' },
   },
   zephyra: {
-    technique: { name: 'Cyclone Pull', text: 'A vortex drags the rival toward you for two seconds. You are hard to push, your hits land 50% harder, and the rival cannot recover spin while caught.' },
+    technique: { name: 'Cyclone Pull', text: 'Your storm spirit takes the center and drags the rival in with a vortex, then flings them toward the edge.' },
     trait: { name: 'Tailwind', text: 'Your top speed is 8% higher.' },
-    ultimate: { name: 'Eye of the Storm', text: 'The vortex lasts longer, then flings the rival toward the edge.' },
+    ultimate: { name: 'Eye of the Storm', text: 'The final fling is 25% stronger.' },
   },
   umbrax: {
-    technique: { name: 'Shadow Step', text: 'Vanish for a moment so nothing can touch you, then reappear behind the rival with a strike that cuts through shields and tides.' },
+    technique: { name: 'Shadow Pounce', text: 'Your lion melts into shadow, appears behind the rival and strikes twice.' },
     trait: { name: 'Ambush', text: 'Your first clash each round hits 25% harder.' },
-    ultimate: { name: 'Twin Shadows', text: 'Step twice in a row.' },
+    ultimate: { name: 'Twin Shadows', text: 'Three strikes instead of two.' },
   },
 }
 

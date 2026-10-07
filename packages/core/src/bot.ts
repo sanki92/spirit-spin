@@ -59,8 +59,7 @@ export function botInput(s: BattleState, side: Side, brain: BotBrain, rng: RngSt
   iy = clamp((iy + (rngNext(rng) - 0.5) * noise) * (0.5 + 0.5 * brain.skill), -1, 1)
 
   const want: Record<string, boolean> = {
-    voltfang: dist < 0.5, zephyra: dist < 0.7, umbrax: dist < 0.6, agnyx: dist < 0.35,
-    aegiron: dist < 0.3 || t.spin < f.spin || t.shatter > 0.5, nagara: dist < 0.3 || t.spin < f.spin,
+    voltfang: dist < 0.8, aegiron: dist < 0.6, nagara: dist < 0.7, agnyx: dist < 0.7, zephyra: dist < 0.9, umbrax: true,
   }
   const wantSpirit = t.gauge >= 1 && (want[spec.beastId] ?? dist < 0.4)
   const spirit = wantSpirit && rngNext(rng) < 1 / Math.max(1, brain.reaction)
