@@ -28,6 +28,15 @@ describe('scoreSwipe', () => {
     const r = scoreSwipe(swipe({ start: 0, ms: 160, dy: 500, wobble: 40 }), 0, 800)
     if (!r.ok) throw new Error('expected ok'); expect(r.straightness).toBeLessThan(0.6)
   })
+  it('resting the finger at the end of a swipe does not weaken it', () => {
+    const base = swipe({ start: 10, ms: 160, dy: 500 })
+    const end = base[base.length - 1]!
+    const held = [...base, ...Array.from({ length: 8 }, (_, i) => ({ t: end.t + 40 * (i + 1), x: end.x + (i % 2 ? 1 : -1), y: end.y + (i % 3) - 1 }))]
+    const a = scoreSwipe(base, 0, 800), b = scoreSwipe(held, 0, 800)
+    if (!a.ok || !b.ok) throw new Error('expected ok')
+    expect(b.quality).toBe(a.quality)
+    expect(b.pullRatio).toBeCloseTo(a.pullRatio, 1)
+  })
   it('late swipe is penalized like a late rip', () => {
     const r = scoreSwipe(swipe({ start: 450, ms: 160, dy: 500 }), 0, 800)
     if (!r.ok) throw new Error('expected ok'); expect(r.timing).toBe(0)

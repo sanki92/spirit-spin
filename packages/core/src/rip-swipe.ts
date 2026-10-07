@@ -13,13 +13,15 @@ export function scoreSwipe(points: readonly TouchSample[], launchAt: number, scr
   const moveIdx = points.findIndex(p => Math.abs(p.y - origin.y) > 0.02 * screenH || Math.abs(p.x - origin.x) > 0.02 * screenH)
   if (moveIdx < 0) return { ok: false, reason: 'no-pull' }
   const first = points[Math.max(0, moveIdx - 1)] as TouchSample
-  const last = points[points.length - 1] as TouchSample
+  const end = points[points.length - 1] as TouchSample
+  const settle = points.findIndex((p, i) => i >= moveIdx && Math.abs(p.y - end.y) <= 0.02 * screenH && Math.abs(p.x - end.x) <= 0.02 * screenH)
+  const last = points[settle] as TouchSample
   const dx = last.x - first.x, dy = last.y - first.y
   if (dy < MIN_TRAVEL * screenH) return { ok: false, reason: 'no-pull' }
   if (first.t < launchAt + RIP.earliestMs) return { ok: false, reason: 'too-early' }
   if (first.t > launchAt + RIP.latestMs) return { ok: false, reason: 'too-late' }
   let pathLen = 0
-  for (let i = Math.max(1, moveIdx); i < points.length; i++) {
+  for (let i = Math.max(1, moveIdx); i <= settle; i++) {
     const a = points[i - 1] as TouchSample, b = points[i] as TouchSample
     pathLen += Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2)
   }
