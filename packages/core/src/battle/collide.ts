@@ -69,8 +69,16 @@ export function resolveClash(s: BattleState, out: BattleEvent[]): void {
   const friction = T.clashFriction * (a.spin + b.spin)
   a.spin -= (T.clashSpinLoss * impactA + friction) * (sa.type === 'attack' ? T.attackMomentum : 1)
   b.spin -= (T.clashSpinLoss * impactB + friction) * (sb.type === 'attack' ? T.attackMomentum : 1)
-  if (a.stealArmed) { const st = T.turnSteal * (sa.ultimate ? X.stealUlt : 1) * (b.shieldTicks > 0 ? 0.5 : 1); a.spin += st; b.spin -= st; if (sa.ultimate) b.burnTicks = X.burnTicks; a.stealArmed = false }
-  if (b.stealArmed) { const st = T.turnSteal * (sb.ultimate ? X.stealUlt : 1) * (a.shieldTicks > 0 ? 0.5 : 1); b.spin += st; a.spin -= st; if (sb.ultimate) a.burnTicks = X.burnTicks; b.stealArmed = false }
+  if (a.stealArmed) { const st = T.turnSteal * (sa.ultimate ? X.stealUlt : 1) * (b.shieldTicks > 0 ? 0.5 : 1); a.spin += st; b.spin -= st; b.burnTicks = X.burnTicks; a.stealArmed = false }
+  if (b.stealArmed) { const st = T.turnSteal * (sb.ultimate ? X.stealUlt : 1) * (a.shieldTicks > 0 ? 0.5 : 1); b.spin += st; a.spin -= st; a.burnTicks = X.burnTicks; b.stealArmed = false }
+  if (a.strikeArmed) {
+    out.push({ k: 'beast', tick: s.tick, side: 0, move: 'strike', x: a.x + nx * sa.radius, y: a.y + ny * sa.radius })
+    if (sa.beastId === 'voltfang' && a.spiritTicks > 0) b.stunTicks = sa.ultimate ? X.stunUlt : X.stun
+  }
+  if (b.strikeArmed) {
+    out.push({ k: 'beast', tick: s.tick, side: 1, move: 'strike', x: a.x + nx * sa.radius, y: a.y + ny * sa.radius })
+    if (sb.beastId === 'voltfang' && b.spiritTicks > 0) a.stunTicks = sb.ultimate ? X.stunUlt : X.stun
+  }
   if (a.strikeArmed) { a.strikes--; a.strikeArmed = a.strikes > 0 }
   if (b.strikeArmed) { b.strikes--; b.strikeArmed = b.strikes > 0 }
 

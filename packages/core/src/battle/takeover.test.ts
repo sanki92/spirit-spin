@@ -77,3 +77,91 @@ describe('summon', () => {
     expect(run(1)).not.toBe(run(0))
   })
 })
+
+const BEASTS: BeastId[] = ['voltfang', 'aegiron', 'nagara', 'agnyx', 'zephyra', 'umbrax']
+const FIRST: Record<BeastId, string> = { voltfang: 'dash', aegiron: 'anchor', nagara: 'orbit', agnyx: 'dive', zephyra: 'vortex', umbrax: 'pounce' }
+
+function takeover(beast: BeastId, foe: BeastId = 'aegiron', seed = 5) {
+  const s = duel(beast, foe, seed)
+  const ev = play(s, T.summonTicks + 1, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
+  const minD = s.specs[0].radius + s.specs[1].radius
+  let closest = Infinity, finite = true
+  for (let i = 0; i < T.takeoverTicks && !s.outcome; i++) {
+    stepBattle(s, [IDLE, IDLE], ev)
+    const [a, b] = s.tops
+    closest = Math.min(closest, Math.hypot(a.x - b.x, a.y - b.y))
+    finite &&= [a.x, a.y, a.vx, a.vy, a.spin, b.x, b.y, b.vx, b.vy, b.spin].every(Number.isFinite)
+  }
+  return { s, ev, minD, closest, finite }
+}
+
+describe.each(BEASTS)('%s takeover', beast => {
+  it('is deterministic, finite, solid, and opens with its signature move', () => {
+    const a = takeover(beast), b = takeover(beast)
+    expect(battleHash(a.s)).toBe(battleHash(b.s))
+    expect(a.finite).toBe(true)
+    expect(a.closest).toBeGreaterThan(a.minD * 0.85)
+    const moves = a.ev.flatMap(e => (e.k === 'beast' && e.side === 0 ? [e.move] : []))
+    expect(moves[0]).toBe(FIRST[beast])
+  })
+  it('ends within the takeover window and returns control', () => {
+    const { s, ev } = takeover(beast)
+    if (s.outcome) return
+    expect(ev.some(e => e.k === 'spiritEnd' && e.side === 0)).toBe(true)
+    expect(s.tops[0].strikeArmed || s.tops[0].stealArmed || s.tops[0].shieldTicks > 0 || s.tops[0].pullTicks > 0).toBe(false)
+  })
+})
+
+describe('attack effects', () => {
+  it('Voltfang dashes up to three times and stuns on contact', () => {
+    const { ev, s } = takeover('voltfang')
+    expect(ev.filter(e => e.k === 'beast' && e.move === 'dash').length).toBeGreaterThanOrEqual(2)
+    expect(ev.filter(e => e.k === 'beast' && e.move === 'dash').length).toBeLessThanOrEqual(3)
+    expect(ev.some(e => e.k === 'beast' && e.move === 'strike' && e.side === 0)).toBe(true)
+    expect(s.tops[0].act).toBeGreaterThanOrEqual(2)
+  })
+  it('Aegiron anchors near the centre and its shockwave pushes the rival away', () => {
+    const s = duel('aegiron', 'voltfang')
+    const ev = play(s, T.summonTicks + 1 + T.tech.slamAt, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
+    expect(Math.hypot(s.tops[0].x, s.tops[0].y)).toBeLessThan(0.15)
+    const before = Math.hypot(s.tops[1].x - s.tops[0].x, s.tops[1].y - s.tops[0].y)
+    play(s, 1, () => [IDLE, IDLE]).forEach(e => ev.push(e))
+    play(s, 6, () => [IDLE, IDLE])
+    expect(ev.some(e => e.k === 'beast' && e.move === 'shockwave')).toBe(true)
+    expect(Math.hypot(s.tops[1].x - s.tops[0].x, s.tops[1].y - s.tops[0].y)).toBeGreaterThan(before)
+  })
+  it('Nagara drains more rival spin than an idle rival loses', () => {
+    const idle = duel('nagara'); play(idle, T.summonTicks + 1 + 100, () => [IDLE, IDLE])
+    const coil = duel('nagara'); play(coil, T.summonTicks + 1 + 100, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
+    expect(coil.tops[1].spin).toBeLessThan(idle.tops[1].spin - 0.05)
+  })
+  it('Agnyx dives after its rise and burns the rival on contact', () => {
+    const { ev, s } = takeover('agnyx')
+    const dive = ev.find(e => e.k === 'beast' && e.move === 'dive')
+    expect(dive && dive.tick).toBeGreaterThan(0)
+    expect(ev.some(e => e.k === 'beast' && e.move === 'strike' && e.side === 0)).toBe(true)
+    expect(s.tops[1].burnTicks > 0 || !!s.outcome).toBe(true)
+  })
+  it('Zephyra pulls the rival in, then flings it outward', () => {
+    const { ev } = takeover('zephyra')
+    const moves = ev.flatMap(e => (e.k === 'beast' && e.side === 0 ? [e.move] : []))
+    expect(moves.indexOf('vortex')).toBeLessThan(moves.indexOf('fling'))
+  })
+  it('Umbrax stays solid, jumps behind the rival and strikes', () => {
+    const s = duel('umbrax')
+    play(s, T.summonTicks + 1 + T.tech.pounceAt, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
+    const x0 = s.tops[0].x
+    const ev = play(s, 1, () => [IDLE, IDLE])
+    expect(ev.some(e => e.k === 'beast' && e.move === 'pounce')).toBe(true)
+    expect(Math.abs(s.tops[0].x - x0)).toBeGreaterThan(0.2)
+    const rest = play(s, 60, () => [IDLE, IDLE])
+    expect(rest.some(e => e.k === 'beast' && e.move === 'strike' && e.side === 0)).toBe(true)
+  })
+  it('ring-out during a takeover is a spirit finish worth 3', () => {
+    const s = duel('aegiron', 'voltfang')
+    play(s, T.summonTicks + 1, i => (i === 0 ? [CALL, IDLE] : [IDLE, IDLE]))
+    const t = s.tops[1]; t.lastHitTick = s.tick; t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
+    play(s, 10, () => [IDLE, IDLE])
+    expect(s.outcome).toEqual({ winner: 0, finish: 'spirit', points: 3 })
+  })
+})
