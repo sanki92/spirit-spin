@@ -17,8 +17,16 @@ function rig(live = true) {
 describe('steering input', () => {
   it('on-screen stick still steers while motion sensors are live', () => {
     const { c, p } = rig()
-    c.setManualTilt(0.8, -0.2)
-    expect(p.playerInput()).toMatchObject({ tiltX: 1, tiltY: -0.2 })
+    c.setManualTilt(0.8, -1)
+    expect(p.playerInput()).toMatchObject({ tiltX: 1, tiltY: -1 })
+  })
+
+  it('a thumb resting on the stick zone does not bias tilt steering, full stick still reaches 1', () => {
+    const { c, p } = rig()
+    c.setManualTilt(0.1, -0.12)
+    expect(p.playerInput()).toMatchObject({ tiltX: 0.5, tiltY: 0 })
+    c.setManualTilt(-1, 1)
+    expect(p.playerInput()).toMatchObject({ tiltX: -0.5, tiltY: 1 })
   })
 
   it('a held stick or arrow key does not carry into the next round', () => {

@@ -6,7 +6,7 @@ import {
 import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
-import type { SensorFeed } from '../input/sensors'
+import { deadzone, type SensorFeed } from '../input/sensors'
 import { useHud } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
@@ -128,7 +128,7 @@ export class BattleController {
   }
 
   setManualTilt(x: number, y: number): void {
-    this.manualTilt = { x, y }
+    this.manualTilt = { x: deadzone(x, 0.15), y: deadzone(y, 0.15) }
   }
 
   protected later(ms: number, fn: () => void): void {

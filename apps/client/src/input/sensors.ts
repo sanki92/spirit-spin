@@ -4,7 +4,7 @@ const IOS = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigat
 const KEEP_MS = 3000
 const TILT_RANGE = 0.3
 const NEUTRAL_DRIFT = 1 / 240
-const deadzone = (v: number) => (Math.abs(v) < 0.08 ? 0 : (v - Math.sign(v) * 0.08) / 0.92)
+export const deadzone = (v: number, dz = 0.08) => (Math.abs(v) < dz ? 0 : (v - Math.sign(v) * dz) / (1 - dz))
 
 export interface Tilt { x: number; y: number }
 
