@@ -46,6 +46,11 @@ export class Pool {
     this.mesh.count = 0
   }
 
+  dispose(): void {
+    ;(this.mesh.material as MeshBasicMaterial).dispose()
+    this.mesh.dispose()
+  }
+
   update(dt: number, camQ: Quaternion, gravity: number): void {
     let n = this.alive
     for (let i = 0; i < n; i++) {

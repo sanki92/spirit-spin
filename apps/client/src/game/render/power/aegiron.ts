@@ -83,8 +83,7 @@ export class AegironPower implements Power {
     mat.dispose()
     this.shards.geometry.dispose()
     this.shards.dispose()
-    ;(this.rocks.mesh.material as MeshBasicMaterial).dispose()
-    this.rocks.mesh.dispose()
+    this.rocks.dispose()
     this.scar.material.dispose()
   }
 
