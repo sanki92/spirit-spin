@@ -7,7 +7,7 @@ import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
 import { deadzone, type SensorFeed } from '../input/sensors'
-import { summonReset, useHud } from '../state/hud'
+import { summonReset, useHud, edgeFlags } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
@@ -66,6 +66,8 @@ export class BattleController {
   protected maxDeficit = 0
   protected perfectRips = 0
   protected roundClashes = 0
+  protected edgeTold = false
+  protected playing = true
   protected perfTimer = 0
   protected overspins = 0
   protected tiltSum = 0
@@ -201,7 +203,7 @@ export class BattleController {
     this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
     this.game.arm()
-    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], summon: null, refused: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], edge: [false, false], saved: null, summon: null, refused: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
   }
 
@@ -416,6 +418,22 @@ export class BattleController {
         buzz(heavy ? 35 : 10)
         break
       }
+      case 'edge':
+        s.play('wall', { volume: 0.7, rate: 1.4 })
+        if (e.side === 0 && this.playing) {
+          buzz(60)
+          if (!this.edgeTold) { this.edgeTold = true; this.announcer.say('edge', true) }
+        }
+        break
+      case 'edgeSave':
+        {
+          const n = (hud.saved?.n ?? 0) + 1
+          hud.set({ saved: { n, side: e.side } })
+          this.later(1100, () => { if (useHud.getState().saved?.n === n) useHud.getState().set({ saved: null }) })
+        }
+        s.play('clash', { volume: 0.6, rate: 1.3 })
+        this.announcer.say('save', true)
+        break
       case 'wall': {
         s.play('wall', { volume: 0.35 })
         const t = g.battle?.tops[e.side]
@@ -588,6 +606,11 @@ export class BattleController {
       }
     }
     if (this.heldEnd && this.summonHold[0] <= 0 && this.summonHold[1] <= 0) this.flushHeld()
+    const eb = this.game.battle
+    if (eb) {
+      const prev = useHud.getState().edge, next = edgeFlags(eb.tops, prev)
+      if (next !== prev) useHud.getState().set({ edge: next })
+    }
     this.hudTimer += dt
     this.perfTimer += dt
     if (this.perfTimer > 5) {

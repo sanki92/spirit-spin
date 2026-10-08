@@ -248,7 +248,7 @@ export class OnlineController extends BattleController {
   private stepOnce(d: NetDriver): void {
     const inp = this.playerInput()
     const ok = d.step(inp.tiltX, inp.tiltY, inp.spirit, this.events)
-    if (ok) for (const e of this.events) if (e.k === 'clash' || e.k === 'wall' || e.k === 'beast') this.onEvent(this.side === 1 && (e.k === 'wall' || e.k === 'beast') ? { ...e, side: (1 - e.side) as Side } : e)
+    if (ok) for (const e of this.events) if (e.k === 'clash' || e.k === 'wall' || e.k === 'beast' || e.k === 'edge' || e.k === 'edgeSave') this.onEvent(this.side === 1 && e.k !== 'clash' ? { ...e, side: (1 - e.side) as Side } : e)
     this.events.length = 0
     if (!ok) return
     this.game.battle = view(d.view(), this.side)

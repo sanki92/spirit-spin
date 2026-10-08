@@ -24,6 +24,8 @@ export interface HudState {
   guard: [number, number]
   gauge: [number, number]
   spiritActive: [boolean, boolean]
+  edge: [boolean, boolean]
+  saved: { n: number; side: 0 | 1 } | null
   summon: 0 | 1 | 'both' | null
   refused: number
   callout: Callout | null
@@ -49,6 +51,11 @@ export const spiritReady = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'
 
 export const spiritRefused = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'>): boolean => s.gauge[0] >= 1 && s.phase === 'battle' && s.spiritActive[1]
 
+export function edgeFlags(tops: readonly { edgeTicks: number; out: boolean }[], prev: [boolean, boolean]): [boolean, boolean] {
+  const a = tops[0]!.edgeTicks > 0 && !tops[0]!.out, b = tops[1]!.edgeTicks > 0 && !tops[1]!.out
+  return a === prev[0] && b === prev[1] ? prev : [a, b]
+}
+
 export const useHud = create<HudState>(set => ({
   phase: 'idle',
   countdown: null,
@@ -58,6 +65,8 @@ export const useHud = create<HudState>(set => ({
   guard: [1, 1],
   gauge: [0, 0],
   spiritActive: [false, false],
+  edge: [false, false],
+  saved: null,
   summon: null,
   refused: 0,
   callout: null,

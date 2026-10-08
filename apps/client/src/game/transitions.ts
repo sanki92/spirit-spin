@@ -26,7 +26,14 @@ export const zoomAfterEnd = (before: Summon, after: Summon): Side | 'release' | 
 
 export const summonFocus = (a: boolean, b: boolean): Summon => (a && b ? 'both' : a ? 0 : b ? 1 : null)
 
-export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast'
+export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast' || e.k === 'edge' || e.k === 'edgeSave'
+
+export function edgeFocus(tops: readonly { edgeTicks: number; out: boolean }[], busy: boolean): Side | null {
+  if (busy) return null
+  const a = tops[0]!.edgeTicks > 0 && !tops[0]!.out, b = tops[1]!.edgeTicks > 0 && !tops[1]!.out
+  if (a && b) return tops[1]!.edgeTicks < tops[0]!.edgeTicks ? 1 : 0
+  return a ? 0 : b ? 1 : null
+}
 
 const LEAD = 0.2
 const LIFT = 0.95

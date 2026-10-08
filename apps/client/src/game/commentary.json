@@ -54,5 +54,12 @@
   ],
   "defeat": [
     { "id": "defeat-1", "text": "Tough break! Shake it off and launch again!", "face": "laughing" }
+  ],
+  "edge": [
+    { "id": "edge-1", "text": "On the edge! Steer to the middle to climb out!", "face": "shocked" }
+  ],
+  "save": [
+    { "id": "save-1", "text": "What a save!", "face": "hyped" },
+    { "id": "save-2", "text": "Back from the brink!", "face": "thumbs-up" }
   ]
 }

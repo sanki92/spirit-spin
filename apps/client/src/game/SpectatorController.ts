@@ -17,6 +17,7 @@ export class SpectatorController extends BattleController {
   private unsub: () => void
   private done = false
   private pendingEnd: Extract<ServerMsg, { k: 'end' }> | null = null
+  protected override playing = false
 
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private names: [string, string]) {
     super(game, setup, deps)

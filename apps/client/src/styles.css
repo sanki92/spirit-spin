@@ -107,6 +107,17 @@ button { font-family: inherit; }
 .spirit-btn.refused-b { animation: btnShakeB 0.35s ease-in-out; }
 @keyframes btnShake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px) rotate(-4deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
 @keyframes btnShakeB { 0%, 100% { transform: none; } 20% { transform: translateX(-7px) rotate(-4deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+.edge-tag { position: absolute; left: 50%; top: calc(86px + var(--safe-top, 0px)); transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; padding: 6px 16px 7px; border-radius: 12px; background: rgba(40, 4, 12, 0.82); box-shadow: 0 0 0 2px #ff3b55, 0 0 22px rgba(255, 40, 70, 0.55); color: #fff; pointer-events: none; z-index: 31; animation: edgePulse 0.32s ease-in-out infinite alternate; }
+.edge-tag b { font: 400 30px/1 'Bebas Neue', sans-serif; letter-spacing: 2px; color: #ff4a5e; text-shadow: 0 0 10px rgba(255, 60, 90, 0.8); }
+.edge-tag small { font-weight: 700; font-size: 14px; color: #ffd5dc; }
+.edge-tag.rival { box-shadow: 0 0 0 2px #ffb020, 0 0 22px rgba(255, 176, 32, 0.45); }
+.edge-tag.rival b { color: #ffc24a; text-shadow: 0 0 10px rgba(255, 190, 60, 0.7); }
+@keyframes edgePulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.07); } }
+.saved-pop { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); font: 400 52px/1 'Bebas Neue', sans-serif; letter-spacing: 3px; color: #7dffb2; text-shadow: 0 0 18px rgba(80, 255, 160, 0.75), 0 3px 0 #04351c; pointer-events: none; z-index: 32; animation: savedPop 1.1s ease-out both; }
+.saved-pop.rival { color: #ffd75a; text-shadow: 0 0 18px rgba(255, 200, 80, 0.7), 0 3px 0 #3a2400; }
+@keyframes savedPop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } 30% { transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -62%) scale(1); } }
+.reduce-motion .edge-tag, .reduce-motion .saved-pop { animation: none; }
+@media (prefers-reduced-motion: reduce) { .edge-tag, .saved-pop { animation: none; } }
 .spirit-refused { position: absolute; right: 16px; bottom: calc(140px + var(--safe-bottom)); padding: 6px 12px; border-radius: 10px; background: rgba(7, 11, 31, 0.88); color: #ff8fb8; font-weight: 700; font-size: 14px; white-space: nowrap; pointer-events: none; z-index: 30; animation: refusedToast 1.2s ease-out both; }
 @keyframes refusedToast { 0% { opacity: 0; transform: translateY(6px); } 12%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 .reduce-motion .spirit-btn.refused, .reduce-motion .spirit-btn.refused-b { animation: none; }

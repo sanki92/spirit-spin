@@ -6,7 +6,7 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { AWAKE_SCALE, reducedMotion, beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
+import { AWAKE_SCALE, reducedMotion, beastShot, edgeFocus, summonFocus, takeoverOn, type Shot } from './transitions'
 import { PowerFx, type PowerTextures } from './render/power/PowerFx'
 import { pillarStyle } from './render/power/eruption'
 import { formTint, tintHex } from './render/formTint'
@@ -505,6 +505,9 @@ export class Game {
       else if (sum !== null) {
         const t = b.tops[sum]
         this.stage.follow(t.x * 0.35, -t.y * 0.35, 0.88)
+      } else if (edgeFocus(b.tops, this.zoomSide !== null) !== null) {
+        const t = b.tops[edgeFocus(b.tops, false)!]
+        this.stage.follow(t.x * 0.35, -t.y * 0.35, 0.92)
       } else {
         const live = [t0, t1].filter(t => !t.out)
         const mx = live.reduce((a, t) => a + t.x, 0) / (live.length || 1), my = live.reduce((a, t) => a + t.y, 0) / (live.length || 1)
@@ -521,7 +524,7 @@ export class Game {
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], { x, y } = pos[i]!
         const top = this.tops[i as 0 | 1]
-        top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1], still)
+        top.update(x, y, t.spin, t.edgeTicks > 0 ? Math.max(t.wobble, 0.8) : t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1], still)
         const o = b.tops[(1 - i) as 0 | 1]
         const spec = this.specs?.[i as 0 | 1]
         const e = TUNING.takeoverTicks - 1 - t.spiritTicks

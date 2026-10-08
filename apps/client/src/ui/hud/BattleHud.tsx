@@ -31,7 +31,7 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
 }) {
-  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, summon: s.summon, refused: s.refused, coach: s.coach, coachTip: s.coachTip })))
+  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, summon: s.summon, refused: s.refused, coach: s.coach, coachTip: s.coachTip, edge: s.edge, saved: s.saved })))
   const ready = useHud(spiritReady)
   const blocked = useHud(spiritRefused)
   return (
@@ -75,6 +75,13 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
           <span className="cine-tag">{h.summon === 'both' ? 'Beast clash!' : 'Beast takeover'}</span>
         </div>
       )}
+      {h.phase === 'battle' && (h.edge[0] || h.edge[1]) && !h.cine && h.summon === null && (
+        <div className={`edge-tag ${h.edge[0] ? 'mine' : 'rival'}`} role="status">
+          <b>EDGE!</b>
+          <small>{spectator ? `${names[h.edge[0] ? 0 : 1]} on the edge` : h.edge[0] ? 'Steer in!' : 'Rival on the edge!'}</small>
+        </div>
+      )}
+      {h.saved && h.phase === 'battle' && <div key={h.saved.n} className={`saved-pop ${h.saved.side === 0 ? 'mine' : 'rival'}`} aria-hidden="true">SAVED!</div>}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}
       {h.announcer && (
         <div key={h.announcer.id} className="announcer" aria-live="polite">
