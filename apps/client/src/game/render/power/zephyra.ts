@@ -14,13 +14,14 @@ export class ZephyraPower implements Power {
   private vortex = false
   private flungT = -1
 
-  constructor(tex: PowerTextures, cap: number) {
+  constructor(tex: PowerTextures, cap: number, ultimate = false) {
     const geo = new CylinderGeometry(0.34, 0.05, 0.85, 20, 1, true)
     geo.translate(0, 0.425, 0)
     const map = tiled(tex.wind)
     map.repeat.set(2, 1)
     this.cone = new Mesh(geo, new MeshBasicMaterial({ map, transparent: true, depthWrite: false, side: DoubleSide, blending: AdditiveBlending, opacity: 0 }))
     this.cone.visible = false
+    if (ultimate) this.cone.scale.set(1.3, 1, 1.3)
     this.debris = new Pool(tex.debris, cap, false)
     this.spiral = new Ribbon(tex.wind, 24, 0.07)
     this.group.add(this.cone, this.debris.mesh, this.spiral.mesh)

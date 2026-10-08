@@ -1,5 +1,5 @@
 import { TUNING, type BattleEvent, type BeastId, type BeastMove, type TopState } from '@spirit/core'
-import { Group, type Quaternion, type Texture } from 'three'
+import { Group, type Mesh, type MeshBasicMaterial, type Quaternion, type Texture } from 'three'
 
 export interface PowerTextures {
   crystal: Texture; rocks: Texture; lightning: Texture; bolt: Texture; water: Texture; whirlpool: Texture; splash: Texture
@@ -16,7 +16,7 @@ export interface Power {
   dispose(): void
 }
 
-export type PowerFactory = (tex: PowerTextures, cap: number) => Power
+export type PowerFactory = (tex: PowerTextures, cap: number, ultimate: boolean, tint: number | null) => Power
 
 const quiet: PowerFactory = () => ({ group: new Group(), begin() {}, cue() {}, update() {}, end() {}, reset() {}, dispose() {} })
 
@@ -27,9 +27,9 @@ export class PowerFx {
 
   constructor(private readonly tex: PowerTextures, private readonly cap: number, private readonly registry: Partial<Record<BeastId, PowerFactory>>) {}
 
-  setBeasts(ids: readonly [BeastId, BeastId]): void {
+  setBeasts(ids: readonly [BeastId, BeastId], ultimates: readonly [boolean, boolean] = [false, false], tints: readonly [number | null, number | null] = [null, null]): void {
     if (this.sides) for (const p of this.sides) { this.group.remove(p.group); p.dispose() }
-    this.sides = [this.make(ids[0]), this.make(ids[1])]
+    this.sides = [this.make(ids[0], ultimates[0], tints[0]), this.make(ids[1], ultimates[1], tints[1])]
     this.on = [false, false]
     for (const p of this.sides) this.group.add(p.group)
   }
@@ -55,7 +55,9 @@ export class PowerFx {
     if (this.sides) for (const p of this.sides) p.reset()
   }
 
-  private make(id: BeastId): Power {
-    return (this.registry[id] ?? quiet)(this.tex, this.cap)
+  private make(id: BeastId, ultimate: boolean, tint: number | null): Power {
+    const p = (this.registry[id] ?? quiet)(this.tex, this.cap, ultimate, tint)
+    if (tint !== null) p.group.traverse(o => { const m = (o as Mesh).material as MeshBasicMaterial | undefined; if (m?.color) m.color.setHex(tint) })
+    return p
   }
 }

@@ -7,14 +7,14 @@ import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
 import { deadzone, type SensorFeed } from '../input/sensors'
-import { spiritRefused, useHud } from '../state/hud'
+import { spiritRefused, summonReset, useHud } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
 import { useSave } from '../state/save'
 import { coachTip } from './coach'
 import { tierOf, type LaunchTier } from './launchPlan'
-import { spiritTransitions, summonEnd, summonStart, type SpiritSeen } from './transitions'
+import { spiritTransitions, summonEnd, reducedMotion, summonStart, zoomAfterEnd, type SpiritSeen } from './transitions'
 
 export interface MatchSetup {
   player: TopBuild
@@ -105,14 +105,14 @@ export class BattleController {
 
   start(): void {
     log('match.start', { player: this.setup.player, opponent: this.setup.opponent, bot: this.setup.bot, hesitates: this.setup.playerHesitates, input: this.inputMode })
-    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, coachTip: null, coach: false, pull: 0 })
+    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, coachTip: null, coach: false, pull: 0, ...summonReset })
     this.later(300, () => this.announcer.say('intro', true))
     this.later(1400, () => this.beginRound())
   }
 
   dispose(): void {
     this.disposed = true
-    useHud.getState().set({ coachTip: null, coach: false, pull: 0 })
+    useHud.getState().set({ coachTip: null, coach: false, pull: 0, ...summonReset })
     this.announcer.dispose()
     this.deps.sound.stopHums()
     for (const t of this.timers) clearTimeout(t)
@@ -404,7 +404,7 @@ export class BattleController {
         g.spirits?.[e.side].show(true)
         this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
-        g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
+        if (!reducedMotion()) g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
         const summon = summonStart(useHud.getState().summon, e.side)
         if (summon === 'both') g.frameBoth(1100)
         else g.spiritZoom(e.side, 1100)
@@ -438,7 +438,12 @@ export class BattleController {
       case 'spiritEnd':
         g.spirits?.[e.side].show(false)
         const sm = useHud.getState().summon, next = summonEnd(sm, e.side)
-        if (sm !== next) { hud.set({ summon: next }); if (next === null) g.releaseZoom() }
+        if (sm !== next) {
+          hud.set({ summon: next })
+          const z = zoomAfterEnd(sm, next)
+          if (z === 'release') g.releaseZoom()
+          else if (z !== null) g.narrowZoom(z)
+        }
         break
       case 'finish':
         this.finishRound(e)
@@ -477,7 +482,7 @@ export class BattleController {
         this.concludeMatch()
       })
     }
-    const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
+    const still = reducedMotion()
     const decisive = replaysFinish(o, this.match.winner !== null)
     if (!still && decisive && this.finishCamOk && g.finishCam(loser, impact)) {
       s.play('clashHeavy', { volume: 0.5, rate: 0.55 })

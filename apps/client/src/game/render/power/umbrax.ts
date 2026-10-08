@@ -5,6 +5,7 @@ import { approach, floorAt, floorDecal, setDecal, sprite } from './shapes'
 
 const OPEN_S = 0.15, CLAW_S = 0.55, SLASH_S = 0.25
 const CLAW_X = [-0.07, 0, 0.07] as const
+const RING_R = 0.1
 
 export class UmbraxPower implements Power {
   readonly group = new Group()
@@ -12,6 +13,8 @@ export class UmbraxPower implements Power {
   private readonly poolB: Mesh<PlaneGeometry, MeshBasicMaterial>
   private readonly claws: Sprite[]
   private readonly slash: Sprite
+  private readonly ox: Float32Array
+  private readonly oy: Float32Array
   private on = false
   private pounceT = -1
   private slashT = 0
@@ -23,10 +26,18 @@ export class UmbraxPower implements Power {
   private by = 0
   private aSize = 0
 
-  constructor(tex: PowerTextures) {
+  constructor(tex: PowerTextures, ultimate = false) {
     this.poolA = floorDecal(tex.shadowPool, false)
     this.poolB = floorDecal(tex.shadowPool, false)
-    this.claws = CLAW_X.map(() => sprite(tex.claw, false))
+    const n = ultimate ? 6 : CLAW_X.length
+    this.claws = Array.from({ length: n }, () => sprite(tex.claw, false))
+    this.ox = new Float32Array(n)
+    this.oy = new Float32Array(n)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2
+      this.ox[i] = ultimate ? Math.cos(a) * RING_R : CLAW_X[i]!
+      this.oy[i] = ultimate ? Math.sin(a) * RING_R : i === 1 ? 0.03 : 0
+    }
     this.slash = sprite(tex.slash)
     this.slash.center.set(0.5, 0.5)
     this.group.add(this.poolA, this.poolB, ...this.claws, this.slash)
@@ -65,7 +76,7 @@ export class UmbraxPower implements Power {
       const rise = Math.min(1, t / OPEN_S)
       m.opacity = t < OPEN_S ? 1 : Math.max(0, 1 - (t - OPEN_S) / (CLAW_S - OPEN_S))
       c.scale.set(0.16, Math.max(1e-3, 0.35 * rise), 1)
-      const x = this.bx + CLAW_X[i]!, y = this.by + (i === 1 ? 0.03 : 0)
+      const x = this.bx + this.ox[i]!, y = this.by + this.oy[i]!
       c.position.set(x, floorAt(x, y), -y)
     }
     const sm = this.slash.material as SpriteMaterial

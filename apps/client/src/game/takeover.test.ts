@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { spiritReady, spiritRefused, type BattlePhase } from '../state/hud'
-import { beastShot, spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn } from './transitions'
+import { spiritReady, spiritRefused, summonReset, useHud, type BattlePhase } from '../state/hud'
+import { beastShot, spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn, zoomAfterEnd } from './transitions'
 import { powerTextureList } from './render/power/textures'
 import { blankTextures } from './render/power/testkit'
 
@@ -117,5 +117,24 @@ describe('summon camera', () => {
     const single = { x: 0, y: 0, z: 0, amount: 0 }
     beastShot(single, tops, 1)
     expect(o.amount).toBeLessThan(single.amount)
+  })
+})
+
+describe('camera after a summon ends', () => {
+  it('switches a double-call camera to the surviving side and releases only when none are left', () => {
+    expect(zoomAfterEnd('both', summonEnd('both', 0))).toBe(1)
+    expect(zoomAfterEnd('both', summonEnd('both', 1))).toBe(0)
+    expect(zoomAfterEnd(1, summonEnd(1, 1))).toBe('release')
+    expect(zoomAfterEnd(0, summonEnd(0, 1))).toBeNull()
+    expect(zoomAfterEnd(null, null)).toBeNull()
+  })
+})
+
+describe('new match hud reset', () => {
+  it('clears a leftover summon letterbox and refused toast', () => {
+    useHud.getState().set({ summon: 'both', refused: 3 })
+    useHud.getState().set({ ...summonReset })
+    expect(useHud.getState().summon).toBeNull()
+    expect(useHud.getState().refused).toBe(0)
   })
 })

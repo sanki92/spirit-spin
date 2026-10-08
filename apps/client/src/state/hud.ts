@@ -78,3 +78,5 @@ export const useHud = create<HudState>(set => ({
   training: false,
   set: p => set(p),
 }))
+
+export const summonReset = { summon: null, refused: 0 } as const

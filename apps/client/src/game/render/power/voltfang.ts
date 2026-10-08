@@ -3,21 +3,27 @@ import { Group, type Quaternion, type Sprite, type SpriteMaterial } from 'three'
 import type { Power, PowerTextures } from './PowerFx'
 import { floorAt, Ribbon, sprite } from './shapes'
 
-const TRAIL = 24, BOLT_S = 0.22
+const TRAIL = 24, BOLT_S = 0.22, STAGGER = 0.05
+const OFF_X = [0, -0.09, 0.09] as const
+const OFF_Y = [0, 0.05, -0.04] as const
 
 export class VoltfangPower implements Power {
   readonly group = new Group()
   private readonly trail: Ribbon
-  private readonly bolt: Sprite
-  private boltT = 0
+  private readonly bolts: Sprite[]
+  private readonly boltT: Float32Array
   private on = false
 
-  constructor(tex: PowerTextures, _cap?: number) {
+  constructor(tex: PowerTextures, _cap?: number, ultimate = false) {
     this.trail = new Ribbon(tex.lightning, TRAIL, 0.11)
-    this.bolt = sprite(tex.bolt)
-    this.bolt.center.set(0.5, 0.2)
-    this.bolt.scale.set(0.32, 1.5, 1)
-    this.group.add(this.trail.mesh, this.bolt)
+    this.bolts = Array.from({ length: ultimate ? 3 : 1 }, () => {
+      const b = sprite(tex.bolt)
+      b.center.set(0.5, 0.2)
+      b.scale.set(0.32, 1.5, 1)
+      return b
+    })
+    this.boltT = new Float32Array(this.bolts.length)
+    this.group.add(this.trail.mesh, ...this.bolts)
   }
 
   begin(me: TopState, _foe?: TopState): void {
@@ -28,8 +34,11 @@ export class VoltfangPower implements Power {
 
   cue(move: BeastMove, _x: number, _y: number, foe: TopState): void {
     if (move !== 'strike') return
-    this.boltT = BOLT_S
-    this.bolt.position.set(foe.x, floorAt(foe.x, foe.y), -foe.y)
+    for (let i = 0; i < this.bolts.length; i++) {
+      this.boltT[i] = BOLT_S + i * STAGGER
+      const x = foe.x + OFF_X[i]!, y = foe.y + OFF_Y[i]!
+      this.bolts[i]!.position.set(x, floorAt(x, y), -y)
+    }
   }
 
   update(dt: number, e: number, me: TopState, _foe: TopState, still: boolean, _camQ: Quaternion): void {
@@ -41,13 +50,16 @@ export class VoltfangPower implements Power {
     this.trail.layout(true)
     if (!still) this.trail.scroll(-dt * 3)
     this.trail.fade(this.on && e >= 0 ? 1 : 0, dt)
-    const m = this.bolt.material as SpriteMaterial
-    if (this.boltT > 0) {
-      this.boltT -= dt
-      const flick = still || Math.sin(this.boltT * 90) > -0.3 ? 1 : 0.25
-      m.opacity = flick * Math.min(1, Math.max(0, this.boltT) / 0.08)
+    for (let i = 0; i < this.bolts.length; i++) {
+      const b = this.bolts[i]!
+      if (this.boltT[i]! > 0) this.boltT[i]! -= dt
+      const t = this.boltT[i]!, live = t > 0 && t <= BOLT_S
+      if (live) {
+        const flick = still || Math.sin(t * 90) > -0.3 ? 1 : 0.25
+        ;(b.material as SpriteMaterial).opacity = flick * Math.min(1, t / 0.08)
+      }
+      b.visible = live
     }
-    this.bolt.visible = this.boltT > 0
   }
 
   end(): void {
@@ -56,14 +68,14 @@ export class VoltfangPower implements Power {
 
   reset(): void {
     this.on = false
-    this.boltT = 0
-    this.bolt.visible = false
+    this.boltT.fill(0)
+    for (const b of this.bolts) b.visible = false
     this.trail.mesh.material.opacity = 0
     this.trail.mesh.visible = false
   }
 
   dispose(): void {
     this.trail.dispose()
-    this.bolt.material.dispose()
+    for (const b of this.bolts) b.material.dispose()
   }
 }

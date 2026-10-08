@@ -8,18 +8,19 @@ const SEG = 40, RAD = 0.06, TURNS = 1.5, FLING_S = 0.3, LIFT = 0.3
 
 export class NagaraPower implements Power {
   readonly group = new Group()
-  private readonly tube: Tube
+  private readonly tubes: Tube[]
   private readonly whirl: Mesh<PlaneGeometry, MeshBasicMaterial>
   private readonly splash: Pool
   private on = false
   private flung = -1
   private k = 0
 
-  constructor(tex: PowerTextures, cap: number) {
-    this.tube = new Tube(tex.water, SEG, 8, RAD)
+  constructor(tex: PowerTextures, cap: number, ultimate = false) {
+    this.tubes = Array.from({ length: ultimate ? 2 : 1 }, () => new Tube(tex.water, SEG, 8, RAD))
     this.whirl = floorDecal(tex.whirlpool, true)
     this.splash = new Pool(tex.splash, Math.max(8, cap >> 2), false)
-    this.group.add(this.tube.mesh, this.whirl, this.splash.mesh)
+    this.group.add(this.tubes[0]!.mesh, this.whirl, this.splash.mesh)
+    for (let j = 1; j < this.tubes.length; j++) this.group.add(this.tubes[j]!.mesh)
   }
 
   begin(_me?: TopState, _foe?: TopState): void {
@@ -42,19 +43,22 @@ export class NagaraPower implements Power {
     if (this.flung >= 0) { this.flung += dt; target = 0 }
     this.k = this.flung >= 0 ? Math.max(0, 1 - this.flung / FLING_S) : approach(this.k, target, dt, 10)
     const show = this.k > 0.01
-    this.tube.mesh.visible = show
+    for (const t of this.tubes) t.mesh.visible = show
     if (show) {
       const dx = me.x - foe.x, dy = me.y - foe.y, d = Math.hypot(dx, dy)
       const r = Math.min(0.5, Math.max(0.14, d)), a0 = d > 1e-4 ? Math.atan2(dy, dx) : 0
-      for (let i = 0; i < SEG; i++) {
-        const u = i / (SEG - 1), ang = a0 - u * TURNS * Math.PI * 2, rad = r * (1 - 0.3 * u)
-        const x = foe.x + Math.cos(ang) * rad, y = foe.y + Math.sin(ang) * rad
-        this.tube.points[i]!.set(x, floorAt(x, y) + 0.04 + u * LIFT, -y)
+      for (let j = 0; j < this.tubes.length; j++) {
+        const tube = this.tubes[j]!, shrink = 1 - 0.18 * j
+        for (let i = 0; i < SEG; i++) {
+          const u = i / (SEG - 1), ang = a0 + j * Math.PI - u * TURNS * Math.PI * 2, rad = r * shrink * (1 - 0.3 * u)
+          const x = foe.x + Math.cos(ang) * rad, y = foe.y + Math.sin(ang) * rad
+          tube.points[i]!.set(x, floorAt(x, y) + 0.04 + u * LIFT, -y)
+        }
+        tube.radius = RAD * this.k * shrink
+        tube.layout()
+        tube.mesh.material.opacity = 0.9 * this.k
+        if (!still) tube.mesh.material.map!.offset.x -= dt * 0.8
       }
-      this.tube.radius = RAD * this.k
-      this.tube.layout()
-      this.tube.mesh.material.opacity = 0.9 * this.k
-      if (!still) this.tube.mesh.material.map!.offset.x -= dt * 0.8
       setDecal(this.whirl, foe.x, foe.y, 0.45, 0.85 * this.k)
       if (!still) this.whirl.rotation.z += dt * 3
     } else this.whirl.visible = false
@@ -69,13 +73,13 @@ export class NagaraPower implements Power {
     this.on = false
     this.flung = -1
     this.k = 0
-    this.tube.mesh.visible = false
+    for (const t of this.tubes) t.mesh.visible = false
     this.whirl.visible = false
     this.splash.clear()
   }
 
   dispose(): void {
-    this.tube.dispose()
+    for (const t of this.tubes) t.dispose()
     this.whirl.material.dispose()
     this.splash.dispose()
   }

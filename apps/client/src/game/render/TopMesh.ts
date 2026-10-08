@@ -102,7 +102,7 @@ export class TopMesh {
     })
   }
 
-  update(x: number, y: number, spin: number, wobble: number, spirit: boolean, dt: number, visible: boolean): void {
+  update(x: number, y: number, spin: number, wobble: number, spirit: boolean, dt: number, visible: boolean, still = false): void {
     this.group.visible = visible
     const r = Math.hypot(x, y)
     this.group.position.set(x, bowlHeight(Math.min(r, 1)), -y)
@@ -117,7 +117,7 @@ export class TopMesh {
     const gm = this.glow.material
     gm.opacity += ((spirit ? 0.6 : 0) - gm.opacity) * Math.min(1, dt * 8)
     this.glow.visible = visible && gm.opacity > 0.01
-    if (this.glow.visible) this.layGlow(x, y, dt)
+    if (this.glow.visible) this.layGlow(x, y, still ? 0 : dt)
   }
 
   raise(lift: number): void {

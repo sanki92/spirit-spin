@@ -8,10 +8,10 @@ import { VoltfangPower } from './voltfang'
 import { ZephyraPower } from './zephyra'
 
 export const POWERS: Partial<Record<BeastId, PowerFactory>> = {
-  aegiron: (tex, cap) => new AegironPower(tex, cap),
-  agnyx: (tex, cap) => new AgnyxPower(tex, cap),
-  nagara: (tex, cap) => new NagaraPower(tex, cap),
-  umbrax: tex => new UmbraxPower(tex),
-  voltfang: (tex, cap) => new VoltfangPower(tex, cap),
-  zephyra: (tex, cap) => new ZephyraPower(tex, cap),
+  aegiron: (tex, cap, ult) => new AegironPower(tex, cap, ult),
+  agnyx: (tex, cap, ult) => new AgnyxPower(tex, cap, ult),
+  nagara: (tex, cap, ult) => new NagaraPower(tex, cap, ult),
+  umbrax: (tex, _cap, ult) => new UmbraxPower(tex, ult),
+  voltfang: (tex, cap, ult) => new VoltfangPower(tex, cap, ult),
+  zephyra: (tex, cap, ult) => new ZephyraPower(tex, cap, ult),
 }

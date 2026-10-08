@@ -1,7 +1,7 @@
 import { createBattle, holdEnd, PLAYOUT, playoutSteps, Replayer, startTimeline, type RipResult, type ServerMsg, type WireMsg } from '@spirit/core'
 import { mainLink } from '../net/link'
 import { rt } from '../net/rt'
-import { useHud } from '../state/hud'
+import { summonReset, useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
 import { tierOf } from './launchPlan'
@@ -24,7 +24,7 @@ export class SpectatorController extends BattleController {
   }
 
   override start(): void {
-    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null })
+    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null, ...summonReset })
     this.announcer.say('intro', true)
     const r = rt.last('round')
     if (r) this.onNet(r)

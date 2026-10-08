@@ -4,7 +4,7 @@ import { Pool } from '../Fx'
 import type { Power, PowerTextures } from './PowerFx'
 import { floorAt, floorDecal, setDecal, tiled } from './shapes'
 
-const N = 10, RING = 0.22, RISE_S = 0.3, LEAD = 12, SCAR_S = 3, G = 9, WIDTH = 0.045
+const N = 10, ULT_N = 14, RING = 0.22, RISE_S = 0.3, LEAD = 12, SCAR_S = 3, G = 9, WIDTH = 0.045
 const UP = new Vector3(0, 1, 0), m4 = new Matrix4(), q = new Quaternion(), p = new Vector3(), s = new Vector3(), v = new Vector3()
 
 export class AegironPower implements Power {
@@ -12,13 +12,14 @@ export class AegironPower implements Power {
   private readonly shards: InstancedMesh
   private readonly rocks: Pool
   private readonly scar: Mesh<PlaneGeometry, MeshBasicMaterial>
-  private readonly x0 = new Float32Array(N)
-  private readonly y0 = new Float32Array(N)
-  private readonly z0 = new Float32Array(N)
-  private readonly vx = new Float32Array(N)
-  private readonly vy = new Float32Array(N)
-  private readonly vz = new Float32Array(N)
-  private readonly len = new Float32Array(N)
+  private readonly n: number
+  private readonly x0: Float32Array
+  private readonly y0: Float32Array
+  private readonly z0: Float32Array
+  private readonly vx: Float32Array
+  private readonly vy: Float32Array
+  private readonly vz: Float32Array
+  private readonly len: Float32Array
   private mode: 'off' | 'rise' | 'fly' = 'off'
   private t = 0
   private flight = 0
@@ -28,16 +29,25 @@ export class AegironPower implements Power {
   private tz = 0
   private ty = 0
 
-  constructor(tex: PowerTextures, cap: number) {
+  constructor(tex: PowerTextures, cap: number, ultimate = false) {
+    const n = ultimate ? ULT_N : N
+    this.n = n
+    this.x0 = new Float32Array(n)
+    this.y0 = new Float32Array(n)
+    this.z0 = new Float32Array(n)
+    this.vx = new Float32Array(n)
+    this.vy = new Float32Array(n)
+    this.vz = new Float32Array(n)
+    this.len = new Float32Array(n)
     const geo = new ConeGeometry(1, 1, 4)
     geo.translate(0, 0.5, 0)
-    this.shards = new InstancedMesh(geo, new MeshBasicMaterial({ map: tiled(tex.crystal), transparent: true, opacity: 0.95 }), N)
+    this.shards = new InstancedMesh(geo, new MeshBasicMaterial({ map: tiled(tex.crystal), transparent: true, opacity: 0.95 }), n)
     this.shards.frustumCulled = false
     this.shards.count = 0
     this.rocks = new Pool(tex.rocks, cap, false)
     this.scar = floorDecal(tex.crack, false)
     this.group.add(this.shards, this.rocks.mesh, this.scar)
-    for (let i = 0; i < N; i++) this.len[i] = 0.16 + ((i * 7) % 5) * 0.025
+    for (let i = 0; i < n; i++) this.len[i] = 0.16 + ((i * 7) % 5) * 0.025
   }
 
   begin(_me?: TopState, _foe?: TopState): void {
@@ -90,8 +100,8 @@ export class AegironPower implements Power {
   private ring(cx: number, cy: number): void {
     this.mode = 'rise'
     this.t = 0
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2, x = cx + Math.cos(a) * RING, y = cy + Math.sin(a) * RING
+    for (let i = 0; i < this.n; i++) {
+      const a = (i / this.n) * Math.PI * 2, x = cx + Math.cos(a) * RING, y = cy + Math.sin(a) * RING
       this.x0[i] = x
       this.y0[i] = floorAt(x, y)
       this.z0[i] = -y
@@ -100,13 +110,13 @@ export class AegironPower implements Power {
 
   private drawRing(still: boolean): void {
     const k = still ? 1 : Math.min(1, this.t / RISE_S), grow = k * k * (3 - 2 * k)
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2
+    for (let i = 0; i < this.n; i++) {
+      const a = (i / this.n) * Math.PI * 2
       q.setFromUnitVectors(UP, v.set(Math.cos(a) * 0.34, 0.94, -Math.sin(a) * 0.34).normalize())
       m4.compose(p.set(this.x0[i]!, this.y0[i]!, this.z0[i]!), q, s.set(WIDTH, Math.max(1e-3, this.len[i]! * grow), WIDTH))
       this.shards.setMatrixAt(i, m4)
     }
-    this.shards.count = N
+    this.shards.count = this.n
     this.shards.instanceMatrix.needsUpdate = true
   }
 
@@ -118,7 +128,7 @@ export class AegironPower implements Power {
     this.tx = fx
     this.tz = -fy
     this.ty = floorAt(fx, fy) + 0.05
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < this.n; i++) {
       this.y0[i] = this.y0[i]! + this.len[i]! * 0.5
       this.vx[i] = (this.tx - this.x0[i]!) / this.span
       this.vz[i] = (this.tz - this.z0[i]!) / this.span
@@ -138,13 +148,13 @@ export class AegironPower implements Power {
       }
       return
     }
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < this.n; i++) {
       p.set(this.x0[i]! + this.vx[i]! * t, this.y0[i]! + this.vy[i]! * t - 0.5 * G * t * t, this.z0[i]! + this.vz[i]! * t)
       q.setFromUnitVectors(UP, v.set(this.vx[i]!, this.vy[i]! - G * t, this.vz[i]!).normalize())
       m4.compose(p, q, s.set(WIDTH, this.len[i]!, WIDTH))
       this.shards.setMatrixAt(i, m4)
     }
-    this.shards.count = N
+    this.shards.count = this.n
     this.shards.instanceMatrix.needsUpdate = true
   }
 }

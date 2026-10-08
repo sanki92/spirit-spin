@@ -22,6 +22,8 @@ export const summonStart = (s: Summon, side: Side): Summon => (s === null || s =
 
 export const summonEnd = (s: Summon, side: Side): Summon => (s === 'both' ? ((1 - side) as Side) : s === side ? null : s)
 
+export const zoomAfterEnd = (before: Summon, after: Summon): Side | 'release' | null => (before === after ? null : after === null ? 'release' : before === 'both' ? (after as Side) : null)
+
 export const summonFocus = (a: boolean, b: boolean): Summon => (a && b ? 'both' : a ? 0 : b ? 1 : null)
 
 export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast'
@@ -34,9 +36,11 @@ const BOTH = 0.45
 export interface Shot { x: number; y: number; z: number; amount: number }
 
 export function beastShot(o: Shot, tops: readonly { x: number; y: number }[], side: Side | 'both'): Shot {
-  const [a, b] = [tops[0]!, tops[1]!]
+  const a = tops[0]!, b = tops[1]!
   if (side === 'both') { o.x = (a.x + b.x) / 2; o.z = -(a.y + b.y) / 2 - LEAD / 2; o.amount = BOTH }
   else { const t = side === 0 ? a : b; o.x = t.x; o.z = -t.y - LEAD; o.amount = SINGLE }
   o.y = LIFT
   return o
 }
+
+export const reducedMotion = (): boolean => document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches

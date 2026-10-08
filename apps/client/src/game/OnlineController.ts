@@ -2,7 +2,7 @@ import { beginAt, chooseDelay, createBattle, FINISH_CAM, NetDriver, startTimelin
 import { EdgeLink } from '../net/edgeLink'
 import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
-import { useHud } from '../state/hud'
+import { summonReset, useHud } from '../state/hud'
 import { log } from '../telemetry'
 import { BattleController, type MatchSetup } from './BattleController'
 import { REPLAY_TICKS, replayFrame, type Game, type ReplayFrame } from './Game'
@@ -50,7 +50,7 @@ export class OnlineController extends BattleController {
 
   override start(): void {
     log('match.start', { online: true, side: this.side, player: this.setup.player, opponent: this.setup.opponent, input: this.inputMode, rtt: Math.round(rt.rtt) })
-    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null, coachTip: null, coach: false, pull: 0 })
+    useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null, coachTip: null, coach: false, pull: 0, ...summonReset })
     for (const k of ['round', 'start', 'left', 'error'] as const) {
       const m = rt.last(k)
       if (m) this.onNet(m)

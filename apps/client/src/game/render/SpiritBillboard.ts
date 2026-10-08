@@ -2,6 +2,7 @@ import { AdditiveBlending, Color, Group, Sprite, SpriteMaterial, Texture } from 
 import { Eruption, type PillarStyle } from './power/eruption'
 
 const H = 1.15
+const AWAKE = 1.25
 const BONDED = 0.7
 const WAIT = 0.15
 const RISE = 0.4
@@ -25,7 +26,7 @@ export class SpiritBillboard {
   private ringT = RING
   private tint: Color
 
-  constructor(private readonly base: Texture, shock: Texture, color: string, private readonly attack: Texture | null, pillar: PillarStyle) {
+  constructor(private readonly base: Texture, shock: Texture, color: string, private readonly attack: Texture | null, pillar: PillarStyle, private readonly awakened = false) {
     const img = base.image as { width?: number; height?: number } | undefined
     this.aspect = img?.width && img.height ? img.width / img.height : 0.67
     this.tint = new Color(color)
@@ -38,7 +39,7 @@ export class SpiritBillboard {
     this.ring = new Sprite(new SpriteMaterial({ map: shock, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }))
     this.ring.renderOrder = 21
     this.ring.position.set(0, 0.05, 0)
-    this.pillar = new Eruption(pillar)
+    this.pillar = new Eruption(pillar, awakened)
     this.body.add(this.aura, this.beast, this.ring)
     this.group.add(this.pillar.group, this.body)
     this.group.visible = false
@@ -117,7 +118,7 @@ export class SpiritBillboard {
       if (p >= 1) { this.state = 'hold'; this.t = 0 }
     } else if (this.state === 'hold') {
       a = 1 - Math.min(1, this.t / 0.35) * (1 - BONDED)
-      bob = Math.sin(this.life * 2.2) * 0.03
+      bob = still ? 0 : Math.sin(this.life * 2.2) * 0.03
     } else if (this.state === 'out') {
       const k = Math.min(1, this.t / FADE)
       s = 1 + k * 0.18
@@ -131,15 +132,16 @@ export class SpiritBillboard {
       rm.opacity = (1 - k) * 0.9
       this.ring.scale.setScalar(0.5 + k * 2.6)
     } else rm.opacity = 0
-    const sh = H * s * (this.state === 'hold' ? 1 + Math.sin(this.life * 3.1) * 0.025 : 1)
+    const sh = H * (this.awakened ? AWAKE : 1) * s * (this.state === 'hold' && !still ? 1 + Math.sin(this.life * 3.1) * 0.025 : 1)
     this.beast.scale.set(sh * this.aspect, sh, 1)
     bm.opacity = a
     bm.color.setScalar(1 + flash * 2.4)
     const dx = fx - x, dy = fy - y, d = Math.hypot(dx, dy) || 1
     bm.rotation = Math.max(-0.12, Math.min(0.12, (-dx / d) * 0.1))
-    am.opacity = Math.min(1, a * 1.15) * (0.6 + Math.sin(this.life * 5) * 0.15)
+    am.opacity = Math.min(1, Math.min(1, a * 1.15) * (0.6 + (still ? 0 : Math.sin(this.life * 5) * 0.15)) * (this.awakened ? 1.45 : 1))
     am.rotation = bm.rotation
-    this.aura.scale.set(sh * this.aspect * 1.12, sh * 1.09, 1)
+    const rim = this.awakened ? 1.18 : 1.12
+    this.aura.scale.set(sh * this.aspect * rim, sh * (rim - 0.03), 1)
     this.body.position.set(x, h + 0.12 + lift + bob, -y)
   }
 }

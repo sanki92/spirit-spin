@@ -20,8 +20,10 @@ export class AgnyxPower implements Power {
   private rx = 0
   private ry = 0
   private phase = 0
+  private readonly size: number
 
-  constructor(tex: PowerTextures, cap: number) {
+  constructor(tex: PowerTextures, cap: number, ultimate = false) {
+    this.size = ultimate ? 1.3 : 1
     this.flames = [0, 1].map(() => new Ribbon(tex.fire, PTS, 0.075))
     this.embers = new Pool(tex.fire, Math.max(48, cap), false)
     this.trail = new Ribbon(tex.fire, 20, 0.16)
@@ -56,7 +58,7 @@ export class AgnyxPower implements Power {
       const f = this.flames[s]!
       f.fade(rising ? 0.95 : 0, dt, rising ? 10 : 14)
       if (!f.mesh.visible) continue
-      helix(f.points, me.x, me.y, base, 0.5 * grow, this.phase + s * Math.PI, 2, 0.13, 0.6)
+      helix(f.points, me.x, me.y, base, 0.5 * this.size * grow, this.phase + s * Math.PI, 2, 0.13 * this.size, 0.6)
       f.layout(false)
       if (!still) f.scroll(-dt * 1.5)
     }

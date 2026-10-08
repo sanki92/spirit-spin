@@ -6,9 +6,10 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
+import { reducedMotion, beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
 import { PowerFx, type PowerTextures } from './render/power/PowerFx'
 import { pillarStyle } from './render/power/eruption'
+import { formTint, tintHex } from './render/formTint'
 import { POWERS } from './render/power'
 import { loadPowerTextures, powerTextureList } from './render/power/textures'
 import { buildStadium, type StadiumView } from './render/Stadium'
@@ -143,15 +144,18 @@ export class Game {
     if (this.shatters) for (const s of this.shatters) { this.stage.world.remove(s.group); s.dispose() }
     if (this.spirits) for (const s of this.spirits) { this.stage.world.remove(s.group); s.dispose() }
     const [k0, k1] = [BEASTS[builds[0].beastId], BEASTS[builds[1].beastId]]
-    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0, aura: shock }, specs[0].radius, specs[0].type, k0.color), new TopMesh({ blade: b1, disc: d1, emblem: e1, aura: shock }, specs[1].radius, specs[1].type, k1.color)]
-    this.spirits = [new SpiritBillboard(c0, shock, k0.color, a0, pillarStyle(k0.element, this.powerTex!)), new SpiritBillboard(c1, shock, k1.color, a1, pillarStyle(k1.element, this.powerTex!))]
+    const tints = [formTint(beastArt[0]), formTint(beastArt[1])] as const
+    const colors = [tintHex(tints[0], k0.color), tintHex(tints[1], k1.color)] as const
+    const ults = [specs[0].ultimate, specs[1].ultimate] as const
+    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0, aura: shock }, specs[0].radius, specs[0].type, colors[0]), new TopMesh({ blade: b1, disc: d1, emblem: e1, aura: shock }, specs[1].radius, specs[1].type, colors[1])]
+    this.spirits = [new SpiritBillboard(c0, shock, colors[0], a0, pillarStyle(k0.element, this.powerTex!, tints[0]), ults[0]), new SpiritBillboard(c1, shock, colors[1], a1, pillarStyle(k1.element, this.powerTex!, tints[1]), ults[1])]
     for (const t of this.tops) this.stage.world.add(t.group, t.glow)
     this.shatters = [new Shatter(b0, d0, this.tops[0].radius), new Shatter(b1, d1, this.tops[1].radius)]
     for (const s of this.shatters) this.stage.world.add(s.group)
     this.broken = [false, false]
     for (const s of this.spirits) this.stage.world.add(s.group)
     for (const t of [b0, d0, e0, b1, d1, e1, c0, c1, ...[a0, a1].filter((t): t is Texture => !!t)]) this.stage.renderer.initTexture(t)
-    this.power?.setBeasts([builds[0].beastId, builds[1].beastId])
+    this.power?.setBeasts([builds[0].beastId, builds[1].beastId], ults, tints)
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
     const hidden: Object3D[] = [...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
@@ -196,7 +200,7 @@ export class Game {
   }
 
   launch(tiers: [LaunchTier, LaunchTier]): void {
-    const still = document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
+    const still = reducedMotion()
     const plans: [LaunchPlan, LaunchPlan] = [planFor(tiers[0], still), planFor(tiers[1], still)]
     this.armed = false
     this.anim = { t: 0, dur: launchDuration(plans), plans, tiers, landed: [false, false] }
@@ -232,6 +236,10 @@ export class Game {
     if (this.cine) return
     this.zoomSide = 'both'
     this.zoomUntil = performance.now() + ms
+  }
+
+  narrowZoom(side: 0 | 1): void {
+    if (this.zoomSide === 'both') this.zoomSide = side
   }
 
   releaseZoom(): void {
@@ -490,7 +498,7 @@ export class Game {
     if (b && this.tops && this.spirits) {
       const sum = summonFocus(this.spirits[0].summoning, this.spirits[1].summoning)
       const t0 = b.tops[0], t1 = b.tops[1]
-      const still = document.documentElement.classList.contains('reduce-motion')
+      const still = reducedMotion()
       if (sum === 'both') this.stage.follow((t0.x + t1.x) * 0.175, -(t0.y + t1.y) * 0.175, 0.88)
       else if (sum !== null) {
         const t = b.tops[sum]
@@ -511,7 +519,7 @@ export class Game {
       for (let i = 0; i < 2; i++) {
         const t = b.tops[i as 0 | 1], { x, y } = pos[i]!
         const top = this.tops[i as 0 | 1]
-        top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1])
+        top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1], still)
         const o = b.tops[(1 - i) as 0 | 1]
         const spec = this.specs?.[i as 0 | 1]
         const e = TUNING.takeoverTicks - 1 - t.spiritTicks
