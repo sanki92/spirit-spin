@@ -14,9 +14,9 @@ export interface BeastKitInfo { technique: Ability; trait: Ability; ultimate: Ab
 
 export const TECHNIQUES: Record<BeastId, BeastKitInfo> = {
   voltfang: {
-    technique: { name: 'Thunder Fang Rush', text: 'Your wolf takes over and dashes at the rival three times. Every hit lands over twice as hard and locks them in place for a moment.' },
+    technique: { name: 'Thunder Fang Rush', text: 'Your wolf takes over and dashes at the rival three times. Every hit knocks them back a little harder, cracks them much faster, and locks them in place for a moment.' },
     trait: { name: 'Static Charge', text: 'Clashes fill your Spirit gauge 20% faster.' },
-    ultimate: { name: 'Storm Fang', text: 'Each lock lasts almost twice as long.' },
+    ultimate: { name: 'Storm Fang', text: 'Each lock lasts three times as long.' },
   },
   aegiron: {
     technique: { name: 'Bastion Slam', text: 'Your golem plants the top in the center behind a crystal shield, then slams the ground and blasts the rival toward the wall.' },

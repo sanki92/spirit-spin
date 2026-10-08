@@ -6,9 +6,10 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
+import { takeoverOn } from './transitions'
 import { PowerFx } from './render/power/PowerFx'
 import { POWERS } from './render/power'
-import { loadPowerTextures } from './render/power/textures'
+import { loadPowerTextures, powerTextureList } from './render/power/textures'
 import { buildStadium, type StadiumView } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
@@ -108,10 +109,11 @@ export class Game {
     g.stage.world.add(g.stadium.group)
     g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow, ring: shock })
     g.stage.world.add(g.techFx.group)
-    g.power = new PowerFx(await loadPowerTextures(crack), quality === 'low' ? 40 : 90, POWERS)
+    const powerTex = await loadPowerTextures(crack)
+    g.power = new PowerFx(powerTex, quality === 'low' ? 40 : 90, POWERS)
     g.stage.world.add(g.power.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
-    for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : [])]) g.stage.renderer.initTexture(t)
+    for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : []), ...powerTextureList(powerTex)]) g.stage.renderer.initTexture(t)
     return g
   }
 
@@ -230,6 +232,10 @@ export class Game {
     this.zoomSide = 'both'
     this.zoomAmt = BOTH_ZOOM
     this.zoomUntil = performance.now() + ms
+  }
+
+  releaseZoom(): void {
+    if (!this.cine) this.endZoom()
   }
 
   private endZoom(): void {
@@ -511,15 +517,15 @@ export class Game {
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
         const spec = this.specs?.[i as 0 | 1]
         const e = TUNING.takeoverTicks - 1 - t.spiritTicks
-        const driving = t.spiritTicks > 0 && t.summonTicks === 0
+        const driving = takeoverOn(t, b.outcome)
         top.fade(driving && spec?.beastId === 'umbrax' && e < TUNING.tech.pounceAt ? 0.25 : 1, dt)
         if (driving && spec?.beastId === 'agnyx') top.group.position.y += e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))
       }
       if (this.techFx && this.specs) {
         const sp = this.specs
-        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && t0.spiritTicks > 0 && t0.summonTicks === 0, sp[1].beastId === 'nagara' && t1.spiritTicks > 0 && t1.summonTicks === 0], scaled, document.documentElement.classList.contains('reduce-motion'))
+        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && takeoverOn(t0, b.outcome), sp[1].beastId === 'nagara' && takeoverOn(t1, b.outcome)], scaled, document.documentElement.classList.contains('reduce-motion'))
       }
-      this.power?.update(scaled, b.tops, document.documentElement.classList.contains('reduce-motion'), this.stage.camera.quaternion)
+      if (!b.outcome) this.power?.update(scaled, b.tops, document.documentElement.classList.contains('reduce-motion'), this.stage.camera.quaternion)
     }
     this.fx.update(scaled, this.stage.camera)
     this.stage.render(dt)

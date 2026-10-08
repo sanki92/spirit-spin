@@ -14,7 +14,7 @@ import { Announcer } from './commentator'
 import { useSave } from '../state/save'
 import { coachTip } from './coach'
 import { tierOf, type LaunchTier } from './launchPlan'
-import { spiritTransitions, type SpiritSeen } from './transitions'
+import { spiritTransitions, summonAfterEnd, type SpiritSeen } from './transitions'
 
 export interface MatchSetup {
   player: TopBuild
@@ -426,6 +426,8 @@ export class BattleController {
         break
       case 'spiritEnd':
         g.spirits?.[e.side].show(false)
+        const sm = useHud.getState().summon
+        if (sm !== summonAfterEnd(sm, e.side)) { hud.set({ summon: null }); g.releaseZoom() }
         break
       case 'finish':
         this.finishRound(e)
@@ -442,6 +444,7 @@ export class BattleController {
     const b = g.battle!
     const loser = o.winner === null ? null : ((1 - o.winner) as 0 | 1)
     g.spirits?.forEach(sp => sp.show(false))
+    g.power?.reset()
     this.match = applyRound(this.match, o)
     this.announcer.say(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spin' : o.finish === 'spirit' ? 'spiritFinish' : 'draw', true)
     const [p, q] = this.match.scores

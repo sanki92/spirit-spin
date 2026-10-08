@@ -1,4 +1,4 @@
-import type { BattleEvent, Side } from '@spirit/core'
+import type { BattleEvent, RoundOutcome, Side } from '@spirit/core'
 
 export interface SpiritSeen { spirit: [boolean, boolean]; summon: [boolean, boolean] }
 
@@ -13,3 +13,9 @@ export function spiritTransitions(tops: readonly { spiritTicks: number; summonTi
   }
   return out
 }
+
+export const takeoverOn = (t: { spiritTicks: number; summonTicks: number }, outcome: RoundOutcome | null): boolean => !outcome && t.spiritTicks > 0 && t.summonTicks === 0
+
+export const summonAfterEnd = (summon: Side | null, endSide: Side): Side | null => (summon === endSide ? null : summon)
+
+export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast'

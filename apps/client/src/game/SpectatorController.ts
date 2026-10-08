@@ -5,6 +5,7 @@ import { useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
 import { tierOf } from './launchPlan'
+import { spectatorSees } from './transitions'
 
 export class SpectatorController extends BattleController {
   private rp: Replayer | null = null
@@ -110,7 +111,7 @@ export class SpectatorController extends BattleController {
     }
     for (let i = playoutSteps(rp.backlog); i > 0; i--) {
       rp.stepOne(this.events)
-      for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(e)
+      for (const e of this.events) if (spectatorSees(e)) this.onEvent(e)
       this.events.length = 0
     }
     this.game.battle = rp.tl.state
