@@ -7,14 +7,14 @@ import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
 import { deadzone, type SensorFeed } from '../input/sensors'
-import { useHud } from '../state/hud'
+import { spiritRefused, useHud } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
 import { useSave } from '../state/save'
 import { coachTip } from './coach'
 import { tierOf, type LaunchTier } from './launchPlan'
-import { spiritTransitions, summonAfterEnd, type SpiritSeen } from './transitions'
+import { spiritTransitions, summonEnd, summonStart, type SpiritSeen } from './transitions'
 
 export interface MatchSetup {
   player: TopBuild
@@ -138,8 +138,16 @@ export class BattleController {
   }
 
   requestSpirit(): void {
+    if (spiritRefused(useHud.getState())) return this.refuse()
     this.spiritRequest = true
     this.lastSpiritVia = 'button'
+  }
+
+  protected refuse(): void {
+    const n = useHud.getState().refused + 1
+    useHud.getState().set({ refused: n })
+    buzz(12)
+    this.later(1200, () => { if (useHud.getState().refused === n) useHud.getState().set({ refused: 0 }) })
   }
 
   setManualTilt(x: number, y: number): void {
@@ -166,7 +174,7 @@ export class BattleController {
     this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
     this.game.arm()
-    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], summon: null, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], summon: null, refused: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
   }
 
@@ -396,8 +404,11 @@ export class BattleController {
         g.spirits?.[e.side].show(true)
         this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
-        g.spiritZoom(e.side, 1100)
-        hud.set({ summon: e.side })
+        g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
+        const summon = summonStart(useHud.getState().summon, e.side)
+        if (summon === 'both') g.frameBoth(1100)
+        else g.spiritZoom(e.side, 1100)
+        hud.set({ summon })
         s.play('spirit')
         buzz([30, 40, 60])
         this.later(1300, () => useHud.getState().set({ cutin: null }))
@@ -406,7 +417,7 @@ export class BattleController {
       case 'takeover':
         g.spirits?.[e.side].pose(true)
         g.frameBoth(2500)
-        if (useHud.getState().summon === e.side) hud.set({ summon: null })
+        hud.set({ summon: summonEnd(useHud.getState().summon, e.side) })
         break
       case 'beast': {
         g.power?.onEvent(e, g.battle?.tops ?? null)
@@ -426,8 +437,8 @@ export class BattleController {
         break
       case 'spiritEnd':
         g.spirits?.[e.side].show(false)
-        const sm = useHud.getState().summon
-        if (sm !== summonAfterEnd(sm, e.side)) { hud.set({ summon: null }); g.releaseZoom() }
+        const sm = useHud.getState().summon, next = summonEnd(sm, e.side)
+        if (sm !== next) { hud.set({ summon: next }); if (next === null) g.releaseZoom() }
         break
       case 'finish':
         this.finishRound(e)
@@ -514,9 +525,12 @@ export class BattleController {
     if (shout?.ready) {
       const b = this.game.battle
       if (shout.update(dt * 1000) && b && b.tops[0].gauge >= 1) {
-        this.spiritRequest = true
-        this.lastSpiritVia = 'shout'
-        log('shout.trigger', { level: +shout.level.toFixed(2) })
+        if (spiritRefused(useHud.getState())) this.refuse()
+        else {
+          this.spiritRequest = true
+          this.lastSpiritVia = 'shout'
+          log('shout.trigger', { level: +shout.level.toFixed(2) })
+        }
       }
       if (Math.abs(useHud.getState().shoutLevel - shout.level) > 0.04) useHud.getState().set({ shoutLevel: shout.level })
     }

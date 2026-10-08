@@ -24,7 +24,8 @@ export interface HudState {
   guard: [number, number]
   gauge: [number, number]
   spiritActive: [boolean, boolean]
-  summon: 0 | 1 | null
+  summon: 0 | 1 | 'both' | null
+  refused: number
   callout: Callout | null
   banner: Banner
   cutin: { beast: BeastId; side: 0 | 1; hesitate: boolean } | null
@@ -46,6 +47,8 @@ export interface HudState {
 
 export const spiritReady = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'>): boolean => s.gauge[0] >= 1 && s.phase === 'battle' && !s.spiritActive[1]
 
+export const spiritRefused = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'>): boolean => s.gauge[0] >= 1 && s.phase === 'battle' && s.spiritActive[1]
+
 export const useHud = create<HudState>(set => ({
   phase: 'idle',
   countdown: null,
@@ -56,6 +59,7 @@ export const useHud = create<HudState>(set => ({
   gauge: [0, 0],
   spiritActive: [false, false],
   summon: null,
+  refused: 0,
   callout: null,
   banner: null,
   cutin: null,

@@ -1,12 +1,20 @@
-import { AdditiveBlending, BufferAttribute, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, Texture } from 'three'
+import { AdditiveBlending, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, Quaternion, Texture, Vector3 } from 'three'
 import { cachedRing } from './partMesh'
 import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
 
 const VISUAL_SCALE = 1.55
+const AURA_R = 1.3
+const RING_IN_TEX = 0.64
+const UP = new Vector3(0, 1, 0)
+const nrm = new Vector3()
+const qa = new Quaternion(), qs = new Quaternion()
+const FLAT = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2)
 
-export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture }
+export const auraShrink = (lift: number) => Math.max(0.2, 1 - lift * 2.7)
+
+export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture; aura?: Texture }
 
 function disc(r: number, map: Texture, y: number, extra: { opacity?: number; additive?: boolean; color?: number } = {}): Mesh {
   const m = new Mesh(
@@ -37,15 +45,15 @@ export class TopMesh {
   readonly group = new Group()
   private spinner = new Group()
   private blur: Mesh[] = []
-  readonly glow: Mesh
-  private glowBase: Float32Array
+  readonly glow: Mesh<PlaneGeometry, MeshBasicMaterial>
+  private readonly auraSize: number
   private glowSpin = 0
   private angle = 0
   private precess = 0
   private faded = 1
   readonly radius: number
 
-  constructor(tex: TopTextures, physicsRadius: number, type: string) {
+  constructor(tex: TopTextures, physicsRadius: number, type: string, auraColor?: string) {
     const radius = physicsRadius * VISUAL_SCALE
     this.radius = radius
     const tint = TYPE_TINT[type] ?? 0xffffff
@@ -64,17 +72,15 @@ export class TopMesh {
       this.blur.push(b)
       this.spinner.add(b)
     }
-    const gg = new CircleGeometry(radius * 1.7, 40)
-    gg.rotateX(-Math.PI / 2)
-    this.glowBase = Float32Array.from(gg.getAttribute('position').array as Float32Array)
-    this.glow = new Mesh(gg, new MeshBasicMaterial({ map: tex.emblem, transparent: true, depthWrite: false, opacity: 0, blending: AdditiveBlending, color: tint, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }))
+    this.auraSize = (2 * radius * AURA_R) / RING_IN_TEX
+    this.glow = new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ map: tex.aura ?? tex.emblem, transparent: true, depthWrite: false, opacity: 0, blending: AdditiveBlending, color: auraColor ?? tint, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }))
     this.glow.visible = false
     this.group.add(this.spinner)
   }
 
   dispose(): void {
     this.glow.geometry.dispose()
-    ;(this.glow.material as MeshBasicMaterial).dispose()
+    this.glow.material.dispose()
     this.group.traverse(o => {
       const m = o as Mesh
       m.geometry?.dispose()
@@ -108,23 +114,27 @@ export class TopMesh {
     const lean = 0.06 * r + wobble * 0.32
     this.group.rotation.x = Math.cos(this.precess) * lean
     this.group.rotation.z = Math.sin(this.precess) * lean
-    const gm = this.glow.material as MeshBasicMaterial
-    gm.opacity += ((spirit ? 0.9 : 0) - gm.opacity) * Math.min(1, dt * 8)
+    const gm = this.glow.material
+    gm.opacity += ((spirit ? 0.6 : 0) - gm.opacity) * Math.min(1, dt * 8)
     this.glow.visible = visible && gm.opacity > 0.01
     if (this.glow.visible) this.layGlow(x, y, dt)
   }
 
+  raise(lift: number): void {
+    this.group.position.y += lift
+    this.glow.scale.setScalar(this.auraSize * auraShrink(lift))
+  }
+
   private layGlow(x: number, y: number, dt: number): void {
-    this.glowSpin += dt * 3
-    const c = Math.cos(this.glowSpin), s = Math.sin(this.glowSpin)
-    const p = this.glow.geometry.getAttribute('position') as BufferAttribute, b = this.glowBase
-    for (let i = 0; i < p.count; i++) {
-      const bx = b[i * 3]!, bz = b[i * 3 + 2]!
-      const lx = bx * c - bz * s, lz = bx * s + bz * c
-      const wx = x + lx, wz = -y + lz
-      p.setXYZ(i, lx, bowlHeight(Math.min(1, Math.hypot(wx, wz))) + 0.006, lz)
-    }
-    p.needsUpdate = true
-    this.glow.position.set(x, 0, -y)
+    this.glowSpin += dt * 1.5
+    const r = Math.min(1, Math.hypot(x, y)), e = 0.01
+    const slope = (bowlHeight(Math.min(1, r + e)) - bowlHeight(Math.max(0, r - e))) / (2 * e)
+    const ux = r > 1e-4 ? x / r : 0, uz = r > 1e-4 ? -y / r : 0
+    nrm.set(-slope * ux, 1, -slope * uz).normalize()
+    qa.setFromUnitVectors(UP, nrm)
+    qs.setFromAxisAngle(UP, this.glowSpin)
+    this.glow.quaternion.copy(qa).multiply(qs).multiply(FLAT)
+    this.glow.position.set(x, bowlHeight(r) + 0.008, -y)
+    this.glow.scale.setScalar(this.auraSize)
   }
 }

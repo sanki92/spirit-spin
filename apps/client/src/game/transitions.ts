@@ -16,6 +16,12 @@ export function spiritTransitions(tops: readonly { spiritTicks: number; summonTi
 
 export const takeoverOn = (t: { spiritTicks: number; summonTicks: number }, outcome: RoundOutcome | null): boolean => !outcome && t.spiritTicks > 0 && t.summonTicks === 0
 
-export const summonAfterEnd = (summon: Side | null, endSide: Side): Side | null => (summon === endSide ? null : summon)
+export type Summon = Side | 'both' | null
+
+export const summonStart = (s: Summon, side: Side): Summon => (s === null || s === side ? side : 'both')
+
+export const summonEnd = (s: Summon, side: Side): Summon => (s === 'both' ? ((1 - side) as Side) : s === side ? null : s)
+
+export const summonFocus = (a: boolean, b: boolean): Summon => (a && b ? 'both' : a ? 0 : b ? 1 : null)
 
 export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { spiritReady, type BattlePhase } from '../state/hud'
-import { spectatorSees, summonAfterEnd, spiritTransitions, takeoverOn } from './transitions'
+import { spiritReady, spiritRefused, type BattlePhase } from '../state/hud'
+import { spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn } from './transitions'
 import { powerTextureList } from './render/power/textures'
 import { blankTextures } from './render/power/testkit'
 
@@ -38,9 +38,9 @@ describe('round end and cancelled spirits', () => {
     expect(takeoverOn({ spiritTicks: 100, summonTicks: 5 }, null)).toBe(false)
   })
   it('a cancelled spirit clears only its own summon letterbox', () => {
-    expect(summonAfterEnd(0, 0)).toBeNull()
-    expect(summonAfterEnd(1, 0)).toBe(1)
-    expect(summonAfterEnd(null, 0)).toBeNull()
+    expect(summonEnd(0, 0)).toBeNull()
+    expect(summonEnd(1, 0)).toBe(1)
+    expect(summonEnd(null, 0)).toBeNull()
   })
   it('spectators see beast cues along with clash and wall', () => {
     const at = { tick: 1, side: 0 as const }
@@ -52,5 +52,46 @@ describe('round end and cancelled spirits', () => {
   it('lists every power texture for pre-upload', () => {
     const tex = blankTextures()
     expect(powerTextureList(tex)).toHaveLength(Object.keys(tex).length)
+  })
+})
+
+describe('double call and refused press', () => {
+  it('tracks one or both summons and clears each side on its own', () => {
+    expect(summonStart(null, 0)).toBe(0)
+    expect(summonStart(0, 1)).toBe('both')
+    expect(summonStart(1, 0)).toBe('both')
+    expect(summonStart('both', 1)).toBe('both')
+    expect(summonEnd('both', 0)).toBe(1)
+    expect(summonEnd(summonEnd('both', 0), 1)).toBeNull()
+    expect(summonEnd(summonEnd('both', 1), 0)).toBeNull()
+  })
+  it('a rollback that cancels a summon before its takeover clears the letterbox', () => {
+    const seen = { spirit: [false, false] as [boolean, boolean], summon: [false, false] as [boolean, boolean] }
+    let s: 0 | 1 | 'both' | null = null
+    const apply = (tops: { spiritTicks: number; summonTicks: number }[], tick: number) => {
+      for (const e of spiritTransitions(tops, tick, seen)) {
+        if (e.k === 'spirit') s = summonStart(s, e.side)
+        if (e.k === 'takeover' || e.k === 'spiritEnd') s = summonEnd(s, e.side)
+      }
+    }
+    apply([top(150, 60), top(150, 60)], 10)
+    expect(s).toBe('both')
+    apply([top(0, 0), top(149, 50)], 11)
+    expect(s).toBe(1)
+    apply([top(0, 0), top(100, 0)], 70)
+    expect(s).toBeNull()
+  })
+  it('frames both tops only when both beasts are being summoned', () => {
+    expect(summonFocus(true, true)).toBe('both')
+    expect(summonFocus(true, false)).toBe(0)
+    expect(summonFocus(false, true)).toBe(1)
+    expect(summonFocus(false, false)).toBeNull()
+  })
+  it('a press while the rival beast is out is refused with a cue, not ignored', () => {
+    const s = (gauge: number, phase: BattlePhase, rival: boolean) => ({ gauge: [gauge, 0] as [number, number], phase, spiritActive: [false, rival] as [boolean, boolean] })
+    expect(spiritRefused(s(1, 'battle', true))).toBe(true)
+    expect(spiritRefused(s(1, 'battle', false))).toBe(false)
+    expect(spiritRefused(s(0.4, 'battle', true))).toBe(false)
+    expect(spiritRefused(s(1, 'roundEnd', true))).toBe(false)
   })
 })

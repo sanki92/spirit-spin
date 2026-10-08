@@ -6,8 +6,9 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { takeoverOn } from './transitions'
-import { PowerFx } from './render/power/PowerFx'
+import { summonFocus, takeoverOn } from './transitions'
+import { PowerFx, type PowerTextures } from './render/power/PowerFx'
+import { pillarStyle } from './render/power/eruption'
 import { POWERS } from './render/power'
 import { loadPowerTextures, powerTextureList } from './render/power/textures'
 import { buildStadium, type StadiumView } from './render/Stadium'
@@ -50,6 +51,7 @@ export class Game {
   stadium: StadiumView | null = null
   techFx: TechFx | null = null
   power: PowerFx | null = null
+  private powerTex: PowerTextures | null = null
   tops: [TopMesh, TopMesh] | null = null
   spirits: [SpiritBillboard, SpiritBillboard] | null = null
   specs: [TopSpec, TopSpec] | null = null
@@ -110,6 +112,7 @@ export class Game {
     g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow, ring: shock })
     g.stage.world.add(g.techFx.group)
     const powerTex = await loadPowerTextures(crack)
+    g.powerTex = powerTex
     g.power = new PowerFx(powerTex, quality === 'low' ? 40 : 90, POWERS)
     g.stage.world.add(g.power.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
@@ -140,9 +143,10 @@ export class Game {
     for (const t of rigTex) if (t) this.stage.renderer.initTexture(t)
     if (this.tops) for (const t of this.tops) { this.stage.world.remove(t.group, t.glow); t.dispose() }
     if (this.shatters) for (const s of this.shatters) { this.stage.world.remove(s.group); s.dispose() }
-    if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
-    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
-    this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color, a0), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color, a1)]
+    if (this.spirits) for (const s of this.spirits) { this.stage.world.remove(s.group); s.dispose() }
+    const [k0, k1] = [BEASTS[builds[0].beastId], BEASTS[builds[1].beastId]]
+    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0, aura: shock }, specs[0].radius, specs[0].type, k0.color), new TopMesh({ blade: b1, disc: d1, emblem: e1, aura: shock }, specs[1].radius, specs[1].type, k1.color)]
+    this.spirits = [new SpiritBillboard(c0, shock, k0.color, a0, pillarStyle(k0.element, this.powerTex!)), new SpiritBillboard(c1, shock, k1.color, a1, pillarStyle(k1.element, this.powerTex!))]
     for (const t of this.tops) this.stage.world.add(t.group, t.glow)
     this.shatters = [new Shatter(b0, d0, this.tops[0].radius), new Shatter(b1, d1, this.tops[1].radius)]
     for (const s of this.shatters) this.stage.world.add(s.group)
@@ -152,8 +156,8 @@ export class Game {
     this.power?.setBeasts([builds[0].beastId, builds[1].beastId])
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
-    const hidden: Object3D[] = [...this.spirits.map(s => s.group), ...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
-    this.power?.group.traverse(o => { if (!o.visible) hidden.push(o) })
+    const hidden: Object3D[] = [...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
+    for (const g of [this.power?.group, ...this.spirits.map(s => s.group)]) g?.traverse(o => { if (!o.visible) hidden.push(o) })
     for (const o of hidden) o.visible = true
     await this.stage.renderer.compileAsync(this.stage.scene, this.stage.camera)
     for (const o of hidden) o.visible = false
@@ -491,10 +495,12 @@ export class Game {
     if (!b) this.techFx?.hide()
     if (!b) this.stage.follow(0, 0)
     if (b && this.tops && this.spirits) {
-      const sum = this.spirits.findIndex(s => s.summoning)
+      const sum = summonFocus(this.spirits[0].summoning, this.spirits[1].summoning)
       const t0 = b.tops[0], t1 = b.tops[1]
-      if (sum >= 0) {
-        const t = b.tops[sum as 0 | 1]
+      const still = document.documentElement.classList.contains('reduce-motion')
+      if (sum === 'both') this.stage.follow((t0.x + t1.x) * 0.175, -(t0.y + t1.y) * 0.175, 0.88)
+      else if (sum !== null) {
+        const t = b.tops[sum]
         this.stage.follow(t.x * 0.35, -t.y * 0.35, 0.88)
       } else {
         const live = [t0, t1].filter(t => !t.out)
@@ -514,18 +520,18 @@ export class Game {
         const top = this.tops[i as 0 | 1]
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1])
         const o = b.tops[(1 - i) as 0 | 1]
-        this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
         const spec = this.specs?.[i as 0 | 1]
         const e = TUNING.takeoverTicks - 1 - t.spiritTicks
         const driving = takeoverOn(t, b.outcome)
         top.fade(driving && spec?.beastId === 'umbrax' && e < TUNING.tech.pounceAt ? 0.25 : 1, dt)
-        if (driving && spec?.beastId === 'agnyx') top.group.position.y += e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))
+        top.raise(driving && spec?.beastId === 'agnyx' ? (e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))) : 0)
+        this.spirits[i as 0 | 1].update(x, y, top.group.position.y, o.x, o.y, dt, still)
       }
       if (this.techFx && this.specs) {
         const sp = this.specs
-        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && takeoverOn(t0, b.outcome), sp[1].beastId === 'nagara' && takeoverOn(t1, b.outcome)], scaled, document.documentElement.classList.contains('reduce-motion'))
+        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && takeoverOn(t0, b.outcome), sp[1].beastId === 'nagara' && takeoverOn(t1, b.outcome)], scaled, still)
       }
-      if (!b.outcome) this.power?.update(scaled, b.tops, document.documentElement.classList.contains('reduce-motion'), this.stage.camera.quaternion)
+      if (!b.outcome) this.power?.update(scaled, b.tops, still, this.stage.camera.quaternion)
     }
     this.fx.update(scaled, this.stage.camera)
     this.stage.render(dt)

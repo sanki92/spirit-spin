@@ -2,7 +2,7 @@ import { TUNING, type BeastMove, type TopState } from '@spirit/core'
 import { Group, Mesh, type MeshBasicMaterial, type PlaneGeometry, type Quaternion } from 'three'
 import { Pool } from '../Fx'
 import type { Power, PowerTextures } from './PowerFx'
-import { floorAt, floorDecal, Ribbon, setDecal } from './shapes'
+import { floorAt, floorDecal, helix, Ribbon, setDecal } from './shapes'
 
 const RING_S = 0.6
 const TAU = Math.PI * 2
@@ -56,11 +56,7 @@ export class AgnyxPower implements Power {
       const f = this.flames[s]!
       f.fade(rising ? 0.95 : 0, dt, rising ? 10 : 14)
       if (!f.mesh.visible) continue
-      const fp = f.points
-      for (let i = 0; i < PTS; i++) {
-        const u = i / (PTS - 1), ang = this.phase + s * Math.PI + u * 2 * TAU, r = 0.13 * (1 - 0.6 * u)
-        fp[i]!.set(me.x + Math.cos(ang) * r, base + u * 0.5 * grow, -(me.y + Math.sin(ang) * r))
-      }
+      helix(f.points, me.x, me.y, base, 0.5 * grow, this.phase + s * Math.PI, 2, 0.13, 0.6)
       f.layout(false)
       if (!still) f.scroll(-dt * 1.5)
     }

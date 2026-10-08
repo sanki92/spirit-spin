@@ -9,6 +9,14 @@ const side = new Vector3(), dir = new Vector3(), nrm = new Vector3(), bin = new 
 const UP = new Vector3(0, 1, 0), X = new Vector3(1, 0, 0)
 const PLANE = new PlaneGeometry(1, 1)
 
+export function helix(pts: Vector3[], x: number, y: number, base: number, height: number, phase: number, turns: number, r: number, taper: number): void {
+  const n = pts.length
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1), a = phase + u * turns * Math.PI * 2, k = r * (1 - taper * u)
+    pts[i]!.set(x + Math.cos(a) * k, base + u * height, -(y + Math.sin(a) * k))
+  }
+}
+
 export function tiled(tex: Texture): Texture {
   const t = tex.clone()
   t.wrapS = RepeatWrapping
