@@ -8,6 +8,7 @@ import type { BattleState, LaunchParams, Side, TopState } from './types'
 export function createBattle(specs: [TopSpec, TopSpec], launches: [LaunchParams, LaunchParams], seed: number): BattleState {
   return {
     tick: 0,
+    pausedTicks: 0,
     rng: createRng(seed),
     specs,
     tops: [launchTop(specs[0], launches[0], 0), launchTop(specs[1], launches[1], 1)],
@@ -41,7 +42,7 @@ function launchTop(spec: TopSpec, l: LaunchParams, side: Side): TopState {
 }
 
 export function battleHash(s: BattleState): string {
-  const n: number[] = [s.tick, s.rng.s]
+  const n: number[] = [s.tick, s.rng.s, s.pausedTicks]
   for (const t of s.tops) {
     n.push(t.x, t.y, t.vx, t.vy, t.spin, t.wobble, t.shatter, t.gauge, t.spiritTicks, t.overspinTicks,
       t.lastHitTick, +t.strikeArmed, +t.hesitate, +t.out, +t.stopped, +t.shattered,

@@ -47,6 +47,7 @@ export type BattleEvent =
 
 export interface BattleState {
   tick: number
+  pausedTicks: number
   rng: RngState
   specs: [TopSpec, TopSpec]
   tops: [TopState, TopState]

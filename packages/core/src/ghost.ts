@@ -1,4 +1,4 @@
-import { createBattle, ROUND_TICKS, stepBattle, type BattleEvent, type RoundOutcome, type TickInput } from './battle'
+import { createBattle, ROUND_TICKS, stepBattle, TUNING, type BattleEvent, type RoundOutcome, type TickInput } from './battle'
 import { botInput, type BotBrain } from './bot'
 import { applyRound, newMatch, type MatchState } from './match'
 import { NET, type RipView } from './net'
@@ -42,7 +42,7 @@ export function encodeInputs(ticks: readonly TickInput[]): number[] {
   return out
 }
 
-export const MAX_ROUND_INPUTS = ROUND_TICKS + 10
+export const MAX_ROUND_INPUTS = ROUND_TICKS + 10 + 4 * TUNING.summonTicks
 
 export function inputTicks(enc: readonly number[]): number {
   let n = 0

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assembleTop, STARTER_BUILDS, type BeastId } from '../parts'
 import type { RipResult } from '../rip'
-import { createBattle, stepBattle, battleHash, TUNING as T, type BattleEvent, type BattleState, type TickInput } from './index'
+import { createBattle, stepBattle, battleHash, ROUND_TICKS, TUNING as T, type BattleEvent, type BattleState, type TickInput } from './index'
 
 const rip = (rpm: number): RipResult => ({ ok: true, rpm, quality: 'GREAT', overspin: false, style: 'flat', bankDir: 0, timing: 1, straightness: 1, pullRatio: 0.9, startT: 0 })
 const IDLE: TickInput = { tiltX: 0, tiltY: 0, spirit: false }
@@ -173,5 +173,27 @@ describe('attack effects', () => {
     const t = s.tops[1]; t.lastHitTick = s.tick; t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
     play(s, 10, () => [IDLE, IDLE])
     expect(s.outcome).toEqual({ winner: 0, finish: 'spirit', points: 3 })
+  })
+})
+
+describe('round clock', () => {
+  it('a spirit called just before time-up still gets its full takeover', () => {
+    const s = duel('voltfang')
+    s.tick = ROUND_TICKS - 5
+    const ev = play(s, 1, () => [CALL, IDLE])
+    expect(s.tops[0].summonTicks).toBe(T.summonTicks)
+    ev.push(...play(s, T.summonTicks, () => [IDLE, IDLE]))
+    expect(ev.some(e => e.k === 'takeover')).toBe(true)
+    expect(s.outcome).toBeNull()
+    expect(s.pausedTicks).toBe(T.summonTicks)
+    expect(s.tops[0].spiritTicks).toBeGreaterThan(0)
+  })
+  it('without a spirit call the round still ends at ROUND_TICKS', () => {
+    const s = duel('voltfang')
+    s.tick = ROUND_TICKS - 1
+    play(s, 1, () => [IDLE, IDLE])
+    expect(s.pausedTicks).toBe(0)
+    expect(s.outcome?.finish === 'spin' || s.outcome === null).toBe(true)
+    expect(s.tick).toBe(ROUND_TICKS)
   })
 })

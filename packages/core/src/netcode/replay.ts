@@ -4,7 +4,7 @@ import { IDLE_INPUT, tiltOf, type Frame, type WireInput } from './wire'
 export interface Timeline { state: BattleState; frame: number; sp: [number, number]; last: [WireInput, WireInput] }
 
 export function cloneBattle(s: BattleState): BattleState {
-  return { tick: s.tick, rng: { s: s.rng.s }, specs: s.specs, tops: [{ ...s.tops[0] }, { ...s.tops[1] }], outcome: s.outcome ? { ...s.outcome } : null }
+  return { tick: s.tick, pausedTicks: s.pausedTicks, rng: { s: s.rng.s }, specs: s.specs, tops: [{ ...s.tops[0] }, { ...s.tops[1] }], outcome: s.outcome ? { ...s.outcome } : null }
 }
 
 export const sameInput = (a: WireInput, b: WireInput): boolean => a.x === b.x && a.y === b.y && a.sp === b.sp

@@ -13,6 +13,7 @@ export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInpu
   if (s.outcome) return
   s.tick++
   if (s.tops[0].summonTicks > 0 || s.tops[1].summonTicks > 0) {
+    s.pausedTicks++
     for (let i = 0; i < 2; i++) {
       const t = s.tops[i as Side]
       if (t.summonTicks > 0 && --t.summonTicks === 0) out.push({ k: 'takeover', tick: s.tick, side: i as Side })
@@ -90,7 +91,7 @@ function judge(s: BattleState): RoundOutcome | null {
     if (finish !== 'spin' && s.tops[winner].spiritTicks > 0) return { winner, finish: 'spirit', points: 3 }
     return { winner, finish, points: finish === 'spin' ? 1 : 2 }
   }
-  if (s.tick >= ROUND_TICKS) {
+  if (s.tick - s.pausedTicks >= ROUND_TICKS) {
     const [a, b] = s.tops
     if (a.spin === b.spin) return { winner: null, finish: 'draw', points: 0 }
     return { winner: a.spin > b.spin ? 0 : 1, finish: 'spin', points: 1 }

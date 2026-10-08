@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createBattle, ROUND_TICKS, stepBattle, type BattleEvent, type TickInput } from './battle'
+import { createBattle, stepBattle, type BattleEvent, type TickInput } from './battle'
 import { botInput } from './bot'
-import { decodeInputs, deckTop, deckValid, encodeInputs, inputTicks, simulateGhosts, ghostBrain, ghostRip, ghostSeeds, quantize, replayMatch, type GhostRound } from './ghost'
+import { decodeInputs, MAX_ROUND_INPUTS, deckTop, deckValid, encodeInputs, inputTicks, simulateGhosts, ghostBrain, ghostRip, ghostSeeds, quantize, replayMatch, type GhostRound } from './ghost'
 import { applyRound, newMatch } from './match'
 import { assembleTop, STARTER_BUILDS } from './parts'
 import { composeRip, type RipResult } from './rip'
@@ -93,7 +93,7 @@ describe('ghost', () => {
   it('decoding is capped at one round of ticks no matter what counts are claimed', () => {
     const t0 = performance.now()
     const huge = decodeInputs(Array.from({ length: 24_000 }, (_, i) => (i % 4 === 3 ? 100_000 : 0)))
-    expect(huge.length).toBeLessThanOrEqual(ROUND_TICKS + 10)
+    expect(huge.length).toBeLessThanOrEqual(MAX_ROUND_INPUTS)
     expect(performance.now() - t0).toBeLessThan(200)
     expect(inputTicks([0, 0, 0, 5, 1, 1, 0, 7])).toBe(12)
   })

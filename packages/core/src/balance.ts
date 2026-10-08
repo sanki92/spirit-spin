@@ -22,7 +22,7 @@ export function playRound(specs: [TopSpec, TopSpec], rips: [RipResult, RipResult
     stepBattle(s, [a, b], ev)
     ev.length = 0
   }
-  return { seconds: s.tick / TICK_HZ, finish: s.outcome.finish, winner: s.outcome.winner, timeout: s.tick >= 40 * TICK_HZ }
+  return { seconds: s.tick / TICK_HZ, finish: s.outcome.finish, winner: s.outcome.winner, timeout: s.tick - s.pausedTicks >= 40 * TICK_HZ }
 }
 
 export function playMatch(specs: [TopSpec, TopSpec], brains: [BotBrain, BotBrain], rng: RngState): { winner: 0 | 1; rounds: RoundStat[] } {
