@@ -35,6 +35,53 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+describe('summon presentation online', () => {
+  it('holds the summon for its full length when the view races through the summon ticks', () => {
+    const { p, game, run } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+    run(2 / 60)
+    p.onEvent({ k: 'takeover', tick: 160, side: 0 })
+    expect(useHud.getState().summon).toBe(0)
+    expect(game.frameBoth).not.toHaveBeenCalled()
+    run(0.8)
+    expect(useHud.getState().summon).toBe(0)
+    run(0.25)
+    expect(useHud.getState().summon).toBeNull()
+    expect(game.frameBoth).toHaveBeenCalledTimes(1)
+  })
+
+  it('a takeover that arrives after the full summon, as offline, applies at once', () => {
+    const { p, game, run } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 1 })
+    run(1.02)
+    p.onEvent({ k: 'takeover', tick: 160, side: 1 })
+    expect(useHud.getState().summon).toBeNull()
+    expect(game.frameBoth).toHaveBeenCalledTimes(1)
+  })
+
+  it('a spirit cancelled during the held summon drops the pending takeover', () => {
+    const { p, game, run } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+    p.onEvent({ k: 'takeover', tick: 160, side: 0 })
+    p.onEvent({ k: 'spiritEnd', tick: 161, side: 0 })
+    expect(useHud.getState().summon).toBeNull()
+    run(1.5)
+    expect(game.frameBoth).not.toHaveBeenCalled()
+  })
+})
+
+describe('round end during a held summon', () => {
+  it('clears the summon letterbox and never fires the held takeover afterwards', () => {
+    const { p, game, run } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+    p.onEvent({ k: 'takeover', tick: 160, side: 0 })
+    p.onEvent({ k: 'finish', tick: 163, outcome: { winner: 0, finish: 'spin', points: 1 } })
+    expect(useHud.getState().summon).toBeNull()
+    run(1.5)
+    expect(game.frameBoth).not.toHaveBeenCalled()
+  })
+})
+
 describe('round end during a summon', () => {
   it('clears the letterbox when the round ends on the spirit call tick', () => {
     const { p } = rig()

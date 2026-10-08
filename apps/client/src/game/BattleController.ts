@@ -1,5 +1,5 @@
 import {
-  applyRound, botInput, replaysFinish, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle,
+  applyRound, botInput, replaysFinish, botRip, composeRip, RIP, createBattle, createRng, newMatch, scoreRip, scoreSwipe, stepBattle, TICK_HZ, TUNING,
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState, type Side,
   type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
@@ -44,6 +44,7 @@ const BEAT_MS = 650
 const CAPTURE_AFTER_MS = 850
 const FAIL_RIP = (t0: number) => composeRip(0.15, 0.3, 0.45, 0, t0)
 const RESOLVE_AFTER_START_MS = RIP.windowMs + 10
+const SUMMON_S = TUNING.summonTicks / TICK_HZ
 const mag = (s: MotionSample) => Math.hypot(s.ax, s.ay, s.az)
 export const FAIL_TEXT: Record<RipFail['reason'], string> = { 'no-pull': 'TOO SOFT', 'too-early': 'FALSE START', 'too-late': 'TOO LATE' }
 
@@ -81,6 +82,8 @@ export class BattleController {
   protected coached = false
   protected pullShown = 0
   protected lastTiers: [LaunchTier, LaunchTier] = ['GOOD', 'GOOD']
+  protected summonHold: [number, number] = [0, 0]
+  protected takeoverDue: [boolean, boolean] = [false, false]
 
   constructor(
     protected game: Game,
@@ -148,6 +151,11 @@ export class BattleController {
     return !!b && b.tops[0].gauge >= 1 && b.tops[1].spiritTicks > 0 && useHud.getState().phase === 'battle'
   }
 
+  protected clearSummons(): void {
+    this.summonHold[0] = this.summonHold[1] = 0
+    this.takeoverDue[0] = this.takeoverDue[1] = false
+  }
+
   protected refuse(): void {
     const n = useHud.getState().refused + 1
     useHud.getState().set({ refused: n })
@@ -175,6 +183,7 @@ export class BattleController {
     this.manualTilt = { x: 0, y: 0 }
     this.windowFrom = -Infinity
     this.pullShown = 0
+    this.clearSummons()
     this.game.setBattle(null)
     this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
@@ -416,15 +425,16 @@ export class BattleController {
         if (summon === 'both') g.frameBoth(1100)
         else g.spiritZoom(e.side, 1100)
         hud.set({ summon })
+        this.summonHold[e.side] = SUMMON_S
+        this.takeoverDue[e.side] = false
         s.play('spirit')
         buzz([30, 40, 60])
         this.later(1300, () => useHud.getState().set({ cutin: null }))
         break
       }
       case 'takeover':
-        g.spirits?.[e.side].pose(true)
-        g.frameBoth(2500)
-        hud.set({ summon: summonEnd(useHud.getState().summon, e.side) })
+        if (this.summonHold[e.side] > 0) this.takeoverDue[e.side] = true
+        else this.takeover(e.side)
         break
       case 'beast': {
         g.power?.onEvent(e, g.battle?.tops ?? null)
@@ -443,6 +453,8 @@ export class BattleController {
         this.later(1400, () => useHud.getState().set({ cutin: null }))
         break
       case 'spiritEnd':
+        this.summonHold[e.side] = 0
+        this.takeoverDue[e.side] = false
         g.spirits?.[e.side].show(false)
         const sm = useHud.getState().summon, next = summonEnd(sm, e.side)
         if (sm !== next) {
@@ -458,8 +470,15 @@ export class BattleController {
     }
   }
 
+  protected takeover(side: Side): void {
+    this.game.spirits?.[side].pose(true)
+    this.game.frameBoth(2500)
+    useHud.getState().set({ summon: summonEnd(useHud.getState().summon, side) })
+  }
+
   protected finishRound(e: Extract<BattleEvent, { k: 'finish' }>): void {
     const g = this.game, s = this.deps.sound
+    this.clearSummons()
     useHud.getState().set({ summon: null })
     const o = e.outcome
     const bt = g.battle!
@@ -546,6 +565,14 @@ export class BattleController {
         }
       }
       if (Math.abs(useHud.getState().shoutLevel - shout.level) > 0.04) useHud.getState().set({ shoutLevel: shout.level })
+    }
+    for (let i = 0; i < 2; i++) {
+      if (this.summonHold[i]! <= 0) continue
+      this.summonHold[i]! -= dt
+      if (this.summonHold[i]! <= 0 && this.takeoverDue[i]) {
+        this.takeoverDue[i] = false
+        this.takeover(i as Side)
+      }
     }
     this.hudTimer += dt
     this.perfTimer += dt
