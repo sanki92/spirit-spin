@@ -17,7 +17,7 @@ export function guardLook(v: number): { pct: number; low: boolean } {
 
 const W = 44
 const H = 6
-const ABOVE = 0.17
+const ABOVE = 0.3
 
 export class GuardBars {
   private readonly bars: HTMLDivElement[] = []
