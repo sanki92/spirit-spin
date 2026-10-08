@@ -1,11 +1,14 @@
 import { assembleTop, FINISH_CAM, TUNING, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
-import type { Texture } from 'three'
+import type { Object3D, Texture } from 'three'
 import { hasAsset } from '../assets/assets'
 import { texture } from './render/textures'
 import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
+import { PowerFx } from './render/power/PowerFx'
+import { POWERS } from './render/power'
+import { loadPowerTextures } from './render/power/textures'
 import { buildStadium, type StadiumView } from './render/Stadium'
 import { detectQuality, Stage } from './render/Stage'
 import { TechFx } from './render/TechFx'
@@ -45,6 +48,7 @@ export class Game {
   readonly fx: Fx
   stadium: StadiumView | null = null
   techFx: TechFx | null = null
+  power: PowerFx | null = null
   tops: [TopMesh, TopMesh] | null = null
   spirits: [SpiritBillboard, SpiritBillboard] | null = null
   specs: [TopSpec, TopSpec] | null = null
@@ -104,6 +108,8 @@ export class Game {
     g.stage.world.add(g.stadium.group)
     g.techFx = new TechFx({ lightning, crystal, water, fire, wind, shadow, ring: shock })
     g.stage.world.add(g.techFx.group)
+    g.power = new PowerFx(await loadPowerTextures(crack), quality === 'low' ? 40 : 90, POWERS)
+    g.stage.world.add(g.power.group)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
     for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : [])]) g.stage.renderer.initTexture(t)
     return g
@@ -113,11 +119,14 @@ export class Game {
     const specs: [TopSpec, TopSpec] = [assembleTop(builds[0]), assembleTop(builds[1])]
     const load = (b: TopBuild, emblem: string) =>
       Promise.all([tex(`parts/blade-${b.bladeId}`, `beasts/${b.beastId}/emblem`), tex(`parts/disc-${b.discId}`, `beasts/${b.beastId}/emblem`), tex(emblem, `beasts/${b.beastId}/emblem-disc`)])
-    const [[b0, d0, e0], [b1, d1, e1], c0, c1] = await Promise.all([
+    const poseTex = (art: string) => (hasAsset(`${art}/pose-attack`) ? texture(`${art}/pose-attack`).catch(() => null) : Promise.resolve(null))
+    const [[b0, d0, e0], [b1, d1, e1], c0, c1, a0, a1] = await Promise.all([
       load(builds[0], `${beastArt[0]}/emblem-disc`),
       load(builds[1], `${beastArt[1]}/emblem-disc`),
       summonTex(beastArt[0], builds[0].beastId),
       summonTex(beastArt[1], builds[1].beastId),
+      poseTex(beastArt[0]),
+      poseTex(beastArt[1]),
     ])
     const shock = await tex('vfx/shockwave', 'vfx/impact-flash')
     const own = (b: TopBuild) => (b.launcher ? `launchers/${b.launcher.replace('launcher-', '')}` : null)
@@ -131,16 +140,18 @@ export class Game {
     if (this.shatters) for (const s of this.shatters) { this.stage.world.remove(s.group); s.dispose() }
     if (this.spirits) for (const s of this.spirits) this.stage.world.remove(s.group)
     this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0 }, specs[0].radius, specs[0].type), new TopMesh({ blade: b1, disc: d1, emblem: e1 }, specs[1].radius, specs[1].type)]
-    this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color)]
+    this.spirits = [new SpiritBillboard(c0, shock, BEASTS[builds[0].beastId].color, a0), new SpiritBillboard(c1, shock, BEASTS[builds[1].beastId].color, a1)]
     for (const t of this.tops) this.stage.world.add(t.group, t.glow)
     this.shatters = [new Shatter(b0, d0, this.tops[0].radius), new Shatter(b1, d1, this.tops[1].radius)]
     for (const s of this.shatters) this.stage.world.add(s.group)
     this.broken = [false, false]
     for (const s of this.spirits) this.stage.world.add(s.group)
-    for (const t of [b0, d0, e0, b1, d1, e1, c0, c1]) this.stage.renderer.initTexture(t)
+    for (const t of [b0, d0, e0, b1, d1, e1, c0, c1, ...[a0, a1].filter((t): t is Texture => !!t)]) this.stage.renderer.initTexture(t)
+    this.power?.setBeasts([builds[0].beastId, builds[1].beastId])
     this.specs = specs
     this.stage.resize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight)
-    const hidden = [...this.spirits.map(s => s.group), ...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
+    const hidden: Object3D[] = [...this.spirits.map(s => s.group), ...this.launchers.flatMap(r => (r ? [r.group] : [])), ...this.shatters.map(s => s.group), ...this.tops.map(t => t.glow)].filter(o => !o.visible)
+    this.power?.group.traverse(o => { if (!o.visible) hidden.push(o) })
     for (const o of hidden) o.visible = true
     await this.stage.renderer.compileAsync(this.stage.scene, this.stage.camera)
     for (const o of hidden) o.visible = false
@@ -190,6 +201,7 @@ export class Game {
   setBattle(b: BattleState | null): void {
     this.battle = b
     this.endZoom()
+    if (!b) this.power?.reset()
     this.hist = []
     this.pendingClash = null
     this.stepper.reset()
@@ -507,6 +519,7 @@ export class Game {
         const sp = this.specs
         this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && t0.spiritTicks > 0 && t0.summonTicks === 0, sp[1].beastId === 'nagara' && t1.spiritTicks > 0 && t1.summonTicks === 0], scaled, document.documentElement.classList.contains('reduce-motion'))
       }
+      this.power?.update(scaled, b.tops, document.documentElement.classList.contains('reduce-motion'), this.stage.camera.quaternion)
     }
     this.fx.update(scaled, this.stage.camera)
     this.stage.render(dt)

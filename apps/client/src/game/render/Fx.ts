@@ -11,7 +11,7 @@ const spin = new Quaternion()
 const AXIS_Y = new Vector3(0, 1, 0)
 const tmpQ = new Quaternion()
 
-class Pool {
+export class Pool {
   readonly mesh: InstancedMesh
   private x: Float32Array
   private y: Float32Array

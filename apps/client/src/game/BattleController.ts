@@ -392,6 +392,7 @@ export class BattleController {
         this.spiritCalls += e.side === 0 ? 1 : 0
         const t = g.battle!.tops[e.side]
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: false } })
+        g.spirits?.[e.side].pose(false)
         g.spirits?.[e.side].show(true)
         this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
@@ -403,10 +404,12 @@ export class BattleController {
         break
       }
       case 'takeover':
+        g.spirits?.[e.side].pose(true)
         g.frameBoth(2500)
         if (useHud.getState().summon === e.side) hud.set({ summon: null })
         break
       case 'beast': {
+        g.power?.onEvent(e, g.battle?.tops ?? null)
         const el = g.elementOf(e.side)
         if (e.move === 'shockwave' || e.move === 'fling') { g.fx.burst(e.x, e.y); g.stage.shake(0.06); s.play('clashHeavy', { volume: 0.6, rate: 0.8 }) }
         else if (e.move === 'strike' || e.move === 'dive' || e.move === 'pounce') { g.fx.clash(e.x, e.y, 2.5, el); g.hitstop(45); g.stage.punch(0.04); s.play('clashHeavy', { volume: 0.7 }) }

@@ -20,14 +20,14 @@ export class SpiritBillboard {
   private grow = 1
   private tint: Color
 
-  constructor(tex: Texture, shock: Texture, color: string) {
-    const img = tex.image as { width?: number; height?: number } | undefined
+  constructor(private readonly base: Texture, shock: Texture, color: string, private readonly attack: Texture | null = null) {
+    const img = base.image as { width?: number; height?: number } | undefined
     this.aspect = img?.width && img.height ? img.width / img.height : 0.67
     this.tint = new Color(color)
-    this.beast = new Sprite(new SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false, toneMapped: false }))
+    this.beast = new Sprite(new SpriteMaterial({ map: base, transparent: true, depthTest: true, depthWrite: false, toneMapped: false }))
     this.beast.center.set(0.5, 0.08)
     this.beast.renderOrder = 20
-    this.aura = new Sprite(new SpriteMaterial({ map: tex, toneMapped: false, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: true, depthWrite: false, opacity: 0 }))
+    this.aura = new Sprite(new SpriteMaterial({ map: base, toneMapped: false, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: true, depthWrite: false, opacity: 0 }))
     this.aura.center.set(0.5, 0.1)
     this.aura.renderOrder = 19
     this.ring = new Sprite(new SpriteMaterial({ map: shock, color: this.tint, blending: AdditiveBlending, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }))
@@ -50,7 +50,17 @@ export class SpiritBillboard {
   }
 
   reset(): void {
+    this.pose(false)
     this.hide()
+  }
+
+  pose(attack: boolean): void {
+    const map = attack && this.attack ? this.attack : this.base
+    if (this.beast.material.map === map) return
+    this.beast.material.map = map
+    this.aura.material.map = map
+    const img = map.image as { width?: number; height?: number } | undefined
+    this.aspect = img?.width && img.height ? img.width / img.height : 0.67
   }
 
   get summoning(): boolean {
