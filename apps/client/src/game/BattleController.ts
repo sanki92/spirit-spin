@@ -7,7 +7,7 @@ import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import type { ShoutDetector } from '../input/mic'
 import { deadzone, type SensorFeed } from '../input/sensors'
-import { spiritRefused, summonReset, useHud } from '../state/hud'
+import { summonReset, useHud } from '../state/hud'
 import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
@@ -138,9 +138,14 @@ export class BattleController {
   }
 
   requestSpirit(): void {
-    if (spiritRefused(useHud.getState())) return this.refuse()
+    if (this.spiritBlocked()) return this.refuse()
     this.spiritRequest = true
     this.lastSpiritVia = 'button'
+  }
+
+  protected spiritBlocked(): boolean {
+    const b = this.game.battle
+    return !!b && b.tops[0].gauge >= 1 && b.tops[1].spiritTicks > 0 && useHud.getState().phase === 'battle'
   }
 
   protected refuse(): void {
@@ -532,7 +537,7 @@ export class BattleController {
     if (shout?.ready) {
       const b = this.game.battle
       if (shout.update(dt * 1000) && b && b.tops[0].gauge >= 1) {
-        if (spiritRefused(useHud.getState())) this.refuse()
+        if (this.spiritBlocked()) this.refuse()
         else {
           this.spiritRequest = true
           this.lastSpiritVia = 'shout'
