@@ -84,6 +84,12 @@ function teeter(t: TopState, spec: TopSpec, input: TickInput, side: Side, tick: 
   const d = Math.sqrt(t.x * t.x + t.y * t.y)
   const nx = d > 1e-6 ? t.x / d : 0, ny = d > 1e-6 ? t.y / d : 1
   t.x = nx * (1 - spec.radius); t.y = ny * (1 - spec.radius)
+  if (t.spiritTicks > 0 && t.summonTicks === 0) {
+    t.edgeTicks = 0; t.edgeClimb = 0
+    t.vx = -nx * T.edgeEscapeV; t.vy = -ny * T.edgeEscapeV
+    out.push({ k: 'edgeSave', tick, side })
+    return
+  }
   t.vx = 0; t.vy = 0
   t.spin -= (TIP[spec.tip].decay * spec.decayMod + T.drag * t.spin) * DT
   const inward = -(input.tiltX * nx + input.tiltY * ny)
@@ -94,7 +100,7 @@ function teeter(t: TopState, spec: TopSpec, input: TickInput, side: Side, tick: 
     out.push({ k: 'edgeSave', tick, side })
     return
   }
-  if (--t.edgeTicks === 0) { t.edgeClimb = 0; t.out = true }
+  if (--t.edgeTicks === 0) { t.edgeClimb = 0; t.out = true; t.vx = nx * T.ringoutV; t.vy = ny * T.ringoutV }
 }
 
 const lostBy = (t: TopState): 'shatter' | 'ringout' | 'spin' | null =>

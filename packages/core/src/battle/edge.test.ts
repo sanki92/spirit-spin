@@ -123,6 +123,28 @@ describe('pocket escape', () => {
     expect(s.outcome?.finish).toBe('spin')
   })
 
+  it('calling your spirit while teetering saves the top instead of dooming it', () => {
+    const s = atPocket(0.3)
+    s.tops[0].gauge = 1
+    const ev: BattleEvent[] = []
+    stepBattle(s, [IDLE, IDLE], ev)
+    expect(s.tops[0].edgeTicks).toBeGreaterThan(0)
+    stepBattle(s, [{ tiltX: 0, tiltY: -1, spirit: true }, IDLE], ev)
+    for (let i = 0; i < T.summonTicks + T.edgeTicks + 5 && !s.outcome; i++) stepBattle(s, [IN, IDLE], ev)
+    expect(ev.some(e => e.k === 'spirit' && e.side === 0)).toBe(true)
+    expect(ev.some(e => e.k === 'edgeSave' && e.side === 0)).toBe(true)
+    expect(s.tops[0].out).toBe(false)
+  })
+
+  it('a top whose teeter runs out leaves through the pocket, moving outward', () => {
+    const s = atPocket(0.3)
+    run(s, T.edgeTicks + 3)
+    const t = s.tops[0]
+    expect(t.out).toBe(true)
+    expect(t.vy).toBeGreaterThan(0)
+    expect(Math.abs(t.vx)).toBeLessThan(1e-3)
+  })
+
   it('teeter state is part of the battle hash', () => {
     const a = atPocket(0.8), b = atPocket(0.8)
     expect(battleHash(a)).toBe(battleHash(b))
