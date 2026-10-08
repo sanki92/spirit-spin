@@ -6,7 +6,7 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { reducedMotion, beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
+import { AWAKE_SCALE, reducedMotion, beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
 import { PowerFx, type PowerTextures } from './render/power/PowerFx'
 import { pillarStyle } from './render/power/eruption'
 import { formTint, tintHex } from './render/formTint'
@@ -257,7 +257,9 @@ export class Game {
     const b = this.battle
     if (this.cine || !b || now > this.zoomUntil) return this.endZoom()
     if (this.zoomSide !== 'both' && b.tops[this.zoomSide].out) return this.endZoom()
-    const s = beastShot(this.shot, b.tops, this.zoomSide)
+    const sp = this.specs, z = this.zoomSide
+    const big = !sp ? false : z === 'both' ? sp[0].ultimate || sp[1].ultimate : sp[z].ultimate
+    const s = beastShot(this.shot, b.tops, z, big ? AWAKE_SCALE : 1)
     this.stage.cinematic(true, s.x, s.z, s.amount, s.y)
   }
 

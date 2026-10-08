@@ -1,8 +1,8 @@
 import { AdditiveBlending, Color, Group, Sprite, SpriteMaterial, Texture } from 'three'
+import { AWAKE_SCALE as AWAKE } from '../transitions'
 import { Eruption, type PillarStyle } from './power/eruption'
 
 const H = 1.15
-const AWAKE = 1.25
 const BONDED = 0.7
 const WAIT = 0.15
 const RISE = 0.4

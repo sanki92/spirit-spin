@@ -35,11 +35,15 @@ const BOTH = 0.45
 
 export interface Shot { x: number; y: number; z: number; amount: number }
 
-export function beastShot(o: Shot, tops: readonly { x: number; y: number }[], side: Side | 'both'): Shot {
+export const AWAKE_SCALE = 1.25
+
+export function beastShot(o: Shot, tops: readonly { x: number; y: number }[], side: Side | 'both', scale = 1): Shot {
   const a = tops[0]!, b = tops[1]!
   if (side === 'both') { o.x = (a.x + b.x) / 2; o.z = -(a.y + b.y) / 2 - LEAD / 2; o.amount = BOTH }
   else { const t = side === 0 ? a : b; o.x = t.x; o.z = -t.y - LEAD; o.amount = SINGLE }
-  o.y = LIFT
+  const grow = scale - 1
+  o.amount *= 1 - grow * 1.6
+  o.y = LIFT + grow * 0.8
   return o
 }
 

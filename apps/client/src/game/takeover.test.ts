@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { spiritReady, spiritRefused, summonReset, useHud, type BattlePhase } from '../state/hud'
-import { beastShot, spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn, zoomAfterEnd } from './transitions'
+import { AWAKE_SCALE, beastShot, spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn, zoomAfterEnd } from './transitions'
 import { powerTextureList } from './render/power/textures'
 import { blankTextures } from './render/power/testkit'
 
@@ -108,6 +108,21 @@ describe('summon camera', () => {
     expect(o.y).toBeLessThan(1)
     expect(o.amount).toBeLessThan(0.75)
     expect(o.amount).toBeGreaterThan(0.45 - 1e-9)
+  })
+  it('pulls back and raises the focus for the 25% larger awakened beast, single and double', () => {
+    for (const side of [0, 'both'] as const) {
+      const a = { x: 0, y: 0, z: 0, amount: 0 }, b = { x: 0, y: 0, z: 0, amount: 0 }
+      beastShot(a, tops, side)
+      beastShot(b, tops, side, AWAKE_SCALE)
+      expect(b.amount).toBeLessThan(a.amount)
+      expect(b.amount).toBeGreaterThan(0.25)
+      expect(b.y).toBeGreaterThan(a.y)
+      expect(b.y).toBeLessThan(1.2)
+      expect(b.x).toBe(a.x)
+    }
+    const o = { x: 0, y: 0, z: 0, amount: 0 }
+    beastShot(o, tops, 0, 1)
+    expect(o.amount).toBeCloseTo(0.5)
   })
   it('a double call frames the midpoint of both tops, wider than a single summon', () => {
     const o = { x: 0, y: 0, z: 0, amount: 0 }
