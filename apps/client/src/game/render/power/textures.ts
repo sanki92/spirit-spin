@@ -10,6 +10,6 @@ const NAMES = {
 
 export async function loadPowerTextures(crack: Texture): Promise<PowerTextures> {
   const keys = Object.keys(NAMES) as (keyof typeof NAMES)[]
-  const list = await Promise.all(keys.map(k => texture(hasAsset(`vfx/power/${NAMES[k]}`) ? `vfx/power/${NAMES[k]}` : 'vfx/impact-flash')))
+  const list = await Promise.all(keys.map(k => (hasAsset(`vfx/power/${NAMES[k]}`) ? texture(`vfx/power/${NAMES[k]}`).catch(() => texture('vfx/impact-flash')) : texture('vfx/impact-flash'))))
   return { ...Object.fromEntries(keys.map((k, i) => [k, list[i]!])), crack } as PowerTextures
 }

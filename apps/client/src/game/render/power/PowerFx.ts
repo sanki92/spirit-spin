@@ -13,11 +13,12 @@ export interface Power {
   update(dt: number, e: number, me: TopState, foe: TopState, still: boolean, camQ: Quaternion): void
   end(): void
   reset(): void
+  dispose(): void
 }
 
 export type PowerFactory = (tex: PowerTextures, cap: number) => Power
 
-const quiet: PowerFactory = () => ({ group: new Group(), begin() {}, cue() {}, update() {}, end() {}, reset() {} })
+const quiet: PowerFactory = () => ({ group: new Group(), begin() {}, cue() {}, update() {}, end() {}, reset() {}, dispose() {} })
 
 export class PowerFx {
   readonly group = new Group()
@@ -27,7 +28,7 @@ export class PowerFx {
   constructor(private readonly tex: PowerTextures, private readonly cap: number, private readonly registry: Partial<Record<BeastId, PowerFactory>>) {}
 
   setBeasts(ids: readonly [BeastId, BeastId]): void {
-    if (this.sides) for (const p of this.sides) this.group.remove(p.group)
+    if (this.sides) for (const p of this.sides) { this.group.remove(p.group); p.dispose() }
     this.sides = [this.make(ids[0]), this.make(ids[1])]
     this.on = [false, false]
     for (const p of this.sides) this.group.add(p.group)

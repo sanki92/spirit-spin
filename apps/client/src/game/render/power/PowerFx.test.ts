@@ -6,7 +6,7 @@ import { blankTextures, top } from './testkit'
 
 function spy() {
   const calls: string[] = []
-  const f: PowerFactory = () => ({ group: new Group(), begin: () => { calls.push('begin') }, cue: m => { calls.push(`cue:${m}`) }, update: (_dt, e) => { calls.push(`e${e}`) }, end: () => { calls.push('end') }, reset: () => { calls.push('reset') } })
+  const f: PowerFactory = () => ({ group: new Group(), begin: () => { calls.push('begin') }, cue: m => { calls.push(`cue:${m}`) }, update: (_dt, e) => { calls.push(`e${e}`) }, end: () => { calls.push('end') }, reset: () => { calls.push('reset') }, dispose: () => { calls.push('dispose') } })
   return { calls, f }
 }
 const q = new Quaternion()
@@ -32,6 +32,12 @@ describe('power manager', () => {
     fx.onEvent({ k: 'beast', tick: 1, side: 1, move: 'shockwave', x: 0, y: 0 }, [top(0, 0), top(0.3, 0)])
     expect(b.calls).toEqual(['cue:shockwave']); expect(a.calls).toEqual([])
   })
+  it('setBeasts disposes the previous powers', () => {
+    const a = spy(), fx = new PowerFx(blankTextures(), 20, { voltfang: a.f })
+    fx.setBeasts(['voltfang', 'nagara'] as [BeastId, BeastId])
+    fx.setBeasts(['nagara', 'umbrax'] as [BeastId, BeastId])
+    expect(a.calls).toEqual(['dispose'])
+  })
   it('a beast with no power yet renders nothing and never throws', () => {
     const fx = new PowerFx(blankTextures(), 20, {})
     fx.setBeasts(['nagara', 'umbrax'])
@@ -39,3 +45,4 @@ describe('power manager', () => {
     expect(() => { fx.update(1 / 60, [me, top(0.3, 0)], false, q); fx.reset() }).not.toThrow()
   })
 })
+

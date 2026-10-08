@@ -70,6 +70,12 @@ export class Ribbon {
     m.opacity = approach(m.opacity, target, dt, rate)
     this.mesh.visible = m.opacity > 0.01
   }
+
+  dispose(): void {
+    this.mesh.geometry.dispose()
+    this.mesh.material.map?.dispose()
+    this.mesh.material.dispose()
+  }
 }
 
 export class Tube {
@@ -121,6 +127,12 @@ export class Tube {
       }
     }
     this.mesh.geometry.attributes.position!.needsUpdate = true
+  }
+
+  dispose(): void {
+    this.mesh.geometry.dispose()
+    this.mesh.material.map?.dispose()
+    this.mesh.material.dispose()
   }
 }
 
