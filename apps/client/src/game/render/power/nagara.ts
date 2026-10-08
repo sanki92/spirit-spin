@@ -4,7 +4,7 @@ import { Pool } from '../Fx'
 import type { Power, PowerTextures } from './PowerFx'
 import { approach, floorAt, floorDecal, setDecal, Tube } from './shapes'
 
-const SEG = 40, RAD = 0.035, TURNS = 1.5, FLING_S = 0.3, LIFT = 0.3
+const SEG = 40, RAD = 0.06, TURNS = 1.5, FLING_S = 0.3, LIFT = 0.3
 
 export class NagaraPower implements Power {
   readonly group = new Group()
