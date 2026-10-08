@@ -460,6 +460,7 @@ export class BattleController {
 
   protected finishRound(e: Extract<BattleEvent, { k: 'finish' }>): void {
     const g = this.game, s = this.deps.sound
+    useHud.getState().set({ summon: null })
     const o = e.outcome
     const bt = g.battle!
     log('round', { round: this.match.round, outcome: o, seconds: +(bt.tick / 60).toFixed(1), clashes: this.roundClashes, tops: bt.tops.map(t => ({ spin: +t.spin.toFixed(2), shatter: +t.shatter.toFixed(2), out: t.out, x: +t.x.toFixed(2), y: +t.y.toFixed(2) })), avgTilt: this.tiltTicks ? +(this.tiltSum / this.tiltTicks).toFixed(2) : 0 })

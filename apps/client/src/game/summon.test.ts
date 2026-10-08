@@ -35,6 +35,15 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+describe('round end during a summon', () => {
+  it('clears the letterbox when the round ends on the spirit call tick', () => {
+    const { p } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 1 })
+    p.onEvent({ k: 'finish', tick: 100, outcome: { winner: 1, finish: 'ringout', points: 2 } })
+    expect(useHud.getState().summon).toBeNull()
+  })
+})
+
 describe('refused spirit press', () => {
   it('accepts a press as soon as the rival beast has ended in the sim, before the HUD catches up', () => {
     const { c, p, battle } = rig()
