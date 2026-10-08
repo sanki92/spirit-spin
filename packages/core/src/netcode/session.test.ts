@@ -134,13 +134,24 @@ describe('rollback session', () => {
   it('a late remote spirit press rolls back into the exact summon and takeover', () => {
     const start = () => { const tl = startTimeline(fresh()); tl.state.tops[1].gauge = 1; return tl }
     const s = new RollbackSession(start(), 0, 2)
-    for (let i = 0; i < 48; i++) s.advance(me(i), [])
     const theirs = (fr: number) => (fr === 10 ? { x: 0, y: 0, sp: 1 } : IDLE_INPUT)
-    const t = truth(1, 48, theirs)
-    expect(s.confirm(1, t)).toBe('rollback')
+
+    for (let i = 0; i < 40; i++) s.advance(me(i), [])
+    const t1 = truth(1, 40, theirs)
+    expect(s.confirm(1, t1)).toBe('rollback')
+
+    for (let i = 40; i < 80; i++) s.advance(me(i), [])
+    const t2 = truth(41, 80, theirs)
+    expect(s.confirm(41, t2)).toBe('same')
+
+    for (let i = 80; i < 110; i++) s.advance(me(i), [])
+    const t3 = truth(81, 110, theirs)
+    expect(s.confirm(81, t3)).toBe('same')
+
     const g = start()
-    for (const fr of t) stepTimeline(g, fr, [])
+    for (const fr of [...t1, ...t2, ...t3]) stepTimeline(g, fr, [])
     expect(timelineHash(s.predicted)).toBe(timelineHash(g))
+    expect(g.state.tops[1].summonTicks).toBe(0)
     expect(g.state.tops[1].spiritTicks).toBeGreaterThan(0)
   })
 })
