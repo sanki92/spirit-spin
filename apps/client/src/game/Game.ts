@@ -80,6 +80,8 @@ export class Game {
   private cine: Cine | null = null
   guards: GuardBars | null = null
   private readonly guardScene: GuardScene = { fighting: true, cine: false, zoom: false, summon: false, outcome: false, out: false, broken: false }
+  private readonly guardIn = [{ x: 0, y: 0, z: 0, g: 1, show: false }, { x: 0, y: 0, z: 0, g: 1, show: false }]
+  private guardsDue = false
   private zoomSide: 0 | 1 | 'both' | null = null
   private shot: Shot = { x: 0, y: 0, z: 0, amount: 0 }
   private zoomUntil = 0
@@ -541,13 +543,14 @@ export class Game {
         top.raise(driving && spec?.beastId === 'agnyx' ? (e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))) : 0)
         this.spirits[i as 0 | 1].update(x, y, top.group.position.y, o.x, o.y, dt, still)
         if (this.guards) {
-          const gs = this.guardScene, p = top.group.position
+          const gs = this.guardScene, p = top.group.position, gi = this.guardIn[i]!
           gs.zoom = this.zoomSide !== null
           gs.summon = sum !== null
           gs.outcome = !!b.outcome
           gs.out = t.out
           gs.broken = this.broken[i as 0 | 1]
-          this.guards.update(i as 0 | 1, p.x, p.y, p.z, 1 - t.shatter, guardVisible(gs), this.stage.camera, this.canvas.clientWidth, this.canvas.clientHeight)
+          gi.x = p.x; gi.y = p.y; gi.z = p.z; gi.g = 1 - t.shatter; gi.show = guardVisible(gs)
+          this.guardsDue = true
         }
       }
       if (this.techFx && this.specs) {
@@ -558,5 +561,13 @@ export class Game {
     }
     this.fx.update(scaled, this.stage.camera)
     this.stage.render(dt)
+    if (this.guards && this.guardsDue) {
+      this.guardsDue = false
+      const w = this.canvas.clientWidth, h = this.canvas.clientHeight
+      for (let i = 0; i < 2; i++) {
+        const gi = this.guardIn[i]!
+        this.guards.update(i as 0 | 1, gi.x, gi.y, gi.z, gi.g, gi.show, this.stage.camera, w, h)
+      }
+    }
   }
 }
