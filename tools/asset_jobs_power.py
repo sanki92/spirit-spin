@@ -45,13 +45,17 @@ for beast, (desc, action) in POSES.items():
                    f"{action}, three-quarter side view, the whole creature inside the frame with a small margin. Its elemental energy wraps "
                    f"tightly around its body only. No ground, no background scenery, no text, no frame, no spinning top. {STYLE} {CUT}"),
     })
+EXTRA = {
+    ("zephyra", "gale"): "four distinct large feathered wings, two on each side, and the head with its silver beak and green eye clearly visible",
+    ("zephyra", "eye"): "wings folded or angled so both wing tips stay inside the frame with a clear margin on all sides",
+}
 FORM_DESC = {**AWAKEN, **FORMS}
 for (beast, form), fdesc in FORM_DESC.items():
     base = F + f"beasts/{beast}/awakened-{form}/"
     jobs.append({
         "out": base + "pose-attack.png", "model": T15, "quality": "high", "size": "1024x1536", "background": "transparent", "input_fidelity": "high",
         "refs": [base + "card-art.png", base + "summon.png"],
-        "prompt": (f"The exact same awakened {POSES[beast][0].split(' with ')[0]} spirit beast as the references, {fdesc}; identical design, colors, markings and armor. Full body, attack pose: "
+        "prompt": (f"The exact same awakened {POSES[beast][0].split(' with ')[0]} spirit beast as the references, {fdesc}; {EXTRA.get((beast, form), "")} identical design, colors, markings and armor. Full body, attack pose: "
                    f"{POSES[beast][1]}, three-quarter side view, the whole creature inside the frame with a small margin. Its elemental energy wraps "
                    f"tightly around its body only. No ground, no background scenery, no text, no frame, no spinning top. {STYLE} {CUT}"),
     })

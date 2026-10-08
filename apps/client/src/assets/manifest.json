@@ -979,11 +979,6 @@
   "w": 319,
   "h": 320
  },
- "beasts/zephyra/awakened-eye/pose-attack": {
-  "url": "/assets/beasts/zephyra/awakened-eye/pose-attack.webp?v=3d7b7cb1",
-  "w": 741,
-  "h": 1024
- },
  "beasts/zephyra/awakened-eye/summon": {
   "url": "/assets/beasts/zephyra/awakened-eye/summon.webp?v=745c0e1d",
   "w": 630,
@@ -1038,11 +1033,6 @@
   "url": "/assets/beasts/zephyra/awakened-gale/expressions/sulky.webp?v=16187a54",
   "w": 320,
   "h": 304
- },
- "beasts/zephyra/awakened-gale/pose-attack": {
-  "url": "/assets/beasts/zephyra/awakened-gale/pose-attack.webp?v=e7a1f3c8",
-  "w": 731,
-  "h": 1024
  },
  "beasts/zephyra/awakened-gale/summon": {
   "url": "/assets/beasts/zephyra/awakened-gale/summon.webp?v=54b652ec",
