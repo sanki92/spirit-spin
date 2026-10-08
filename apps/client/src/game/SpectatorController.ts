@@ -12,6 +12,7 @@ export class SpectatorController extends BattleController {
   private primed = false
   private ripRound = 0
   private startedRound = 0
+  private endedRound = 0
   private unwire: () => void
   private unsub: () => void
   private done = false
@@ -67,7 +68,7 @@ export class SpectatorController extends BattleController {
     } else if (m.k === 'catchup' && m.round === this.ripRound && this.rp) {
       this.rp = new Replayer(m.tl)
       this.primed = false
-    } else if (m.k === 'end' && m.round === this.ripRound) {
+    } else if (m.k === 'end' && m.round === this.ripRound && m.round !== this.endedRound) {
       if (holdEnd(this.rp)) this.pendingEnd = m
       else this.applyEnd(m)
     } else if (m.k === 'left') {
@@ -84,10 +85,12 @@ export class SpectatorController extends BattleController {
 
   private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
     this.pendingEnd = null
+    this.endedRound = m.round
     this.afterSummon(() => this.endRound(m))
   }
 
   private endRound(m: Extract<ServerMsg, { k: 'end' }>): void {
+    if (this.done) return
     if (!this.game.battle && this.rp) this.game.setBattle(this.rp.tl.state)
     if (this.game.battle) this.finishRound({ k: 'finish', tick: this.rp?.tl.state.tick ?? 0, outcome: m.outcome })
     this.match = { ...this.match, scores: m.scores, winner: m.winner }

@@ -3,10 +3,18 @@ import { DEFAULT_CALIBRATION, type BattleEvent } from '@spirit/core'
 import { summonReset, useHud } from '../state/hud'
 import { BattleController, type MatchSetup } from './BattleController'
 import type { Game } from './Game'
+import { OnlineController } from './OnlineController'
+import { SpectatorController } from './SpectatorController'
+
+vi.mock('../net/rt', () => ({ rt: { on: () => () => undefined, last: () => null, send: () => undefined, battlePings: () => undefined, leave: () => undefined, rtt: 100, toLocalPerf: (t: number) => t } }))
+vi.mock('../net/link', () => ({ mainLink: { on: () => () => undefined, close: () => undefined, net: { count: 0, rtt: 0, jitter: 0 }, kind: 'ws', serverNow: () => 0 } }))
+vi.mock('../net/edgeLink', () => ({ EdgeLink: class {} }))
+
+type Deps = ConstructorParameters<typeof BattleController>[2]
 
 const top = () => ({ x: 0, y: 0, vx: 0, vy: 0, spin: 1, shatter: 0, gauge: 1, spiritTicks: 0, summonTicks: 0, out: false, shattered: false })
 
-function rig() {
+function rig(make: (g: Game, d: Deps) => BattleController = (g, d) => new BattleController(g, { seed: 1 } as MatchSetup, d)) {
   const noop = () => undefined
   const battle = { tick: 100, outcome: null, tops: [top(), top()] }
   const game = {
@@ -17,7 +25,7 @@ function rig() {
     spiritZoom: vi.fn(), frameBoth: vi.fn(), narrowZoom: vi.fn(), releaseZoom: vi.fn(), slowmo: noop, finishCam: () => false, elementOf: () => null, hitstop: noop,
   }
   const sound = { play: noop, voice: noop, hum: noop, stopHums: noop, stopVoice: noop }
-  const c = new BattleController(game as unknown as Game, { seed: 1 } as MatchSetup, { sound: sound as never, sensors: null, shout: null, calibration: DEFAULT_CALIBRATION, onEnd: noop })
+  const c = make(game as unknown as Game, { sound: sound as never, sensors: null, shout: null, calibration: DEFAULT_CALIBRATION, onEnd: noop })
   const p = c as unknown as { onEvent(e: BattleEvent): void; frame(dt: number): void; spiritRequest: boolean }
   const run = (s: number) => { for (let t = 0; t < s - 1e-9; t += 1 / 60) p.frame(1 / 60) }
   return { c, p, game, battle, run }
@@ -123,4 +131,39 @@ describe('refused spirit press', () => {
     expect(p.spiritRequest).toBe(false)
     expect(useHud.getState().refused).toBe(1)
   })
+})
+
+describe('a round end held for a summon', () => {
+  const end = { k: 'end', round: 1, outcome: { winner: 0, finish: 'spin', points: 1 }, scores: [1, 0], winner: null } as const
+  const online = () => rig((g, d) => new OnlineController(g, { seed: 1 } as MatchSetup, d, 0))
+  const spectator = () => rig((g, d) => new SpectatorController(g, { seed: 1 } as MatchSetup, d, ['A', 'B']))
+  type Net = { onNet(m: unknown): void; ripRound: number; finishRound(e: unknown): void }
+
+  for (const [name, make, left] of [['online', online, { k: 'left', reason: 'quit' }], ['spectator', spectator, { k: 'left', winner: 0 }]] as const) {
+    it(`${name}: is dropped when the match was decided while it was held`, () => {
+      const { p, run } = make()
+      const n = p as unknown as Net
+      n.ripRound = 1
+      p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+      n.onNet(end)
+      n.onNet(left)
+      vi.advanceTimersByTime(2000)
+      expect(useHud.getState().phase).toBe('matchEnd')
+      run(1.05)
+      expect(useHud.getState().phase).toBe('matchEnd')
+    })
+
+    it(`${name}: a duplicate end while one is held is applied once`, () => {
+      const { p, run } = make()
+      const n = p as unknown as Net
+      n.ripRound = 1
+      const spy = vi.spyOn(n, 'finishRound')
+      p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+      n.onNet(end)
+      n.onNet(end)
+      run(1.05)
+      n.onNet(end)
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+  }
 })

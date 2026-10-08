@@ -32,6 +32,7 @@ export class OnlineController extends BattleController {
   private pendingEnd: Extract<ServerMsg, { k: 'end' }> | null = null
   private pendingRip: ClientMsg | null = null
   private startedRound = 0
+  private endedRound = 0
 
   constructor(game: Game, setup: MatchSetup, deps: ConstructorParameters<typeof BattleController>[2], private side: Side) {
     super(game, setup, deps)
@@ -91,7 +92,7 @@ export class OnlineController extends BattleController {
       log('net.resync', { round: m.round, frame: m.tl.frame })
       this.driver.resync(m.tl)
     }
-    else if (m.k === 'end' && m.round === this.ripRound && !this.ended && !this.pendingEnd) {
+    else if (m.k === 'end' && m.round === this.ripRound && m.round !== this.endedRound && !this.ended && !this.pendingEnd) {
       if (this.driver && !this.driver.done) {
         this.pendingEnd = m
         this.later(END_WAIT_MS, () => this.flushEnd())
@@ -167,10 +168,12 @@ export class OnlineController extends BattleController {
   }
 
   private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
+    this.endedRound = m.round
     this.afterSummon(() => this.endRound(m))
   }
 
   private endRound(m: Extract<ServerMsg, { k: 'end' }>): void {
+    if (this.ended || this.concluded) return
     const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
     const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
     const winner = this.side === 0 ? m.winner : flipWinner(m.winner)
