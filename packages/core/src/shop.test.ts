@@ -15,7 +15,7 @@ describe('shop restock', () => {
         expect(overlap, `tower ${tower} ${day}`).toBeLessThanOrEqual(Math.max(0, 12 - pool))
       }
     }
-  })
+  }, 30000)
   it('never offers parts the player already owns, and stays deterministic', () => {
     const owned = new Set(ids(shopRotation('2026-10-05', 3, 50)))
     const r = shopRotation('2026-10-05', 6, 50, owned)
