@@ -330,6 +330,7 @@ export class Game {
     this.record()
     if (this.hist.length < FINISH_CAM.minFrames) return false
     this.zoomSide = null
+    for (const sp of this.spirits ?? []) sp.reset()
     this.cine = { frames: [...this.hist], t: 0, dur: FINISH_CAM.replayMs, fired: 0, impact: false, hold: 0, loser, done }
     this.slowUntil = 0
     return true

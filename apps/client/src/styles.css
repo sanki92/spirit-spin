@@ -105,7 +105,7 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) { .pop, .cutin, .grip, .spirit-btn.ready { animation: none !important; } }
 .spirit-btn.refused { animation: btnShake 0.35s ease-in-out; }
 @keyframes btnShake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px) rotate(-4deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
-.spirit-refused { position: absolute; right: 16px; bottom: calc(140px + var(--safe-bottom)); padding: 6px 12px; border-radius: 10px; background: rgba(7, 11, 31, 0.88); color: #ff8fb8; font-weight: 700; font-size: 14px; white-space: nowrap; pointer-events: none; animation: refusedToast 1.2s ease-out both; }
+.spirit-refused { position: absolute; right: 16px; bottom: calc(140px + var(--safe-bottom)); padding: 6px 12px; border-radius: 10px; background: rgba(7, 11, 31, 0.88); color: #ff8fb8; font-weight: 700; font-size: 14px; white-space: nowrap; pointer-events: none; z-index: 30; animation: refusedToast 1.2s ease-out both; }
 @keyframes refusedToast { 0% { opacity: 0; transform: translateY(6px); } 12%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 .reduce-motion .spirit-btn.refused { animation: none; }
 @media (prefers-reduced-motion: reduce) { .spirit-btn.refused { animation: none; } }
