@@ -42,5 +42,23 @@ def key_slab(src: Image.Image) -> Image.Image:
     return Image.fromarray((out * 255 + 0.5).astype(np.uint8), 'RGBA')
 
 
+def key_ribbon(src: Image.Image) -> Image.Image:
+    rgb = np.asarray(src.convert('RGB'), dtype=np.float32) / 255
+    lum = rgb.max(axis=2)
+    h = lum.shape[0]
+    y = (np.arange(h, dtype=np.float32) + 0.5) / h
+    edge = np.clip(np.minimum(y, 1 - y) / 0.18, 0, 1)
+    edge = edge * edge * (3 - 2 * edge)
+    a = np.clip((lum - 0.06) / 0.94, 0, 1) * edge[:, None]
+    out = np.dstack([unpremultiply(rgb, np.maximum(a, 1e-3)), a])
+    return Image.fromarray((out * 255 + 0.5).astype(np.uint8), 'RGBA')
+
+
 def key_vfx(name: str, src: Image.Image) -> Image.Image:
-    return key_slab(src) if name == 'crack-decal' else key_black(src)
+    if name == 'crack-decal' or name.startswith('power/shadow-'):
+        return key_slab(src)
+    if name.endswith('-surface'):
+        return src.convert('RGB')
+    if name.endswith('-ribbon'):
+        return key_ribbon(src)
+    return key_black(src)

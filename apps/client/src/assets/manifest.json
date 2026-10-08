@@ -199,6 +199,11 @@
   "w": 320,
   "h": 298
  },
+ "beasts/aegiron/pose-attack": {
+  "url": "/assets/beasts/aegiron/pose-attack.webp?v=5a543f6b",
+  "w": 719,
+  "h": 1024
+ },
  "beasts/aegiron/summon": {
   "url": "/assets/beasts/aegiron/summon.webp?v=d7fddaa2",
   "w": 636,
@@ -363,6 +368,11 @@
   "url": "/assets/beasts/agnyx/expressions/sulky.webp?v=38d0bf16",
   "w": 238,
   "h": 320
+ },
+ "beasts/agnyx/pose-attack": {
+  "url": "/assets/beasts/agnyx/pose-attack.webp?v=2ea24c8e",
+  "w": 686,
+  "h": 1024
  },
  "beasts/agnyx/summon": {
   "url": "/assets/beasts/agnyx/summon.webp?v=315dbfb9",
@@ -529,6 +539,11 @@
   "w": 265,
   "h": 320
  },
+ "beasts/nagara/pose-attack": {
+  "url": "/assets/beasts/nagara/pose-attack.webp?v=bf98ddc3",
+  "w": 721,
+  "h": 1024
+ },
  "beasts/nagara/summon": {
   "url": "/assets/beasts/nagara/summon.webp?v=cbb3c6e1",
   "w": 625,
@@ -693,6 +708,11 @@
   "url": "/assets/beasts/umbrax/expressions/sulky.webp?v=551deb22",
   "w": 223,
   "h": 320
+ },
+ "beasts/umbrax/pose-attack": {
+  "url": "/assets/beasts/umbrax/pose-attack.webp?v=894dd5a6",
+  "w": 702,
+  "h": 1024
  },
  "beasts/umbrax/summon": {
   "url": "/assets/beasts/umbrax/summon.webp?v=1db4b3f0",
@@ -859,6 +879,11 @@
   "w": 259,
   "h": 320
  },
+ "beasts/voltfang/pose-attack": {
+  "url": "/assets/beasts/voltfang/pose-attack.webp?v=20e11819",
+  "w": 708,
+  "h": 1024
+ },
  "beasts/voltfang/summon": {
   "url": "/assets/beasts/voltfang/summon.webp?v=29f3adcf",
   "w": 608,
@@ -1023,6 +1048,11 @@
   "url": "/assets/beasts/zephyra/expressions/sulky.webp?v=9e3b6f7b",
   "w": 302,
   "h": 320
+ },
+ "beasts/zephyra/pose-attack": {
+  "url": "/assets/beasts/zephyra/pose-attack.webp?v=494e5a33",
+  "w": 716,
+  "h": 1024
  },
  "beasts/zephyra/summon": {
   "url": "/assets/beasts/zephyra/summon.webp?v=1e99436a",
@@ -1913,6 +1943,81 @@
   "url": "/assets/vfx/impact-flash.webp?v=c4c45113",
   "w": 512,
   "h": 512
+ },
+ "vfx/power/claw-slash": {
+  "url": "/assets/vfx/power/claw-slash.webp?v=33112560",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/crystal-surface": {
+  "url": "/assets/vfx/power/crystal-surface.webp?v=79643e48",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/debris": {
+  "url": "/assets/vfx/power/debris.webp?v=ad8d5cde",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/feather": {
+  "url": "/assets/vfx/power/feather.webp?v=d0ac0ee3",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/fire-ribbon": {
+  "url": "/assets/vfx/power/fire-ribbon.webp?v=ca4c0dab",
+  "w": 512,
+  "h": 341
+ },
+ "vfx/power/fire-ring": {
+  "url": "/assets/vfx/power/fire-ring.webp?v=c11f22ad",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/lightning-ribbon": {
+  "url": "/assets/vfx/power/lightning-ribbon.webp?v=d99f6854",
+  "w": 512,
+  "h": 341
+ },
+ "vfx/power/rock-chunks": {
+  "url": "/assets/vfx/power/rock-chunks.webp?v=2e827373",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/shadow-claw": {
+  "url": "/assets/vfx/power/shadow-claw.webp?v=1e3578b4",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/shadow-pool": {
+  "url": "/assets/vfx/power/shadow-pool.webp?v=6241511a",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/sky-bolt": {
+  "url": "/assets/vfx/power/sky-bolt.webp?v=baf44129",
+  "w": 341,
+  "h": 512
+ },
+ "vfx/power/splash": {
+  "url": "/assets/vfx/power/splash.webp?v=c60a31ce",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/water-surface": {
+  "url": "/assets/vfx/power/water-surface.webp?v=9070783d",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/whirlpool": {
+  "url": "/assets/vfx/power/whirlpool.webp?v=60fea3d3",
+  "w": 512,
+  "h": 512
+ },
+ "vfx/power/wind-ribbon": {
+  "url": "/assets/vfx/power/wind-ribbon.webp?v=f85a2b1a",
+  "w": 512,
+  "h": 341
  },
  "vfx/shockwave": {
   "url": "/assets/vfx/shockwave.webp?v=ce5f6ab0",
