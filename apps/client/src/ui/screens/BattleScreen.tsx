@@ -1,4 +1,5 @@
 import { assembleTop } from '@spirit/core'
+import { dropFocus } from '../../input/typingUndo'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BattleController, type MatchResult, type MatchSetup } from '../../game/BattleController'
 import { BEASTS } from '../../game/beasts'
@@ -21,6 +22,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
   useEffect(() => {
     let disposed = false
     let game: Game | null = null
+    dropFocus(document)
     void (async () => {
       const canvas = battleCanvas()
       if (host.current && canvas.parentElement !== host.current) host.current.prepend(canvas)
