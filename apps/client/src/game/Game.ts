@@ -1,4 +1,4 @@
-import { assembleTop, FINISH_CAM, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
+import { assembleTop, FINISH_CAM, TUNING, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
 import type { Texture } from 'three'
 import { hasAsset } from '../assets/assets'
 import { texture } from './render/textures'
@@ -17,6 +17,7 @@ import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
 const ZOOM_LEAD = 0.2
+const BOTH_ZOOM = 0.45
 const THEME_ACCENT: Record<StadiumTheme, number> = { classic: 0x3be6ff, volcano: 0xff6a1a, 'frozen-moon': 0xa8e8ff }
 
 interface Snap { x: number; y: number }
@@ -70,7 +71,8 @@ export class Game {
   private hist: ReplayFrame[] = []
   private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
-  private zoomSide: 0 | 1 | null = null
+  private zoomSide: 0 | 1 | 'both' | null = null
+  private zoomAmt = 1
   private zoomUntil = 0
   private onFrame: ((dt: number) => void) | null = null
 
@@ -207,6 +209,14 @@ export class Game {
   spiritZoom(side: 0 | 1, ms: number): void {
     if (this.cine) return
     this.zoomSide = side
+    this.zoomAmt = 1
+    this.zoomUntil = performance.now() + ms
+  }
+
+  frameBoth(ms: number): void {
+    if (this.cine) return
+    this.zoomSide = 'both'
+    this.zoomAmt = BOTH_ZOOM
     this.zoomUntil = performance.now() + ms
   }
 
@@ -218,9 +228,15 @@ export class Game {
 
   private followZoom(now: number): void {
     if (this.zoomSide === null) return
-    const t = this.battle?.tops[this.zoomSide]
-    if (this.cine || !t || t.out || now > this.zoomUntil) return this.endZoom()
-    this.stage.cinematic(true, t.x, -t.y - ZOOM_LEAD)
+    const b = this.battle
+    if (this.cine || !b || now > this.zoomUntil) return this.endZoom()
+    if (this.zoomSide === 'both') {
+      const [a, c] = b.tops
+      return this.stage.cinematic(true, (a.x + c.x) / 2, -(a.y + c.y) / 2 - ZOOM_LEAD / 2, this.zoomAmt)
+    }
+    const t = b.tops[this.zoomSide]
+    if (t.out) return this.endZoom()
+    this.stage.cinematic(true, t.x, -t.y - ZOOM_LEAD, this.zoomAmt)
   }
 
   slowmo(scale: number, ms: number): void {
@@ -373,7 +389,7 @@ export class Game {
   private settle(b: BattleState, pos: Snap[], dt: number): void {
     if (!this.tops) return
     const [t0, t1] = b.tops, [m0, m1] = this.tops
-    const solid = !t0.out && !t1.out && t0.phaseTicks <= 0 && t1.phaseTicks <= 0
+    const solid = !t0.out && !t1.out
     if (solid) {
       const s = separate(pos[0]!, pos[1]!, m0.radius, m1.radius)
       pos[0] = s.a
@@ -481,11 +497,15 @@ export class Game {
         top.update(x, y, t.spin, t.wobble, t.spiritTicks > 0, scaled, !t.out && !this.broken[i as 0 | 1])
         const o = b.tops[(1 - i) as 0 | 1]
         this.spirits[i as 0 | 1].update(x, y, o.x, o.y, dt)
-        top.fade(t.phaseTicks > 0 ? 0.5 : 1, dt)
+        const spec = this.specs?.[i as 0 | 1]
+        const e = TUNING.takeoverTicks - 1 - t.spiritTicks
+        const driving = t.spiritTicks > 0 && t.summonTicks === 0
+        top.fade(driving && spec?.beastId === 'umbrax' && e < TUNING.tech.pounceAt ? 0.25 : 1, dt)
+        if (driving && spec?.beastId === 'agnyx') top.group.position.y += e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))
       }
       if (this.techFx && this.specs) {
         const sp = this.specs
-        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && t0.spiritTicks > 0, sp[1].beastId === 'nagara' && t1.spiritTicks > 0], scaled, document.documentElement.classList.contains('reduce-motion'))
+        this.techFx.update(b.tops, [sp[0].beastId === 'nagara' && t0.spiritTicks > 0 && t0.summonTicks === 0, sp[1].beastId === 'nagara' && t1.spiritTicks > 0 && t1.summonTicks === 0], scaled, document.documentElement.classList.contains('reduce-motion'))
       }
     }
     this.fx.update(scaled, this.stage.camera)

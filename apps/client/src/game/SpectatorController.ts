@@ -56,7 +56,7 @@ export class SpectatorController extends BattleController {
       const s = createBattle([a, b], [{ rip: rips[0]!, hesitate: false }, { rip: rips[1]!, hesitate: false }], m.seed)
       this.rp = new Replayer(startTimeline(s))
       this.primed = false
-      this.spiritSeen = [false, false]
+      this.spiritSeen = { spirit: [false, false], summon: [false, false] }
       const best = m.rips[0].rpm >= m.rips[1].rpm ? 0 : 1
       useHud.getState().set({ callout: { quality: m.rips[best].ok ? m.rips[best].quality : 'FAIL', rpm: m.rips[best].rpm, note: this.names[best] } })
       this.game.setBattle(s)

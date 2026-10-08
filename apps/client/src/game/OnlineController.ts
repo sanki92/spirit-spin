@@ -149,7 +149,7 @@ export class OnlineController extends BattleController {
     this.makeDriver(m.round, startTimeline(s))
     const d = this.driver!
     this.beginServer = beginAt(m.t0, this.rttNow(), d.session.delay, d.clock.target)
-    this.spiritSeen = [false, false]
+    this.spiritSeen = { spirit: [false, false], summon: [false, false] }
     const mine = m.rips[this.side]
     useHud.getState().set({ phase: 'launch', countdown: null, pull: 0, callout: calloutOf(mine) })
     log('net.start', { round: m.round, mine: mine.rpm, theirs: m.rips[(1 - this.side) as Side].rpm, rtt: Math.round(this.rttNow()), jitter: Math.round(this.link.net.jitter), delay: d.session.delay, target: Math.round(d.clock.target), transport: this.link.kind })
@@ -240,7 +240,7 @@ export class OnlineController extends BattleController {
   private stepOnce(d: NetDriver): void {
     const inp = this.playerInput()
     const ok = d.step(inp.tiltX, inp.tiltY, inp.spirit, this.events)
-    if (ok) for (const e of this.events) if (e.k === 'clash' || e.k === 'wall') this.onEvent(this.side === 1 && e.k === 'wall' ? { ...e, side: (1 - e.side) as Side } : e)
+    if (ok) for (const e of this.events) if (e.k === 'clash' || e.k === 'wall' || e.k === 'beast') this.onEvent(this.side === 1 && (e.k === 'wall' || e.k === 'beast') ? { ...e, side: (1 - e.side) as Side } : e)
     this.events.length = 0
     if (!ok) return
     this.game.battle = view(d.view(), this.side)

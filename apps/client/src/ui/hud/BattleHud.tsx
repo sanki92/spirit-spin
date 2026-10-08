@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { hasAsset, assetUrl } from '../../assets/assets'
 import { TECHNIQUES, type BeastId } from '@spirit/core'
 import { BEASTS } from '../../game/beasts'
-import { useHud, type Banner } from '../../state/hud'
+import { spiritReady, useHud, type Banner } from '../../state/hud'
 import { LessonOverlay } from './LessonOverlay'
 import { CoachOverlay, CoachTipCard, GripGuide, LaunchCallout, PullMeter, VsIntro } from './LaunchHud'
 
@@ -31,8 +31,8 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
 }) {
-  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, coach: s.coach, coachTip: s.coachTip })))
-  const ready = useHud(s => s.gauge[0] >= 1 && s.phase === 'battle')
+  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, summon: s.summon, coach: s.coach, coachTip: s.coachTip })))
+  const ready = useHud(spiritReady)
   return (
     <div className={`hud phase-${h.phase}${h.coachTip ? " tipping" : ""}`}>
       <div className="hud-top">
@@ -64,6 +64,13 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
           <i className="cine-bar bottom" />
           {hasAsset('vfx/speedlines') && <img className="cine-lines" src={assetUrl('vfx/speedlines')} alt="" draggable={false} />}
           <span className="cine-tag">Final blow</span>
+        </div>
+      )}
+      {h.summon !== null && !h.cine && (
+        <div className="cine summon" aria-hidden="true">
+          <i className="cine-bar top" />
+          <i className="cine-bar bottom" />
+          <span className="cine-tag">Beast takeover</span>
         </div>
       )}
       {h.notice && <div className="hud-notice" role="status">{h.notice}</div>}

@@ -14,6 +14,7 @@ import { Announcer } from './commentator'
 import { useSave } from '../state/save'
 import { coachTip } from './coach'
 import { tierOf, type LaunchTier } from './launchPlan'
+import { spiritTransitions, type SpiritSeen } from './transitions'
 
 export interface MatchSetup {
   player: TopBuild
@@ -165,7 +166,7 @@ export class BattleController {
     this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
     this.game.arm()
-    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], summon: null, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
   }
 
@@ -355,17 +356,11 @@ export class BattleController {
     this.events.length = 0
   }
 
-  protected spiritSeen: [boolean, boolean] = [false, false]
+  protected spiritSeen: SpiritSeen = { spirit: [false, false], summon: [false, false] }
 
   protected transitions(): void {
     const b = this.game.battle
-    if (!b) return
-    for (let i = 0; i < 2; i++) {
-      const on = b.tops[i]!.spiritTicks > 0
-      if (on === this.spiritSeen[i]) continue
-      this.spiritSeen[i] = on
-      this.onEvent(on ? { k: 'spirit', tick: b.tick, side: i as Side } : { k: 'spiritEnd', tick: b.tick, side: i as Side })
-    }
+    if (b) for (const e of spiritTransitions(b.tops, b.tick, this.spiritSeen)) this.onEvent(e)
   }
 
   protected onEvent(e: BattleEvent): void {
@@ -400,11 +395,23 @@ export class BattleController {
         g.spirits?.[e.side].show(true)
         this.later(1100, () => this.announcer.say('spirit', true))
         g.fx.burst(t.x, t.y)
-        g.slowmo(0.3, 1000)
-        g.spiritZoom(e.side, 1300)
+        g.spiritZoom(e.side, 1100)
+        hud.set({ summon: e.side })
         s.play('spirit')
         buzz([30, 40, 60])
         this.later(1300, () => useHud.getState().set({ cutin: null }))
+        break
+      }
+      case 'takeover':
+        g.frameBoth(2500)
+        if (useHud.getState().summon === e.side) hud.set({ summon: null })
+        break
+      case 'beast': {
+        const el = g.elementOf(e.side)
+        if (e.move === 'shockwave' || e.move === 'fling') { g.fx.burst(e.x, e.y); g.stage.shake(0.06); s.play('clashHeavy', { volume: 0.6, rate: 0.8 }) }
+        else if (e.move === 'strike' || e.move === 'dive' || e.move === 'pounce') { g.fx.clash(e.x, e.y, 2.5, el); g.hitstop(45); g.stage.punch(0.04); s.play('clashHeavy', { volume: 0.7 }) }
+        else g.fx.clash(e.x, e.y, 1, el)
+        buzz(e.move === 'strike' ? 30 : 12)
         break
       }
       case 'hesitate':

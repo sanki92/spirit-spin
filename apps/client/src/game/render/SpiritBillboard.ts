@@ -4,8 +4,8 @@ const H = 1.15
 const GHOST = 0.3
 const BACK = 0.18
 const ease = (t: number) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2
-const DELAY = 0.75
-const RISE = 0.45
+const DELAY = 0.05
+const RISE = 0.85
 const FADE = 0.35
 
 export class SpiritBillboard {
@@ -17,6 +17,7 @@ export class SpiritBillboard {
   private state: 'off' | 'wait' | 'in' | 'hold' | 'out' = 'off'
   private t = 0
   private life = 0
+  private grow = 1
   private tint: Color
 
   constructor(tex: Texture, shock: Texture, color: string) {
@@ -39,6 +40,7 @@ export class SpiritBillboard {
     if (on && (this.state === 'off' || this.state === 'out')) {
       this.state = 'wait'
       this.t = 0
+      this.grow = 0
       this.group.visible = true
       this.beast.material.opacity = 0
     } else if (!on && this.state !== 'off') {
@@ -71,13 +73,14 @@ export class SpiritBillboard {
       if (this.t >= DELAY) { this.state = 'in'; this.t = 0 }
     } else if (this.state === 'in') {
       const k = Math.min(1, this.t / RISE)
-      s = 0.25 + 0.75 * ease(k)
+      this.grow = k
+      s = 0.05 + 0.95 * ease(k)
       a = Math.min(1, k * 2.5)
-      lift = (1 - k) * -0.3
+      lift = (1 - k) * -0.12
       flash = 1 - k
       rm.opacity = (1 - k) * 0.9
       this.ring.scale.setScalar(0.4 + k * 2.4)
-      if (k >= 1) { this.state = 'hold'; this.t = 0 }
+      if (k >= 1) { this.state = 'hold'; this.t = 0; this.grow = 1 }
     } else if (this.state === 'out') {
       const k = Math.min(1, this.t / FADE)
       s = 1 + k * 0.18
@@ -97,7 +100,7 @@ export class SpiritBillboard {
     am.rotation = bm.rotation
     this.aura.scale.set(h * this.aspect * 1.09, h * 1.07, 1)
     const lean = 0.12
-    this.group.position.set(x + (dx / d) * lean, 0.12 + lift + Math.sin(this.life * 2.2) * 0.03, -y - (dy / d) * lean - BACK)
+    this.group.position.set(x + (dx / d) * lean * this.grow, 0.12 + lift + Math.sin(this.life * 2.2) * 0.03, -y - ((dy / d) * lean + BACK) * this.grow)
     this.ring.position.set(0, 0.05, 0)
   }
 }

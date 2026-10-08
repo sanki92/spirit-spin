@@ -36,7 +36,6 @@ class SideFx {
     let gTex: Texture | null = null, gSize = 0, gOp = 0, gSpin = 0
     const gx = t.x, gy = t.y
     if (t.pullTicks > 0) { gTex = this.tex.wind; gSize = 1.25 + Math.sin(this.t * 6) * 0.06; gOp = 0.85; gSpin = -9 }
-    else if (t.phaseTicks > 0) { gTex = this.tex.shadow; gSize = 0.7; gOp = 0.95; gSpin = 2 }
     else if (t.shieldTicks > 0) { gTex = this.tex.crystal; gSize = 0.55 + Math.sin(this.t * 4) * 0.03; gOp = 0.75; gSpin = 1.2 }
     if (gTex && gm.map !== gTex) { gm.map = gTex; gm.needsUpdate = true }
     gm.opacity += ((gTex ? gOp : 0) - gm.opacity) * Math.min(1, dt * 10)
@@ -66,10 +65,10 @@ class SideFx {
     this.aura.scale.setScalar(t.stunTicks > 0 ? 0.42 : 0.32)
     this.aura.position.set(t.x, h(t.x, t.y) + 0.14, -t.y)
     const armed = t.strikeArmed || t.stealArmed
-    const mTex = t.stealArmed ? this.tex.fire : t.strikeArmed ? (t.phaseTicks > 0 || t.steps > 0 ? this.tex.shadow : this.tex.lightning) : null
+    const mTex = t.stealArmed ? this.tex.fire : t.strikeArmed ? this.tex.lightning : null
     if (mTex && mm.map !== mTex) { mm.map = mTex; mm.needsUpdate = true }
     mm.opacity += ((armed ? 0.7 + Math.sin(this.t * 9) * 0.2 : 0) - mm.opacity) * Math.min(1, dt * 12)
-    this.mark.visible = mm.opacity > 0.02 && !t.out && t.phaseTicks === 0
+    this.mark.visible = mm.opacity > 0.02 && !t.out
     this.mark.scale.setScalar(0.26)
     this.mark.position.set(t.x, h(t.x, t.y) + 0.05, -t.y)
   }
