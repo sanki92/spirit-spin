@@ -26,6 +26,8 @@ export interface TopState {
   summonTicks: number
   act: number
   actTicks: number
+  edgeTicks: number
+  edgeClimb: number
   out: boolean; stopped: boolean; shattered: boolean
 }
 
@@ -38,6 +40,8 @@ export type BeastMove = 'dash' | 'anchor' | 'shockwave' | 'orbit' | 'dive' | 'vo
 export type BattleEvent =
   | { k: 'clash'; tick: number; energy: number; x: number; y: number }
   | { k: 'wall'; tick: number; side: Side }
+  | { k: 'edge'; tick: number; side: Side }
+  | { k: 'edgeSave'; tick: number; side: Side }
   | { k: 'spirit'; tick: number; side: Side }
   | { k: 'hesitate'; tick: number; side: Side }
   | { k: 'spiritEnd'; tick: number; side: Side }

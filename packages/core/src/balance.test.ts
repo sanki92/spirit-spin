@@ -12,7 +12,7 @@ describe('balance guard (regression bounds; strict targets live in scripts/balan
   })
   it('every finish type happens and draws are rare', () => {
     expect(r.finishMix.spin).toBeGreaterThan(0.2)
-    expect(r.finishMix.ringout).toBeGreaterThan(0.05)
+    expect(r.finishMix.ringout).toBeGreaterThan(0.02)
     expect(r.finishMix.shatter).toBeGreaterThan(0.03)
     expect(r.finishMix.spirit).toBeGreaterThan(0.05)
     expect(r.finishMix.draw).toBeLessThan(0.05)

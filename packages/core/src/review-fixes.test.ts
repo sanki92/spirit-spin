@@ -44,7 +44,7 @@ describe('review fixes', () => {
     const s = createBattle([assembleTop(STARTER_BUILDS.voltfang), assembleTop(STARTER_BUILDS.aegiron)], [{ rip: rip(Number.NaN), hesitate: false }, { rip: rip(12000), hesitate: false }], 1)
     expect(Number.isFinite(s.tops[0].spin)).toBe(true)
   })
-  it('an overspinning top gets only half the launch grace, then can fly out', () => {
+  it('an overspinning top keeps the full launch grace', () => {
     const specs = [assembleTop(STARTER_BUILDS.voltfang), assembleTop(STARTER_BUILDS.aegiron)] as [ReturnType<typeof assembleTop>, ReturnType<typeof assembleTop>]
     const s = createBattle(specs, [{ rip: rip(14000, { overspin: true }), hesitate: false }, { rip: rip(12000), hesitate: false }], 1)
     s.tick = 31
@@ -52,7 +52,8 @@ describe('review fixes', () => {
     s.tops[1].x = 0; s.tops[1].y = -0.5
     const ev: BattleEvent[] = []
     for (let i = 0; i < 10 && !s.outcome; i++) stepBattle(s, [{ tiltX: 0, tiltY: 0, spirit: false }, { tiltX: 0, tiltY: 0, spirit: false }], ev)
-    expect(t.out).toBe(true)
+    expect(t.out).toBe(false)
+    expect(ev.some(e => e.k === 'edge')).toBe(false)
   })
   it('wobble never goes negative after overspin ends', () => {
     const specs = [assembleTop(STARTER_BUILDS.nagara), assembleTop(STARTER_BUILDS.aegiron)] as [ReturnType<typeof assembleTop>, ReturnType<typeof assembleTop>]

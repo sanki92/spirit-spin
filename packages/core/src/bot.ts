@@ -3,7 +3,7 @@
  * replay bot matches and Tower floors exactly. Skill drives rip quality; aggression drives how hard it chases.
  */
 import type { BattleState, Side, TickInput } from './battle/types'
-import { POCKETS } from './battle/tuning'
+import { POCKETS, T } from './battle/tuning'
 import type { TopSpec } from './parts'
 import { composeRip, type RipResult } from './rip'
 import { rngNext, type RngState } from './rng'
@@ -38,6 +38,11 @@ export function botRip(rng: RngState, brain: BotBrain, spec: TopSpec): RipResult
 
 export function botInput(s: BattleState, side: Side, brain: BotBrain, rng: RngState): TickInput {
   const t = s.tops[side], f = s.tops[(1 - side) as Side], spec = s.specs[side]
+  if (t.edgeTicks > 0) {
+    if (T.edgeTicks - t.edgeTicks < Math.round(20 - 10 * brain.skill)) return { tiltX: 0, tiltY: 0, spirit: false }
+    const er = Math.sqrt(t.x * t.x + t.y * t.y) || 1, k = 0.5 + 0.5 * brain.skill
+    return { tiltX: -(t.x / er) * k, tiltY: -(t.y / er) * k, spirit: false }
+  }
   // Aim where the opponent will be (lead by ~0.15 s), not where it is.
   const dx = f.x + f.vx * 0.15 - t.x, dy = f.y + f.vy * 0.15 - t.y
   const dist = Math.sqrt(dx * dx + dy * dy) || 1

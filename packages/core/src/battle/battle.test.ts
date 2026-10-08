@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { assembleTop, STARTER_BUILDS } from '../parts'
 import type { RipResult } from '../rip'
-import { createBattle, stepBattle, battleHash, ROUND_TICKS, type BattleEvent, type BattleState, type TickInput } from './index'
+import { createBattle, stepBattle, battleHash, ROUND_TICKS, TUNING, type BattleEvent, type BattleState, type TickInput } from './index'
 
 const rip = (rpm: number, extra: Partial<RipResult> = {}): RipResult => ({
   ok: true, rpm, quality: 'GREAT', overspin: false, style: 'flat', bankDir: 0, timing: 1, straightness: 1, pullRatio: 0.9, startT: 0, ...extra,
@@ -63,9 +63,9 @@ describe('battle rules', () => {
   it('a top driven out through a pocket loses by RING OUT (2 pts)', () => {
     const s = fresh(); s.tick = 100; const t = s.tops[1]
     t.lastHitTick = 95
-    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3
+    t.x = 0; t.y = 0.9; t.vx = 0; t.vy = 3; t.spin = 0.2
     s.tops[0].x = 0; s.tops[0].y = -0.5
-    run(s, 10)
+    run(s, 10 + TUNING.edgeTicks)
     expect(s.outcome).toEqual({ winner: 0, finish: 'ringout', points: 2 })
   })
   it('an un-hit, steady top scrapes off a pocket instead of falling out', () => {

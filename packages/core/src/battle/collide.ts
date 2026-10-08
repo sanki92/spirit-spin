@@ -6,8 +6,9 @@ import type { BattleEvent, BattleState, Side, TopState } from './types'
 const atk = (s: TopSpec) => 0.6 + 0.08 * s.stats.attack
 const def = (s: TopSpec) => 0.6 + 0.08 * s.stats.defense
 
-export function resolveWall(t: TopState, spec: TopSpec, side: Side, tick: number, out: BattleEvent[]): void {
-  const grace = tick <= (t.overspinTicks > 0 ? T.launchGraceTicks / 2 : T.launchGraceTicks)
+export function resolveWall(t: TopState, spec: TopSpec, side: Side, tick: number, out: BattleEvent[], foe: TopState): void {
+  if (t.edgeTicks > 0) return
+  const grace = tick <= T.launchGraceTicks
   const d = Math.sqrt(t.x * t.x + t.y * t.y)
   if (d + spec.radius <= 1 || d === 0) return
   const nx = t.x / d, ny = t.y / d
@@ -16,7 +17,14 @@ export function resolveWall(t: TopState, spec: TopSpec, side: Side, tick: number
   for (const [px, py] of POCKETS) if (nx * px + ny * py > POCKET_COS) inPocket = true
   const knocked = tick - t.lastHitTick <= T.knockWindowTicks || t.wobble > 0.5
   const ringV = T.ringoutV * (spec.trait && spec.beastId === 'aegiron' ? T.tech.bedrock : 1)
-  if (inPocket && vn > ringV && !grace && knocked) { t.out = true; return }
+  if (inPocket && vn > ringV && !grace && knocked) {
+    if (foe.spiritTicks > 0 && foe.summonTicks === 0) { t.out = true; return }
+    t.x = nx * (1 - spec.radius); t.y = ny * (1 - spec.radius)
+    t.vx = 0; t.vy = 0
+    t.edgeTicks = T.edgeTicks; t.edgeClimb = 0
+    out.push({ k: 'edge', tick, side })
+    return
+  }
   t.x = nx * (1 - spec.radius); t.y = ny * (1 - spec.radius)
   if (vn > 0) {
     t.vx -= (1 + T.wallE) * vn * nx; t.vy -= (1 + T.wallE) * vn * ny
@@ -43,6 +51,8 @@ export function resolveClash(s: BattleState, out: BattleEvent[]): void {
 
   const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny
   if (vn >= 0) return // already separating
+  if (a.edgeTicks > 0) a.out = true
+  if (b.edgeTicks > 0) b.out = true
   a.lastHitTick = s.tick
   b.lastHitTick = s.tick
 

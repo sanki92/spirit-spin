@@ -29,10 +29,11 @@ export function stepBattle(s: BattleState, inputs: readonly [TickInput, TickInpu
     const input: TickInput = { tiltX: held ? 0 : clampTilt(raw.tiltX), tiltY: held ? 0 : clampTilt(raw.tiltY), spirit: raw.spirit === true }
     updateSpirit(t, spec, foe, input, side, s.tick, out, side === 0 ? out1 : out0)
     tickTechnique(t, spec, foe, side, s.tick, out)
-    moveTop(s, t, spec, input, foe)
+    if (t.edgeTicks > 0) teeter(t, spec, input, side, s.tick, out)
+    else moveTop(s, t, spec, input, foe)
   }
   resolveClash(s, out)
-  for (let i = 0; i < 2; i++) resolveWall(s.tops[i as Side], s.specs[i as Side], i as Side, s.tick, out)
+  for (let i = 0; i < 2; i++) resolveWall(s.tops[i as Side], s.specs[i as Side], i as Side, s.tick, out, s.tops[(1 - i) as Side])
   for (const t of s.tops) if (t.spin <= T.stopSpin) { t.spin = Math.max(t.spin, 0); t.stopped = true }
 
   const o = judge(s)
@@ -77,6 +78,23 @@ function moveTop(s: BattleState, t: TopState, spec: TopSpec, input: TickInput, f
 
   t.vx += ax * DT; t.vy += ay * DT
   t.x += t.vx * DT; t.y += t.vy * DT
+}
+
+function teeter(t: TopState, spec: TopSpec, input: TickInput, side: Side, tick: number, out: BattleEvent[]): void {
+  const d = Math.sqrt(t.x * t.x + t.y * t.y)
+  const nx = d > 1e-6 ? t.x / d : 0, ny = d > 1e-6 ? t.y / d : 1
+  t.x = nx * (1 - spec.radius); t.y = ny * (1 - spec.radius)
+  t.vx = 0; t.vy = 0
+  t.spin -= (TIP[spec.tip].decay * spec.decayMod + T.drag * t.spin) * DT
+  const inward = -(input.tiltX * nx + input.tiltY * ny)
+  t.edgeClimb += (Math.max(0, t.spin) * T.edgeSpinClimb * TIP[spec.tip].edge + Math.max(0, inward) * T.edgeSteerClimb) * DT
+  if (t.edgeClimb >= 1) {
+    t.edgeTicks = 0; t.edgeClimb = 0
+    t.vx = -nx * T.edgeEscapeV; t.vy = -ny * T.edgeEscapeV
+    out.push({ k: 'edgeSave', tick, side })
+    return
+  }
+  if (--t.edgeTicks === 0) { t.edgeClimb = 0; t.out = true }
 }
 
 const lostBy = (t: TopState): 'shatter' | 'ringout' | 'spin' | null =>
