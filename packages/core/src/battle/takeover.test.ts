@@ -178,15 +178,18 @@ describe('attack effects', () => {
 
 describe('round clock', () => {
   it('a spirit called just before time-up still gets its full takeover', () => {
-    const s = duel('voltfang')
+    const s = duel('aegiron')
     s.tick = ROUND_TICKS - 5
     const ev = play(s, 1, () => [CALL, IDLE])
     expect(s.tops[0].summonTicks).toBe(T.summonTicks)
     ev.push(...play(s, T.summonTicks, () => [IDLE, IDLE]))
     expect(ev.some(e => e.k === 'takeover')).toBe(true)
-    expect(s.outcome).toBeNull()
+    const stopAt = s.tick + T.takeoverTicks + 5
+    while (!s.outcome && s.tick < stopAt) ev.push(...play(s, 1, () => [IDLE, IDLE]))
+    const fin = ev.find(e => e.k === 'finish')
+    expect(fin && fin.k === 'finish' && fin.outcome.finish).toBe('spin')
+    expect(s.tops[0].spiritTicks).toBe(0)
     expect(s.pausedTicks).toBe(T.summonTicks)
-    expect(s.tops[0].spiritTicks).toBeGreaterThan(0)
   })
   it('without a spirit call the round still ends at ROUND_TICKS', () => {
     const s = duel('voltfang')
