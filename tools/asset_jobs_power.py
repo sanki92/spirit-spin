@@ -45,9 +45,23 @@ for beast, (desc, action) in POSES.items():
                    f"{action}, three-quarter side view, the whole creature inside the frame with a small margin. Its elemental energy wraps "
                    f"tightly around its body only. No ground, no background scenery, no text, no frame, no spinning top. {STYLE} {CUT}"),
     })
-EXTRA = {
-    ("zephyra", "gale"): "four distinct large feathered wings, two on each side, and the head with its silver beak and green eye clearly visible",
-    ("zephyra", "eye"): "wings folded or angled so both wing tips stay inside the frame with a clear margin on all sides",
+LOCK = "The exact same {n} spirit beast as BOTH reference images: identical head, face, eye colour, markings, armour, colours and number of limbs/wings/tails. Do not add, remove or redesign any feature. "
+COMP = ("Full body, the ENTIRE creature including every wing tip, tail tip and halo fits inside the frame with at least 8% empty margin on all four sides; "
+        "wings angled inward/upward, not spread to the edges; three-quarter side view; centred. ")
+NEG = "No ground, no floor, no shadow, no scenery, no background, no text, no letters, no frame, no border, no spinning top, no extra creatures. "
+HARD = {
+    ("zephyra", "gale"): ("awakened Gale storm griffin",
+        "Defining features: exactly FOUR slim blade-like feathered wings (two upper, two lower), long crest plumes swept back, bright mint-white palette, wind ribbons trailing from the wings, the head with its silver beak and green eye clearly visible and not covered by wings. ",
+        "Attack pose: the four wings angled upward and inward beating a powerful gust forward, talons raised, wind spiralling around the body. "),
+    ("zephyra", "eye"): ("awakened Eye of the Storm griffin",
+        "Defining features: a glowing calm storm-eye halo ring behind the head, darker storm-gray clouds with gold lightning edges, armoured silver feathers on the chest, silver talons, green eyes, silver beak. ",
+        "Attack pose: wings raised and angled inward above the back beating a powerful gust forward, talons raised, wind spiralling around the body. "),
+    ("umbrax", "nightfang"): ("awakened Nightfang shadow panther",
+        "Defining features: two long glowing magenta fangs, a smoke mane flaring like black fire, more glowing runes covering the body, eyes burning bright amber, lean feral build, four legs, one long tail; it has NO wings, NO halo, NO ring above the head and NO crown, just a head with ears and the flaring smoke mane. ",
+        "Attack pose: pouncing forward with claws extended, smoke mane flaring. "),
+    ("umbrax", "sovereign"): ("awakened Sovereign shadow panther",
+        "Defining features: a floating crown of black crystal shards above the head, a long smoke cape flowing from the shoulders, silver-white runes instead of magenta, deep violet-black body, calm regal look, amber eyes, four legs. ",
+        "Attack pose: pouncing forward with claws extended, the smoke cape streaming behind. "),
 }
 FORM_DESC = {**AWAKEN, **FORMS}
 for (beast, form), fdesc in FORM_DESC.items():
@@ -55,7 +69,7 @@ for (beast, form), fdesc in FORM_DESC.items():
     jobs.append({
         "out": base + "pose-attack.png", "model": T15, "quality": "high", "size": "1024x1536", "background": "transparent", "input_fidelity": "high",
         "refs": [base + "card-art.png", base + "summon.png"],
-        "prompt": (f"The exact same awakened {POSES[beast][0].split(' with ')[0]} spirit beast as the references, {fdesc}; {EXTRA.get((beast, form), "")} identical design, colors, markings and armor. Full body, attack pose: "
+        "prompt": (LOCK.format(n=HARD[(beast, form)][0]) + HARD[(beast, form)][1] + COMP + HARD[(beast, form)][2] + NEG + f"{STYLE} {CUT}") if (beast, form) in HARD else (f"The exact same awakened {POSES[beast][0].split(' with ')[0]} spirit beast as the references, {fdesc}; identical design, colors, markings and armor. Full body, attack pose: "
                    f"{POSES[beast][1]}, three-quarter side view, the whole creature inside the frame with a small margin. Its elemental energy wraps "
                    f"tightly around its body only. No ground, no background scenery, no text, no frame, no spinning top. {STYLE} {CUT}"),
     })

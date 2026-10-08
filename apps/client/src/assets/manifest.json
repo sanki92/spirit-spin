@@ -629,6 +629,11 @@
   "w": 239,
   "h": 320
  },
+ "beasts/umbrax/awakened-nightfang/pose-attack": {
+  "url": "/assets/beasts/umbrax/awakened-nightfang/pose-attack.webp?v=db7427d5",
+  "w": 713,
+  "h": 1024
+ },
  "beasts/umbrax/awakened-nightfang/summon": {
   "url": "/assets/beasts/umbrax/awakened-nightfang/summon.webp?v=c6b24c85",
   "w": 613,
@@ -683,6 +688,11 @@
   "url": "/assets/beasts/umbrax/awakened-sovereign/expressions/sulky.webp?v=3bf47da8",
   "w": 319,
   "h": 320
+ },
+ "beasts/umbrax/awakened-sovereign/pose-attack": {
+  "url": "/assets/beasts/umbrax/awakened-sovereign/pose-attack.webp?v=f37d6217",
+  "w": 698,
+  "h": 1024
  },
  "beasts/umbrax/awakened-sovereign/summon": {
   "url": "/assets/beasts/umbrax/awakened-sovereign/summon.webp?v=a2dd3172",
@@ -979,6 +989,11 @@
   "w": 319,
   "h": 320
  },
+ "beasts/zephyra/awakened-eye/pose-attack": {
+  "url": "/assets/beasts/zephyra/awakened-eye/pose-attack.webp?v=c4ddb4ec",
+  "w": 714,
+  "h": 1024
+ },
  "beasts/zephyra/awakened-eye/summon": {
   "url": "/assets/beasts/zephyra/awakened-eye/summon.webp?v=745c0e1d",
   "w": 630,
@@ -1033,6 +1048,11 @@
   "url": "/assets/beasts/zephyra/awakened-gale/expressions/sulky.webp?v=16187a54",
   "w": 320,
   "h": 304
+ },
+ "beasts/zephyra/awakened-gale/pose-attack": {
+  "url": "/assets/beasts/zephyra/awakened-gale/pose-attack.webp?v=f59d267a",
+  "w": 711,
+  "h": 1024
  },
  "beasts/zephyra/awakened-gale/summon": {
   "url": "/assets/beasts/zephyra/awakened-gale/summon.webp?v=54b652ec",
