@@ -76,6 +76,7 @@ export class OnlineController extends BattleController {
     if (m.k === 'start' && m.edge && this.link instanceof EdgeLink) this.link.refresh(m.edge)
     if (m.k === 'round' && m.round > this.ripRound) {
       this.flushEnd()
+      this.flushHeld()
       this.ripRound = m.round
       this.driver = null
       this.beginServer = Infinity
@@ -166,6 +167,10 @@ export class OnlineController extends BattleController {
   }
 
   private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
+    this.afterSummon(() => this.endRound(m))
+  }
+
+  private endRound(m: Extract<ServerMsg, { k: 'end' }>): void {
     const outcome = this.side === 0 ? m.outcome : { ...m.outcome, winner: flipWinner(m.outcome.winner) }
     const scores: [number, number] = this.side === 0 ? m.scores : [m.scores[1], m.scores[0]]
     const winner = this.side === 0 ? m.winner : flipWinner(m.winner)

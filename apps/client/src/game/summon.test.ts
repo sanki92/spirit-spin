@@ -70,24 +70,38 @@ describe('summon presentation online', () => {
   })
 })
 
-describe('round end during a held summon', () => {
-  it('clears the summon letterbox and never fires the held takeover afterwards', () => {
+describe('round end during a summon', () => {
+  it('waits for the summon to finish, plays the takeover, then ends the round and clears the letterbox', () => {
     const { p, game, run } = rig()
     p.onEvent({ k: 'spirit', tick: 100, side: 0 })
     p.onEvent({ k: 'takeover', tick: 160, side: 0 })
     p.onEvent({ k: 'finish', tick: 163, outcome: { winner: 0, finish: 'spin', points: 1 } })
-    expect(useHud.getState().summon).toBeNull()
-    run(1.5)
-    expect(game.frameBoth).not.toHaveBeenCalled()
+    expect(useHud.getState()).toMatchObject({ summon: 0, phase: 'battle' })
+    run(1.05)
+    expect(game.frameBoth).toHaveBeenCalledTimes(1)
+    expect(useHud.getState()).toMatchObject({ summon: null, phase: 'roundEnd' })
   })
-})
 
-describe('round end during a summon', () => {
   it('clears the letterbox when the round ends on the spirit call tick', () => {
-    const { p } = rig()
+    const { p, run } = rig()
     p.onEvent({ k: 'spirit', tick: 100, side: 1 })
     p.onEvent({ k: 'finish', tick: 100, outcome: { winner: 1, finish: 'ringout', points: 2 } })
-    expect(useHud.getState().summon).toBeNull()
+    run(1.05)
+    expect(useHud.getState()).toMatchObject({ summon: null, phase: 'roundEnd' })
+  })
+
+  it('a round that ends with no summon on screen ends at once', () => {
+    const { p } = rig()
+    p.onEvent({ k: 'finish', tick: 300, outcome: { winner: 0, finish: 'ringout', points: 2 } })
+    expect(useHud.getState().phase).toBe('roundEnd')
+  })
+
+  it('a held round end is not lost when the next round starts first', () => {
+    const { p } = rig()
+    p.onEvent({ k: 'spirit', tick: 100, side: 0 })
+    p.onEvent({ k: 'finish', tick: 100, outcome: { winner: 0, finish: 'ringout', points: 2 } })
+    ;(p as unknown as { prepRound(): void }).prepRound()
+    expect((p as unknown as { match: { scores: number[] } }).match.scores).toEqual([2, 0])
   })
 })
 

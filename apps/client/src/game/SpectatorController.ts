@@ -46,6 +46,7 @@ export class SpectatorController extends BattleController {
     if (this.disposed || this.done) return
     if (m.k === 'round' && m.round > this.ripRound) {
       if (this.pendingEnd) this.applyEnd(this.pendingEnd)
+      this.flushHeld()
       if (this.done) return
       this.ripRound = m.round
       this.rp = null
@@ -83,6 +84,10 @@ export class SpectatorController extends BattleController {
 
   private applyEnd(m: Extract<ServerMsg, { k: 'end' }>): void {
     this.pendingEnd = null
+    this.afterSummon(() => this.endRound(m))
+  }
+
+  private endRound(m: Extract<ServerMsg, { k: 'end' }>): void {
     if (!this.game.battle && this.rp) this.game.setBattle(this.rp.tl.state)
     if (this.game.battle) this.finishRound({ k: 'finish', tick: this.rp?.tl.state.tick ?? 0, outcome: m.outcome })
     this.match = { ...this.match, scores: m.scores, winner: m.winner }

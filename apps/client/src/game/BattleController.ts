@@ -84,6 +84,7 @@ export class BattleController {
   protected lastTiers: [LaunchTier, LaunchTier] = ['GOOD', 'GOOD']
   protected summonHold: [number, number] = [0, 0]
   protected takeoverDue: [boolean, boolean] = [false, false]
+  protected heldEnd: (() => void) | null = null
 
   constructor(
     protected game: Game,
@@ -151,6 +152,17 @@ export class BattleController {
     return !!b && b.tops[0].gauge >= 1 && b.tops[1].spiritTicks > 0 && useHud.getState().phase === 'battle'
   }
 
+  protected afterSummon(fn: () => void): void {
+    if (this.summonHold[0] > 0 || this.summonHold[1] > 0) this.heldEnd = fn
+    else fn()
+  }
+
+  protected flushHeld(): void {
+    const f = this.heldEnd
+    this.heldEnd = null
+    f?.()
+  }
+
   protected clearSummons(): void {
     this.summonHold[0] = this.summonHold[1] = 0
     this.takeoverDue[0] = this.takeoverDue[1] = false
@@ -183,6 +195,7 @@ export class BattleController {
     this.manualTilt = { x: 0, y: 0 }
     this.windowFrom = -Infinity
     this.pullShown = 0
+    this.flushHeld()
     this.clearSummons()
     this.game.setBattle(null)
     this.game.spirits?.forEach(sp => sp.reset())
@@ -465,7 +478,7 @@ export class BattleController {
         }
         break
       case 'finish':
-        this.finishRound(e)
+        this.afterSummon(() => this.finishRound(e))
         break
     }
   }
@@ -574,6 +587,7 @@ export class BattleController {
         this.takeover(i as Side)
       }
     }
+    if (this.heldEnd && this.summonHold[0] <= 0 && this.summonHold[1] <= 0) this.flushHeld()
     this.hudTimer += dt
     this.perfTimer += dt
     if (this.perfTimer > 5) {
