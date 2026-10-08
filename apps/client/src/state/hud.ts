@@ -21,7 +21,6 @@ export interface HudState {
   round: number
   scores: [number, number]
   spin: [number, number]
-  guard: [number, number]
   gauge: [number, number]
   spiritActive: [boolean, boolean]
   edge: [boolean, boolean]
@@ -62,7 +61,6 @@ export const useHud = create<HudState>(set => ({
   round: 1,
   scores: [0, 0],
   spin: [0, 0],
-  guard: [1, 1],
   gauge: [0, 0],
   spiritActive: [false, false],
   edge: [false, false],

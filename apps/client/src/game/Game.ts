@@ -18,6 +18,7 @@ import { TechFx } from './render/TechFx'
 import { TopMesh } from './render/TopMesh'
 import { keepInside, separate } from './contact'
 import { Shatter } from './render/Shatter'
+import { GuardBars, guardVisible, type GuardScene } from './render/GuardBars'
 import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
@@ -77,6 +78,8 @@ export class Game {
   private hist: ReplayFrame[] = []
   private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
+  guards: GuardBars | null = null
+  private readonly guardScene: GuardScene = { fighting: true, cine: false, zoom: false, summon: false, outcome: false, out: false, broken: false }
   private zoomSide: 0 | 1 | 'both' | null = null
   private shot: Shot = { x: 0, y: 0, z: 0, amount: 0 }
   private zoomUntil = 0
@@ -114,6 +117,7 @@ export class Game {
     g.powerTex = powerTex
     g.power = new PowerFx(powerTex, quality === 'low' ? 40 : 90, POWERS)
     g.stage.world.add(g.power.group)
+    if (canvas.parentElement) g.guards = new GuardBars(canvas.parentElement)
     if (import.meta.env.DEV) (window as unknown as { __game: Game }).__game = g
     for (const t of [spark, shock, crack, lightning, crystal, water, fire, wind, shadow, bowl, floor, ...(rim ? [rim] : []), ...powerTextureList(powerTex)]) g.stage.renderer.initTexture(t)
     return g
@@ -299,6 +303,8 @@ export class Game {
 
   dispose(): void {
     this.stop()
+    this.guards?.dispose()
+    this.guards = null
     this.stage.scene.traverse(o => {
       const m = o as unknown as { geometry?: { dispose(): void }; material?: { dispose(): void } | { dispose(): void }[] }
       m.geometry?.dispose()
@@ -477,6 +483,7 @@ export class Game {
 
   private draw(alpha: number, dt: number): void {
     if (this.cine) {
+      this.guards?.hide()
       this.techFx?.hide()
       this.drawCine(this.cine, dt)
       this.fx.update(dt * 0.35, this.stage.camera)
@@ -489,6 +496,7 @@ export class Game {
     if (!b && this.tops && this.armed) this.drawHold(dt)
     else if (!b && this.tops) for (const t of this.tops) t.group.visible = false
     if (!b && !this.armed) for (const r of this.launchers) r?.hide()
+    if (!b || this.anim) this.guards?.hide()
     if (b && this.anim && this.tops) {
       this.drawLaunch(b, this.anim, dt)
       this.fx.update(dt, this.stage.camera)
@@ -532,6 +540,15 @@ export class Game {
         top.fade(driving && spec?.beastId === 'umbrax' && e < TUNING.tech.pounceAt ? 0.25 : 1, dt)
         top.raise(driving && spec?.beastId === 'agnyx' ? (e < TUNING.tech.riseTicks ? 0.3 * Math.sin((e / TUNING.tech.riseTicks) * Math.PI * 0.5) : Math.max(0, 0.3 * (1 - (e - TUNING.tech.riseTicks) / 8))) : 0)
         this.spirits[i as 0 | 1].update(x, y, top.group.position.y, o.x, o.y, dt, still)
+        if (this.guards) {
+          const gs = this.guardScene, p = top.group.position
+          gs.zoom = this.zoomSide !== null
+          gs.summon = sum !== null
+          gs.outcome = !!b.outcome
+          gs.out = t.out
+          gs.broken = this.broken[i as 0 | 1]
+          this.guards.update(i as 0 | 1, p.x, p.y, p.z, 1 - t.shatter, guardVisible(gs), this.stage.camera, this.canvas.clientWidth, this.canvas.clientHeight)
+        }
       }
       if (this.techFx && this.specs) {
         const sp = this.specs

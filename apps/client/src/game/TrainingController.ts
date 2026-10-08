@@ -100,7 +100,7 @@ export class TrainingController extends BattleController {
       ({ id: `move-${title}`, title, text: motion ? tilt : drag, arrow, ...(motion ? {} : { target: '.stick-zone' }) })
     this.steps = [
       { id: 'stamina', title: 'Stamina', text: 'This bar is your top’s spin. When it runs out, your top stops and you lose the round.', target: '.side.left .spinbar', tap: 'Next' },
-      { id: 'guard', title: 'Guard', text: 'Hard hits crack your guard. If it empties, your top shatters.', target: '.side.left .guardbar', tap: 'Next' },
+      { id: 'guard', title: 'Guard', text: 'The gold bar above your top is its guard. Hard hits crack it. If it empties, your top shatters.', target: '.guard-float.me', tap: 'Next' },
       { id: 'points', title: 'Points', text: 'Win rounds to light these up. First to 4 points wins the match.', target: '.side.left .pips', tap: 'Got it' },
       move('←', 'Move left', 'Tilt your phone to the left.', 'Drag the stick to the left.'),
       move('→', 'Move right', 'Tilt your phone to the right.', 'Drag the stick to the right.'),

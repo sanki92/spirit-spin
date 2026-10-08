@@ -42,12 +42,13 @@ export function LessonOverlay() {
     const frame = el.closest<HTMLElement>('.side') ?? el
     const copy = frame.cloneNode(true) as HTMLElement
     copy.style.margin = '0'
+    if (frame === el) { copy.style.position = 'relative'; copy.style.transform = 'none'; copy.style.display = '' }
     copy.style.width = `${lift.from.width}px`
     box.replaceChildren(copy)
     const focusClass = el.classList[0]
     const focus = focusClass ? copy.querySelector<HTMLElement>(`.${focusClass}`) : null
     focus?.classList.add('lesson-focus')
-    for (const part of copy.querySelectorAll<HTMLElement>('.name, .pips, .spinbar, .guardbar')) if (part !== focus) part.classList.add('lesson-faded')
+    for (const part of copy.querySelectorAll<HTMLElement>('.name, .pips, .spinbar')) if (part !== focus) part.classList.add('lesson-faded')
     const pips = lesson?.id === 'points' && focus ? [...focus.querySelectorAll('i')] : []
     const timers = pips.map((p, i) => window.setTimeout(() => p.classList.add('on'), 650 + i * 280))
     return () => { timers.forEach(clearTimeout); box.replaceChildren() }

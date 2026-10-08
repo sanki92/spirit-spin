@@ -203,7 +203,7 @@ export class BattleController {
     this.game.spirits?.forEach(sp => sp.reset())
     this.game.fx.clearDecals()
     this.game.arm()
-    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false], edge: [false, false], saved: null, summon: null, refused: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
+    useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], gauge: [0, 0], spiritActive: [false, false], edge: [false, false], saved: null, summon: null, refused: 0, coachTip: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
   }
 
@@ -629,7 +629,6 @@ export class BattleController {
       this.hudTimer = 0
       useHud.getState().set({
         spin: [b.tops[0].spin, b.tops[1].spin],
-        guard: [1 - b.tops[0].shatter, 1 - b.tops[1].shatter],
         gauge: [b.tops[0].gauge, b.tops[1].gauge],
         spiritActive: [b.tops[0].spiritTicks > 0, b.tops[1].spiritTicks > 0],
       })

@@ -38,9 +38,9 @@ describe('steering input', () => {
 
   it('HUD bars start each round clean instead of showing the last round', () => {
     const { p } = rig(false)
-    useHud.getState().set({ spin: [0.7, 0], guard: [0.2, 0], gauge: [1, 0.4], spiritActive: [true, false] })
+    useHud.getState().set({ spin: [0.7, 0], gauge: [1, 0.4], spiritActive: [true, false] })
     p.prepRound()
-    expect(useHud.getState()).toMatchObject({ spin: [0, 0], guard: [1, 1], gauge: [0, 0], spiritActive: [false, false] })
+    expect(useHud.getState()).toMatchObject({ spin: [0, 0], gauge: [0, 0], spiritActive: [false, false] })
   })
 
   it('tilt neutral is taken once, at the first sim input after launch', () => {

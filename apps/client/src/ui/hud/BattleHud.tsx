@@ -128,7 +128,6 @@ function Side({ name, beast, score, side, active, align }: { name: string; beast
         <div className="pips" aria-label={`${score} points`}>{[0, 1, 2, 3].map(i => <i key={i} className={i < score ? 'on' : ''} />)}</div>
       </div>
       <div className="spinbar" role="meter" aria-label="Stamina"><Live className="" get={st => ({ width: `${Math.max(0, Math.min(1, st.spin[side])) * 100}%` })} /></div>
-      <div className="guardbar" role="meter" aria-label="Guard"><Live className="" get={st => ({ width: `${Math.max(0, Math.min(1, st.guard[side])) * 100}%`, background: st.guard[side] < 0.3 ? 'linear-gradient(90deg, #ff4a3a, #ff8a6a)' : '' })} /></div>
     </div>
   )
 }
