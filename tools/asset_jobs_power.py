@@ -27,9 +27,9 @@ VFX = {
 
 POSES = {
     "voltfang": ("storm wolf of blue lightning", "lunging forward mid-leap with jaws open, lightning crackling along its fangs and claws"),
-    "aegiron": ("crystal fortress tortoise of earth and crystal", "rearing up and slamming its front legs down, crystal spikes bursting from its shell"),
+    "aegiron": ("crystal fortress tortoise with a BLACK hexagonal-plated shell with bright green glowing seams, clean faceted emerald crystals, crisp cel-shaded line art (not sketchy, not hatched)", "rearing up and slamming its front legs down, the large jet-black hexagonal-plated shell clearly visible on its back with bright green glowing seams between the plates, emerald crystal spikes along the shell rim"),
     "nagara": ("moon serpent-dragon of moonlit water", "coiling its long body in a striking spiral with jaws open, moonlit water spiralling around it"),
-    "agnyx": ("crimson firebird of flame", "diving downward with wings swept back and talons forward, a trail of fire behind it"),
+    "agnyx": ("crimson firebird with deep red and orange feathers, polished golden armor plates on its shoulders, chest and legs, golden talons, crisp cel-shaded line art (not sketchy, not hatched)", "diving downward with wings swept back and talons forward, a trail of fire behind it"),
     "zephyra": ("storm griffin of teal-mint wind and white storm clouds", "wings spread wide beating a powerful gust forward, talons raised, wind spiralling from its wings"),
     "umbrax": ("shadow panther of ink-black shadow and magenta smoke", "pouncing forward with claws extended, smoke mane flaring, amber eyes blazing"),
 }
