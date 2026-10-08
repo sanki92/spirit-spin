@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { spiritReady, spiritRefused, type BattlePhase } from '../state/hud'
-import { spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn } from './transitions'
+import { beastShot, spectatorSees, spiritTransitions, summonEnd, summonFocus, summonStart, takeoverOn } from './transitions'
 import { powerTextureList } from './render/power/textures'
 import { blankTextures } from './render/power/testkit'
 
@@ -93,5 +93,29 @@ describe('double call and refused press', () => {
     expect(spiritRefused(s(1, 'battle', false))).toBe(false)
     expect(spiritRefused(s(0.4, 'battle', true))).toBe(false)
     expect(spiritRefused(s(1, 'roundEnd', true))).toBe(false)
+  })
+})
+
+describe('summon camera', () => {
+  const tops = [{ x: 0.3, y: -0.2 }, { x: -0.1, y: 0.4 }] as const
+  it('frames the whole beast above a single summoning top: raised focus, pulled back from the full close-up', () => {
+    const o = { x: 0, y: 0, z: 0, amount: 0 }
+    beastShot(o, tops, 0)
+    expect(o.x).toBeCloseTo(0.3)
+    expect(o.z).toBeLessThan(0.2)
+    expect(o.z).toBeGreaterThan(0.2 - 0.3)
+    expect(o.y).toBeGreaterThan(0.5)
+    expect(o.y).toBeLessThan(1)
+    expect(o.amount).toBeLessThan(0.75)
+    expect(o.amount).toBeGreaterThan(0.45 - 1e-9)
+  })
+  it('a double call frames the midpoint of both tops, wider than a single summon', () => {
+    const o = { x: 0, y: 0, z: 0, amount: 0 }
+    beastShot(o, tops, 'both')
+    expect(o.x).toBeCloseTo(0.1)
+    expect(o.y).toBeGreaterThan(0.5)
+    const single = { x: 0, y: 0, z: 0, amount: 0 }
+    beastShot(single, tops, 1)
+    expect(o.amount).toBeLessThan(single.amount)
   })
 })

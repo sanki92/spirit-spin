@@ -6,7 +6,7 @@ import { BEASTS } from './beasts'
 import { createStepper, type Stepper } from './loop'
 import { Fx } from './render/Fx'
 import { SpiritBillboard } from './render/SpiritBillboard'
-import { summonFocus, takeoverOn } from './transitions'
+import { beastShot, summonFocus, takeoverOn, type Shot } from './transitions'
 import { PowerFx, type PowerTextures } from './render/power/PowerFx'
 import { pillarStyle } from './render/power/eruption'
 import { POWERS } from './render/power'
@@ -21,8 +21,6 @@ import { HANG, HOLD_HEIGHT, LaunchRig } from './render/Launcher'
 import { flightProgress, KICK_MS, launchDuration, planFor, type LaunchPlan, type LaunchTier } from './launchPlan'
 
 export type StadiumTheme = 'classic' | 'volcano' | 'frozen-moon'
-const ZOOM_LEAD = 0.2
-const BOTH_ZOOM = 0.45
 const THEME_ACCENT: Record<StadiumTheme, number> = { classic: 0x3be6ff, volcano: 0xff6a1a, 'frozen-moon': 0xa8e8ff }
 
 interface Snap { x: number; y: number }
@@ -79,7 +77,7 @@ export class Game {
   private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
   private zoomSide: 0 | 1 | 'both' | null = null
-  private zoomAmt = 1
+  private shot: Shot = { x: 0, y: 0, z: 0, amount: 0 }
   private zoomUntil = 0
   private onFrame: ((dt: number) => void) | null = null
 
@@ -227,14 +225,12 @@ export class Game {
   spiritZoom(side: 0 | 1, ms: number): void {
     if (this.cine) return
     this.zoomSide = side
-    this.zoomAmt = 1
     this.zoomUntil = performance.now() + ms
   }
 
   frameBoth(ms: number): void {
     if (this.cine) return
     this.zoomSide = 'both'
-    this.zoomAmt = BOTH_ZOOM
     this.zoomUntil = performance.now() + ms
   }
 
@@ -252,13 +248,9 @@ export class Game {
     if (this.zoomSide === null) return
     const b = this.battle
     if (this.cine || !b || now > this.zoomUntil) return this.endZoom()
-    if (this.zoomSide === 'both') {
-      const [a, c] = b.tops
-      return this.stage.cinematic(true, (a.x + c.x) / 2, -(a.y + c.y) / 2 - ZOOM_LEAD / 2, this.zoomAmt)
-    }
-    const t = b.tops[this.zoomSide]
-    if (t.out) return this.endZoom()
-    this.stage.cinematic(true, t.x, -t.y - ZOOM_LEAD, this.zoomAmt)
+    if (this.zoomSide !== 'both' && b.tops[this.zoomSide].out) return this.endZoom()
+    const s = beastShot(this.shot, b.tops, this.zoomSide)
+    this.stage.cinematic(true, s.x, s.z, s.amount, s.y)
   }
 
   slowmo(scale: number, ms: number): void {

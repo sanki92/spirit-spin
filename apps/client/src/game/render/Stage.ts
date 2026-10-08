@@ -122,9 +122,9 @@ export class Stage {
   private cineYaw = 0
   private cineFocus = new Vector3()
 
-  cinematic(on: boolean, x = 0, z = 0, amount = 1): void {
+  cinematic(on: boolean, x = 0, z = 0, amount = 1, y = 0): void {
     this.cineGoal = on ? amount : 0
-    if (on) this.cineFocus.set(x, 0, z)
+    if (on) this.cineFocus.set(x, y, z)
   }
 
   render(dt: number): void {

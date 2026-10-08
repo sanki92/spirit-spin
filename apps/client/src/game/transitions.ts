@@ -25,3 +25,18 @@ export const summonEnd = (s: Summon, side: Side): Summon => (s === 'both' ? ((1 
 export const summonFocus = (a: boolean, b: boolean): Summon => (a && b ? 'both' : a ? 0 : b ? 1 : null)
 
 export const spectatorSees = (e: BattleEvent): boolean => e.k === 'clash' || e.k === 'wall' || e.k === 'beast'
+
+const LEAD = 0.2
+const LIFT = 0.95
+const SINGLE = 0.5
+const BOTH = 0.45
+
+export interface Shot { x: number; y: number; z: number; amount: number }
+
+export function beastShot(o: Shot, tops: readonly { x: number; y: number }[], side: Side | 'both'): Shot {
+  const [a, b] = [tops[0]!, tops[1]!]
+  if (side === 'both') { o.x = (a.x + b.x) / 2; o.z = -(a.y + b.y) / 2 - LEAD / 2; o.amount = BOTH }
+  else { const t = side === 0 ? a : b; o.x = t.x; o.z = -t.y - LEAD; o.amount = SINGLE }
+  o.y = LIFT
+  return o
+}

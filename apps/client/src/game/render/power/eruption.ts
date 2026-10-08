@@ -32,7 +32,7 @@ export class Eruption {
   private phase = 0
 
   constructor(style: PillarStyle) {
-    this.ribbons = [0, 1].map(() => new Ribbon(style.tex, PTS, 0.1, style.additive))
+    this.ribbons = [0, 1].map(() => new Ribbon(style.tex, PTS, 0.16, style.additive))
     for (const r of this.ribbons) {
       r.mesh.material.color.setHex(style.tint)
       this.group.add(r.mesh)
@@ -57,7 +57,7 @@ export class Eruption {
       const r = this.ribbons[s]!
       r.mesh.material.opacity = a
       r.mesh.visible = a > 0.01
-      helix(r.points, x, y, base, Math.max(h, 0.02), this.phase + s * Math.PI, 2.5, 0.06 + 0.04 * k, -0.6)
+      helix(r.points, x, y, base, Math.max(h, 0.02), this.phase + s * Math.PI, 2.5, 0.08 + 0.05 * k, -0.6)
       r.layout(false)
       if (!still) r.scroll(-dt * 3)
     }
