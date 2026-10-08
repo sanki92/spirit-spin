@@ -403,8 +403,10 @@ export class BattleController {
         g.spirits?.[e.side].pose(false)
         g.spirits?.[e.side].show(true)
         this.later(1100, () => this.announcer.say('spirit', true))
-        g.fx.burst(t.x, t.y)
-        if (!reducedMotion()) g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
+        if (!reducedMotion()) {
+          g.fx.burst(t.x, t.y)
+          g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
+        }
         const summon = summonStart(useHud.getState().summon, e.side)
         if (summon === 'both') g.frameBoth(1100)
         else g.spiritZoom(e.side, 1100)

@@ -47,4 +47,6 @@ export function beastShot(o: Shot, tops: readonly { x: number; y: number }[], si
   return o
 }
 
-export const reducedMotion = (): boolean => document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches
+const reduceQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
+
+export const reducedMotion = (): boolean => document.documentElement.classList.contains('reduce-motion') || reduceQuery?.matches === true
