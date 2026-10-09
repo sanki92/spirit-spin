@@ -6,6 +6,7 @@ import { BEASTS } from '../../game/beasts'
 import { spiritReady, spiritRefused, stickLive, useHud, type Banner } from '../../state/hud'
 import { LessonOverlay } from './LessonOverlay'
 import { CoachOverlay, CoachTipCard, GripGuide, LaunchCallout, PullMeter, VsIntro } from './LaunchHud'
+import { GuideThumb } from './GuideThumb'
 
 const BANNER_ART: Record<Exclude<Banner, null>, string> = {
   spin: 'ui/banner-finish-spin', ringout: 'ui/banner-finish-ringout', shatter: 'ui/banner-finish-shatter', spirit: 'ui/banner-finish-spirit',
@@ -31,7 +32,7 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
   onSwipeZone: (el: HTMLDivElement | null) => void
   onStick: (x: number, y: number) => void
 }) {
-  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, summon: s.summon, refused: s.refused, coach: s.coach, coachTip: s.coachTip, edge: s.edge, saved: s.saved })))
+  const h = useHud(useShallow(s => ({ phase: s.phase, countdown: s.countdown, round: s.round, scores: s.scores, callout: s.callout, banner: s.banner, cutin: s.cutin, inputMode: s.inputMode, spiritActive: s.spiritActive, notice: s.notice, announcer: s.announcer, cine: s.cine, summon: s.summon, refused: s.refused, coach: s.coach, coachTip: s.coachTip, edge: s.edge, saved: s.saved, guide: s.guide })))
   const ready = useHud(spiritReady)
   const blocked = useHud(spiritRefused)
   return (
@@ -51,6 +52,7 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
           {!spectator && h.inputMode === 'motion' && (h.phase === 'countdown' || h.phase === 'coach') && <PullMeter />}
         </div>
       )}
+      {h.guide && !spectator && <GuideThumb guide={h.guide} countdown={h.countdown} />}
       {h.countdown === 'LAUNCH' && (
         <div className="launch-flash" aria-live="assertive">
           <Art id={COUNT_ART.LAUNCH!} text="LAUNCH!" className="launch-word" />

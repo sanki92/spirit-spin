@@ -1,5 +1,6 @@
 import type { BeastId, FinishKind, RipQuality } from '@spirit/core'
 import { create } from 'zustand'
+import type { Guide } from '../game/guide'
 
 export type BattlePhase = 'idle' | 'grip' | 'countdown' | 'coach' | 'launch' | 'battle' | 'roundEnd' | 'matchEnd' | 'paused'
 export type Countdown = '3' | '2' | '1' | 'LAUNCH' | null
@@ -43,6 +44,7 @@ export interface HudState {
   lessonTaps: number
   lessonSkip: number
   training: boolean
+  guide: Guide | null
   set: (p: Partial<HudState>) => void
 }
 
@@ -85,6 +87,7 @@ export const useHud = create<HudState>(set => ({
   lessonTaps: 0,
   lessonSkip: 0,
   training: false,
+  guide: null,
   set: p => set(p),
 }))
 
