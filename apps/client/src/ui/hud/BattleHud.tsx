@@ -99,8 +99,7 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
           {h.refused > 0 && <div key={h.refused} className="spirit-refused" role="status">Rival's beast is out!</div>}
           <button className={`spirit-btn ${ready ? 'ready' : ''} ${h.refused > 0 ? (h.refused % 2 ? 'refused' : 'refused-b') : ''}`} onPointerDown={onSpirit} disabled={!ready && !blocked}>
             <Live className="gauge" get={st => ({ height: `${Math.min(1, st.gauge[0]) * 100}%` })} />
-            <span>{ready ? 'SHOUT!' : 'SPIRIT'}</span>
-            {ready && <Live className="shout-meter" get={st => ({ transform: `scaleX(${st.shoutLevel})` })} />}
+            <span>{ready ? 'TAP!' : 'SPIRIT'}</span>
           </button>
         </>
       )}

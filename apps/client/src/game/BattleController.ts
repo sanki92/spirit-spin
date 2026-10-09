@@ -5,7 +5,6 @@ import {
 } from '@spirit/core'
 import type { Sound } from '../audio/sound'
 import { buzz } from '../input/haptics'
-import type { ShoutDetector } from '../input/mic'
 import { deadzone, type SensorFeed } from '../input/sensors'
 import { summonReset, useHud, edgeFlags } from '../state/hud'
 import { log } from '../telemetry'
@@ -56,7 +55,7 @@ export class BattleController {
   protected swipe: TouchSample[] | null = null
   protected swipeLive: TouchSample[] | null = null
   protected spiritRequest = false
-  protected lastSpiritVia: 'shout' | 'button' | null = null
+  protected lastSpiritVia: 'button' | null = null
   protected manualTilt = { x: 0, y: 0 }
   protected needNeutral = false
   protected events: BattleEvent[] = []
@@ -97,7 +96,7 @@ export class BattleController {
   constructor(
     protected game: Game,
     protected setup: MatchSetup,
-    protected deps: { sound: Sound; sensors: SensorFeed | null; shout: ShoutDetector | null; calibration: Calibration; onEnd: (r: MatchResult) => void; onCalibrate?: (pulls: number[]) => Calibration; onAbort?: () => void },
+    protected deps: { sound: Sound; sensors: SensorFeed | null; calibration: Calibration; onEnd: (r: MatchResult) => void; onCalibrate?: (pulls: number[]) => Calibration; onAbort?: () => void },
   ) {
     this.botRng = createRng(setup.seed ^ 0x9e3779b9)
     this.hesitationLeft = setup.playerHesitates
@@ -626,19 +625,6 @@ export class BattleController {
     const now = performance.now()
     this.meterPull(now)
     this.pollLaunch(now)
-    const shout = this.deps.shout
-    if (shout?.ready) {
-      const b = this.game.battle
-      if (shout.update(dt * 1000) && b && b.tops[0].gauge >= 1) {
-        if (this.spiritBlocked()) this.refuse()
-        else {
-          this.spiritRequest = true
-          this.lastSpiritVia = 'shout'
-          log('shout.trigger', { level: +shout.level.toFixed(2) })
-        }
-      }
-      if (Math.abs(useHud.getState().shoutLevel - shout.level) > 0.04) useHud.getState().set({ shoutLevel: shout.level })
-    }
     for (let i = 0; i < 2; i++) {
       if (this.summonHold[i]! <= 0) continue
       this.summonHold[i]! -= dt
@@ -658,7 +644,7 @@ export class BattleController {
     if (this.perfTimer > 5) {
       this.perfTimer = 0
       const st = this.game.stage
-      log('perf', { p95: +st.perf.p95.toFixed(1), slowFrames: st.perf.slow, frames: st.perf.frames, dpr: st.dpr, quality: st.quality, calls: st.renderer.info.render.calls, tris: st.renderer.info.render.triangles, programs: st.renderer.info.programs?.length ?? null, sensorsLive: this.deps.sensors?.live ?? false, shoutLevel: this.deps.shout ? +this.deps.shout.level.toFixed(2) : null })
+      log('perf', { p95: +st.perf.p95.toFixed(1), slowFrames: st.perf.slow, frames: st.perf.frames, dpr: st.dpr, quality: st.quality, calls: st.renderer.info.render.calls, tris: st.renderer.info.render.triangles, programs: st.renderer.info.programs?.length ?? null, sensorsLive: this.deps.sensors?.live ?? false })
       st.perf.slow = 0
       st.perf.frames = 0
     }

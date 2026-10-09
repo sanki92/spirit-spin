@@ -143,7 +143,7 @@ export function Result({ result, settlement, opponentName, then }: { result: Mat
         {result.verdict === null && <span className="warn">Not verified, did not count</span>}
       </p>
 
-      {!won && <p className="r2-tip"><b>Tip</b>{result.overspins > 0 ? 'Overspin cost you power. Pull a little softer and keep it straight.' : result.perfectRips === 0 ? 'A fast, straight pull toward you lands PERFECT rips.' : result.spiritCalls === 0 ? 'Shout or tap Spirit when the gauge glows to fire your technique.' : 'Tilt to steer: dodge big hits, then strike from the side.'}</p>}
+      {!won && <p className="r2-tip"><b>Tip</b>{result.overspins > 0 ? 'Overspin cost you power. Pull a little softer and keep it straight.' : result.perfectRips === 0 ? 'A fast, straight pull toward you lands PERFECT rips.' : result.spiritCalls === 0 ? 'Tap Spirit when the gauge glows to fire your technique.' : 'Tilt to steer: dodge big hits, then strike from the side.'}</p>}
 
       {st.unlocked && (
         <section className="r2-unlock" style={{ ['--c' as string]: BEASTS[st.unlocked].color }}>

@@ -5,7 +5,7 @@ import { useSave } from '../state/save'
 
 const TIPS = [
   'A fast, straight pull lands PERFECT rips.',
-  'Shout or tap Spirit when the gauge glows.',
+  'Tap Spirit when the gauge glows.',
   'Tilt to steer. Dodge big hits, then strike from the side.',
   'Upgrade parts with Spirit Shards in the Garage.',
   'Clear Tower bosses to unlock new beasts and parts.',

@@ -2,10 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 const feeds: { stopped: boolean }[] = []
 vi.mock('./audio/sound', () => ({ Sound: class { ctx = {} } }))
-vi.mock('./input/mic', () => ({ ShoutDetector: class {} }))
 vi.mock('./telemetry', () => ({ log: () => undefined }))
 vi.mock('./input/sensors', () => ({ SensorFeed: class { stopped = false; constructor() { feeds.push(this) } start() {} stop() { this.stopped = true } } }))
-vi.mock('./input/permissions', () => ({ requestAll: async () => ({ motion: false, mic: Promise.resolve(null), audio: {} }), requestMotion: async () => true, waitForMotion: async () => true }))
+vi.mock('./input/permissions', () => ({ requestAll: async () => ({ motion: false, audio: {} }), requestMotion: async () => true, waitForMotion: async () => true }))
 
 describe('review fixes: re-enabling motion never leaves a second feed running', () => {
   it('turning motion on twice keeps exactly one live feed', async () => {

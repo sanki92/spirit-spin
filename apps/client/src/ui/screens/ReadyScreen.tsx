@@ -8,15 +8,15 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
   const rt = useRuntime()
   const motion = useSave(st => motionOn(st.settings))
   const [busy, setBusy] = useState(false)
-  const arm = async (mic = true) => {
+  const arm = async () => {
     setBusy(true)
-    onReady(await rt.arm(mic, motion))
+    onReady(await rt.arm(motion))
   }
   const auto = useRef(false)
   useEffect(() => {
     if (!import.meta.env.DEV || auto.current || !new URLSearchParams(location.search).has('screen')) return
     auto.current = true
-    void arm(false)
+    void arm()
   }, [])
   return (
     <div className="screen entry ready2">
@@ -28,10 +28,9 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
           <ul>
             <li><Img id={motion ? 'ui/icons/motion' : 'ui/guide/thumb'} eager /><span><strong>{motion ? 'Motion launch' : 'Swipe launch'}</strong><small>{motion ? 'Rip your phone to launch your top.' : 'Flick your thumb down to rip.'}</small></span></li>
             <li><Img id="ui/icons/sound" eager /><span><strong>Sound</strong><small>Hear every clash and the commentator.</small></span></li>
-            <li><Img id="ui/icons/mic" eager /><span><strong>Spirit Call mic</strong><small>Shout to summon. Nothing is recorded.</small></span></li>
           </ul>
           <button className="cta cyan" onClick={() => void arm()} disabled={busy}><span>{busy ? 'Arming…' : 'Tap to ready'}</span></button>
-          <p className="ready2-fine">{motion ? 'You can switch to swipe launch and silent Spirit Call anytime in Settings.' : 'Prefer ripping your phone? Turn on Motion controls in Settings.'}</p>
+          <p className="ready2-fine">{motion ? 'You can switch to swipe launch anytime in Settings.' : 'Prefer ripping your phone? Turn on Motion controls in Settings.'}</p>
         </section>
       </div>
     </div>

@@ -97,7 +97,6 @@ button { font-family: inherit; }
 .spirit-btn span { position: relative; }
 .spirit-btn.ready { border-color: var(--gold); box-shadow: 0 0 30px var(--gold); animation: pulse 0.5s ease-in-out infinite alternate; }
 .spirit-btn.ready .gauge { opacity: 0.85; }
-.shout-meter { position: absolute; left: 10%; right: 10%; bottom: 14px; height: 6px; border-radius: 3px; background: #fff; transform-origin: left; }
 
 
 @keyframes pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }

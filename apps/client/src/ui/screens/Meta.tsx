@@ -270,7 +270,7 @@ export function Settings() {
   const [motionBusy, setMotionBusy] = useState(false)
   const [motionNote, setMotionNote] = useState<string | null>(null)
   const code = recoveryCode()
-  const toggle = (k: 'silentSpirit' | 'sound' | 'haptics' | 'reducedMotion' | 'commentator', label: string, hint: string, def = true) => (
+  const toggle = (k: 'sound' | 'haptics' | 'reducedMotion' | 'commentator', label: string, hint: string, def = true) => (
     <label className="set2-row">
       <span><strong>{label}</strong><small>{hint}</small></span>
       <input type="checkbox" role="switch" className="switch" checked={s.settings[k] ?? def} onChange={e => s.patchSettings({ [k]: e.target.checked })} />
@@ -289,7 +289,6 @@ export function Settings() {
           <span><strong>Motion controls</strong><small>{motionNote ?? 'Rip your phone to launch and tilt to steer. Off: swipe and thumb stick.'}</small></span>
           <input type="checkbox" role="switch" className="switch" checked={motionOn(s.settings)} disabled={motionBusy} onChange={e => { const on = e.target.checked; setMotionBusy(true); void flipMotion(on, rt, s.patchSettings).then(n => { setMotionNote(n); setMotionBusy(false) }) }} />
         </label>
-        {toggle('silentSpirit', 'Silent Spirit Call', 'Tap the button instead of shouting.', false)}
         {canRecalibrate(s.settings, !!rt.sensors) && <button className="set2-row link" onClick={() => nav.push({ k: 'calibrate' })}><span><strong>Recalibrate launcher</strong><small>Teach the game your rip strength again.</small></span><em aria-hidden="true">›</em></button>}
       </div>
       <h2 className="section-title">Sound and feel</h2>

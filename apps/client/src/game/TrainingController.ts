@@ -168,7 +168,7 @@ export class TrainingController extends BattleController {
       move('→', 'Move right', 'Tilt your phone to the right.'),
       move('↑', 'Move up', 'Tilt the top of your phone away from you.'),
       move('↓', 'Move down', 'Tilt the top of your phone toward you.'),
-      { id: 'spirit', title: `Unleash ${beast}`, text: 'This button fills as you battle. When it glows, tap it (or shout). Your beast takes over and attacks.', target: '.spirit-btn' },
+      { id: 'spirit', title: `Unleash ${beast}`, text: 'This button fills as you battle. When it glows, tap it. Your beast takes over and attacks.', target: '.spirit-btn' },
       { id: 'ready', title: 'Real round', text: 'Now beat an easy rival for real. Launch when the countdown ends.', tap: 'Let’s go' },
       { id: 'done', title: 'Training complete', text: 'You know the basics. The Spirit Tower is waiting.', tap: 'Continue' },
     ]

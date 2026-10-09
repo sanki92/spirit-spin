@@ -34,7 +34,7 @@ export function BattleScreen({ setup, theme, onEnd, forceSwipe = false, controll
         return
       }
       game.start()
-      const deps = { sound: rt.sound, sensors: forceSwipe || spectator ? null : rt.sensors, shout: rt.shout, calibration: rt.calibration(), onEnd, onCalibrate: (pulls: number[]) => rt.saveCalibration(pulls) }
+      const deps = { sound: rt.sound, sensors: forceSwipe || spectator ? null : rt.sensors, calibration: rt.calibration(), onEnd, onCalibrate: (pulls: number[]) => rt.saveCalibration(pulls) }
       const c = controller ? controller(game, setup, deps) : new BattleController(game, setup, deps)
       ctrl.current = c
       if (import.meta.env.DEV) Object.assign(window, { __ctrl: c, __game: game })

@@ -25,7 +25,7 @@ function rig(make: (g: Game, d: Deps) => BattleController = (g, d) => new Battle
     spiritZoom: vi.fn(), frameBoth: vi.fn(), narrowZoom: vi.fn(), releaseZoom: vi.fn(), slowmo: noop, finishCam: () => false, elementOf: () => null, hitstop: noop,
   }
   const sound = { play: noop, voice: noop, hum: noop, stopHums: noop, stopVoice: noop }
-  const c = make(game as unknown as Game, { sound: sound as never, sensors: null, shout: null, calibration: DEFAULT_CALIBRATION, onEnd: noop })
+  const c = make(game as unknown as Game, { sound: sound as never, sensors: null, calibration: DEFAULT_CALIBRATION, onEnd: noop })
   const p = c as unknown as { onEvent(e: BattleEvent): void; frame(dt: number): void; spiritRequest: boolean }
   const run = (s: number) => { for (let t = 0; t < s - 1e-9; t += 1 / 60) p.frame(1 / 60) }
   return { c, p, game, battle, run }

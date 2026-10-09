@@ -9,7 +9,7 @@ const fakeGame = () => ({ bind: () => undefined, skipCine: () => undefined, setB
 
 function rig(live = true) {
   const sensors = { live, tilt: vi.fn(() => ({ x: 0.5, y: 0 })), calibrateNeutral: vi.fn() }
-  const c = new BattleController(fakeGame(), { seed: 1 } as MatchSetup, { sound: {} as never, sensors: sensors as unknown as SensorFeed, shout: null, calibration: DEFAULT_CALIBRATION, onEnd: () => undefined })
+  const c = new BattleController(fakeGame(), { seed: 1 } as MatchSetup, { sound: {} as never, sensors: sensors as unknown as SensorFeed, calibration: DEFAULT_CALIBRATION, onEnd: () => undefined })
   const p = c as unknown as { playerInput(): { tiltX: number; tiltY: number }; prepRound(): void; enterBattlePhase(): void }
   return { c, p, sensors }
 }

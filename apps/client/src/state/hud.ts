@@ -33,7 +33,6 @@ export interface HudState {
   callout: Callout | null
   banner: Banner
   cutin: { beast: BeastId; side: 0 | 1; hesitate: boolean } | null
-  shoutLevel: number
   inputMode: 'motion' | 'swipe'
   safetyPause: boolean
   notice: string | null
@@ -76,7 +75,6 @@ export const useHud = create<HudState>(set => ({
   callout: null,
   banner: null,
   cutin: null,
-  shoutLevel: 0,
   inputMode: 'swipe',
   safetyPause: false,
   notice: null,
