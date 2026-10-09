@@ -198,24 +198,10 @@ def icons():
     pad.save(os.path.join(ICONS, "icon-maskable-512.png"))
 
 
-def relief():
-    import hashlib
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "relief"))
-    import build as relief_build
-    if relief_build.main() != 0:
-        return ["relief build failed"]
-    for f in sorted(os.listdir(relief_build.OUT)):
-        if f.endswith(".json"):
-            v = hashlib.sha1(open(os.path.join(relief_build.OUT, f), "rb").read()).hexdigest()[:8]
-            manifest["relief/" + f[:-5]] = {"url": f"/assets/relief/{f}?v={v}", "w": 0, "h": 0}
-    return []
-
-
 def check():
     bad = []
     for rel, m in manifest.items():
-        ext = ".json" if m["url"].split("?")[0].endswith(".json") else ".webp"
-        if not os.path.exists(os.path.join(OUT, rel + ext)):
+        if not os.path.exists(os.path.join(OUT, rel + ".webp")):
             bad.append(f"missing {rel}")
         if rel.startswith(("parts/blade-", "parts/disc-")) and m["w"] != m["h"]:
             bad.append(f"part not square {rel}")
@@ -232,11 +218,10 @@ if __name__ == "__main__":
                 continue
             process(rel)
     icons()
-    relief_problems = relief()
     json.dump(cache, open(CACHE, "w"))
     os.makedirs(os.path.dirname(MANIFEST), exist_ok=True)
     json.dump(dict(sorted(manifest.items())), open(MANIFEST, "w"), indent=1)
-    problems = relief_problems + check()
+    problems = check()
     size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(OUT) for f in fs)
     print(f"{len(manifest)} assets, {size / 1e6:.1f} MB")
     if problems:

@@ -1,15 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { AmbientLight, BufferGeometry, Color, CylinderGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, WebGLRenderer, type Texture } from 'three'
 import { cachedRing, cachedTip } from '../game/render/partMesh'
-import type { Relief } from '../game/render/reliefGeometry'
-import { reliefFor, stackHeights } from '../game/render/reliefStore'
 import { texture } from '../game/render/textures'
 
 export type ViewFocus = 'blade' | 'disc' | 'tip' | 'beast'
 export interface ViewerProps { blade: string; disc: string; tip: string; emblem: string; color: string; focus: ViewFocus; still: boolean; onReady?: () => void }
 
 const FOCUS_PITCH: Record<ViewFocus, number> = { blade: 1.0, disc: 0.55, tip: -0.18, beast: 1.15 }
-const BLADE_Y = 0.065, BLADE_D = 0.075, DISC_D = 0.06, CORE_H = 0.11, TIP_H = 0.44, GLOW = 0.55
+const BLADE_Y = 0.065, BLADE_D = 0.075, DISC_D = 0.06, CORE_H = 0.11, TIP_H = 0.44
 
 const skin = () => new MeshStandardMaterial({ metalness: 0.15, roughness: 0.55, alphaTest: 0.35 })
 const wall = () => new MeshStandardMaterial({ metalness: 0.6, roughness: 0.35 })
@@ -65,28 +63,13 @@ export default function TopViewer(p: ViewerProps) {
     let props: ViewerProps = { ...p, blade: '', disc: '', tip: '', emblem: '' }
     let disposed = false, booted = false
     const load = (id: string, apply: (t: Texture) => void) => void texture(id).then(t => { if (!disposed) apply(t) }).catch(() => undefined)
-    const remesh = (m: Mesh, g: BufferGeometry, t: Texture, edge?: Color, relief: Relief | null = null) => {
+    const remesh = (m: Mesh, g: BufferGeometry, t: Texture, edge?: Color) => {
       m.geometry.dispose()
       m.geometry = g
       const mats = (Array.isArray(m.material) ? m.material : [m.material]) as MeshStandardMaterial[]
       mats[0]!.map = t
-      mats[0]!.emissiveMap = relief ? t : null
-      mats[0]!.emissive.set(relief ? 0xffffff : 0x000000)
-      mats[0]!.emissiveIntensity = relief ? GLOW : 1
       mats[0]!.needsUpdate = true
-      if (mats[1]) {
-        mats[1].vertexColors = !!relief
-        if (relief) mats[1].color.set(0xffffff)
-        else if (edge) mats[1].color.copy(edge).multiplyScalar(0.8)
-        mats[1].needsUpdate = true
-      }
-    }
-    const restack = (bladeId: string, discId: string) => {
-      const br = reliefFor(`blade-${bladeId}`), dr = reliefFor(`disc-${discId}`)
-      if (!br && !dr) { blade.position.y = BLADE_Y; coin.position.y = BLADE_Y + BLADE_D + 0.02; return }
-      const s = stackHeights(br, dr, { discScaleXZ: 0.86, discScaleY: 1, emblemR: 0.31, gap: 0.005, flat: { blade: BLADE_D, disc: DISC_D } })
-      blade.position.y = s.bladeLift
-      coin.position.y = s.emblemLift + 0.02
+      if (edge && mats[1]) mats[1].color.copy(edge).multiplyScalar(0.8)
     }
     const applyTip = (t: Texture, id: string) => {
       const { geometry, radius } = cachedTip(`tip-${id}`, t, TIP_H)
@@ -98,9 +81,8 @@ export default function TopViewer(p: ViewerProps) {
       void Promise.all([texture(`parts/blade-${n.blade}`), texture(`parts/disc-${n.disc}`), texture(`parts/tip-${n.tip}`), texture(n.emblem).catch(() => null)]).then(async ([bt, dt, tt, et]) => {
         if (disposed) return
         const rb = cachedRing(`blade-${n.blade}`, bt, BLADE_D, 0.012), rd = cachedRing(`disc-${n.disc}`, dt, DISC_D, 0.01)
-        remesh(blade, rb.geometry, bt, rb.edge, rb.relief)
-        remesh(disc, rd.geometry, dt, rd.edge, rd.relief)
-        restack(n.blade, n.disc)
+        remesh(blade, rb.geometry, bt, rb.edge)
+        remesh(disc, rd.geometry, dt, rd.edge)
         applyTip(tt, n.tip)
         if (et) { coinTop.map = et; coinTop.needsUpdate = true }
         await renderer.compileAsync(scene, camera).catch(() => undefined)
@@ -115,8 +97,8 @@ export default function TopViewer(p: ViewerProps) {
       const prev = props
       props = n
       if (!booted) return
-      if (prev.blade !== n.blade) load(`parts/blade-${n.blade}`, t => { if (props.blade !== n.blade) return; const r = cachedRing(`blade-${n.blade}`, t, BLADE_D, 0.012); remesh(blade, r.geometry, t, r.edge, r.relief); restack(props.blade, props.disc) })
-      if (prev.disc !== n.disc) load(`parts/disc-${n.disc}`, t => { if (props.disc !== n.disc) return; const r = cachedRing(`disc-${n.disc}`, t, DISC_D, 0.01); remesh(disc, r.geometry, t, r.edge, r.relief); restack(props.blade, props.disc) })
+      if (prev.blade !== n.blade) load(`parts/blade-${n.blade}`, t => { if (props.blade !== n.blade) return; const r = cachedRing(`blade-${n.blade}`, t, BLADE_D, 0.012); remesh(blade, r.geometry, t, r.edge) })
+      if (prev.disc !== n.disc) load(`parts/disc-${n.disc}`, t => { if (props.disc !== n.disc) return; const r = cachedRing(`disc-${n.disc}`, t, DISC_D, 0.01); remesh(disc, r.geometry, t, r.edge) })
       if (prev.emblem !== n.emblem) load(n.emblem, t => { if (props.emblem !== n.emblem) return; coinTop.map = t; coinTop.needsUpdate = true })
       if (prev.tip !== n.tip) load(`parts/tip-${n.tip}`, t => { if (props.tip === n.tip) applyTip(t, n.tip) })
       paint(n)

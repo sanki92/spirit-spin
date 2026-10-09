@@ -171,7 +171,7 @@ export class Game {
     const tints = [formTint(beastArt[0]), formTint(beastArt[1])] as const
     const colors = [tintHex(tints[0], k0.color), tintHex(tints[1], k1.color)] as const
     const ults = [specs[0].ultimate, specs[1].ultimate] as const
-    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0, aura: shock, keys: { blade: `blade-${builds[0].bladeId}`, disc: `disc-${builds[0].discId}` } }, specs[0].radius, specs[0].type, colors[0]), new TopMesh({ blade: b1, disc: d1, emblem: e1, aura: shock, keys: { blade: `blade-${builds[1].bladeId}`, disc: `disc-${builds[1].discId}` } }, specs[1].radius, specs[1].type, colors[1])]
+    this.tops = [new TopMesh({ blade: b0, disc: d0, emblem: e0, aura: shock }, specs[0].radius, specs[0].type, colors[0]), new TopMesh({ blade: b1, disc: d1, emblem: e1, aura: shock }, specs[1].radius, specs[1].type, colors[1])]
     this.spirits = [new SpiritBillboard(c0, shock, colors[0], a0, pillarStyle(k0.element, this.powerTex!, tints[0]), ults[0]), new SpiritBillboard(c1, shock, colors[1], a1, pillarStyle(k1.element, this.powerTex!, tints[1]), ults[1])]
     for (const t of this.tops) this.stage.world.add(t.group, t.glow)
     this.shatters = [new Shatter(b0, d0, this.tops[0].radius), new Shatter(b1, d1, this.tops[1].radius)]

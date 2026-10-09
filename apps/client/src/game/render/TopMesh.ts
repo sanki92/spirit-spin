@@ -1,6 +1,5 @@
 import { AdditiveBlending, CircleGeometry, ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, Quaternion, Texture, Vector3 } from 'three'
 import { cachedRing } from './partMesh'
-import { reliefFor, stackHeights } from './reliefStore'
 import { bowlHeight } from './Stadium'
 
 const TYPE_TINT: Record<string, number> = { attack: 0xff4a3a, defense: 0x3a8bff, stamina: 0x3ad88a, balance: 0xe8eef8 }
@@ -15,7 +14,7 @@ const FLAT = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 
 
 export const auraShrink = (lift: number) => Math.max(0.2, 1 - lift * 2.7)
 
-export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture; aura?: Texture; keys?: { blade: string; disc: string } }
+export interface TopTextures { blade: Texture; disc: Texture; emblem: Texture; aura?: Texture }
 
 function disc(r: number, map: Texture, y: number, extra: { opacity?: number; additive?: boolean; color?: number } = {}): Mesh {
   const m = new Mesh(
@@ -34,15 +33,9 @@ function disc(r: number, map: Texture, y: number, extra: { opacity?: number; add
   return m
 }
 
-const GLOW = 0.55
-const DISC_Y = 0.064
-
-function solid(map: Texture, key: string, r: number, y: number, depth: number): Mesh {
-  const { geometry, edge, relief } = cachedRing(key, map, depth, depth * 0.15, 'battle')
-  const mats = relief
-    ? [new MeshLambertMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: GLOW, alphaTest: 0.35 }), new MeshLambertMaterial({ vertexColors: true })]
-    : [new MeshBasicMaterial({ map, alphaTest: 0.35 }), new MeshLambertMaterial({ color: edge.multiplyScalar(0.8) })]
-  const m = new Mesh(geometry, mats)
+function solid(map: Texture, r: number, y: number, depth: number): Mesh {
+  const { geometry, edge } = cachedRing(map.uuid, map, depth, depth * 0.15)
+  const m = new Mesh(geometry, [new MeshBasicMaterial({ map, alphaTest: 0.35 }), new MeshLambertMaterial({ color: edge.multiplyScalar(0.8) })])
   m.scale.setScalar(r)
   m.position.y = y
   return m
@@ -72,16 +65,9 @@ export class TopMesh {
     const tip = new Mesh(new ConeGeometry(radius * 0.22, 0.05, 16), new MeshLambertMaterial({ color: 0x9aa3b8 }))
     tip.rotation.x = Math.PI
     tip.position.y = 0.02
-    const keys = tex.keys ?? { blade: tex.blade.uuid, disc: tex.disc.uuid }
-    const br = reliefFor(keys.blade), dr = reliefFor(keys.disc)
-    const st = stackHeights(br, dr, { discScaleXZ: 0.86, discScaleY: 0.86, emblemR: 0.3, gap: 0.004, flat: { blade: 0.075, disc: 0.06 * 0.86 } })
-    const flat = !br && !dr
-    const bladeY = flat ? 0.073 : DISC_Y + st.bladeLift * radius
-    const emblemY = flat ? 0.074 + radius * 0.09 : DISC_Y + st.emblemLift * radius + 0.002
-    const blurY = flat ? 0.079 : bladeY + (st.bladeTop + 0.014) * radius
-    this.spinner.add(body, tip, solid(tex.disc, keys.disc, radius * 0.86, DISC_Y, 0.06), solid(tex.blade, keys.blade, radius, bladeY, 0.075), disc(radius * 0.3, tex.emblem, emblemY))
+    this.spinner.add(body, tip, solid(tex.disc, radius * 0.86, 0.064, 0.06), solid(tex.blade, radius, 0.073, 0.075), disc(radius * 0.3, tex.emblem, 0.074 + radius * 0.09))
     for (let i = 1; i <= 3; i++) {
-      const b = disc(radius, tex.blade, blurY + i * 0.0005, { opacity: 0.22, additive: true })
+      const b = disc(radius, tex.blade, 0.079 + i * 0.0005, { opacity: 0.22, additive: true })
       b.rotation.z = i * 0.35
       this.blur.push(b)
       this.spinner.add(b)
