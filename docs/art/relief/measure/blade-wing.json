@@ -1,0 +1,17 @@
+{
+ "centre": [
+  0.0121,
+  0.1464
+ ],
+ "inner": 0.34,
+ "outer": 0.66,
+ "rings": [
+  0.518
+ ],
+ "claws": [],
+ "materials": {
+  "dark": 0.0,
+  "bright": 0.001,
+  "saturated": 0.989
+ }
+}
