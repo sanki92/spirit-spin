@@ -1,5 +1,8 @@
-import { eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, like, sql } from 'drizzle-orm'
 import geoip from 'fast-geoip'
+import maxmind, { type Reader, type Response } from 'maxmind'
+import { createRequire } from 'node:module'
+import { isIPv6 } from 'node:net'
 import { ipBans, playerIps, players, type Db } from './db'
 
 const TOUCH_MS = 5 * 60_000
@@ -7,9 +10,17 @@ const LOCAL = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|::ffff:127
 
 export const plainIp = (ip: string) => ip.replace(/^::ffff:/, '')
 
+type Place = Response & { country_code?: string; city?: string }
+let v6: Promise<Reader<Place> | null> | null = null
+const v6Reader = () => (v6 ??= maxmind.open<Place>(createRequire(import.meta.url).resolve('@ip-location-db/geolite2-city-mmdb/geolite2-city-ipv6.mmdb')).catch(() => null))
+
 export async function locate(ip: string): Promise<{ country: string | null; city: string | null }> {
   const clean = plainIp(ip)
   if (LOCAL.test(clean)) return { country: 'LAN', city: null }
+  if (isIPv6(clean)) {
+    const r = (await v6Reader())?.get(clean)
+    return { country: r?.country_code || null, city: r?.city || null }
+  }
   const r = await geoip.lookup(clean).catch(() => null)
   return { country: r?.country || null, city: r?.city || null }
 }
@@ -26,6 +37,19 @@ export class Moderation {
     this.bannedPlayers = new Map(ps.map(p => [p.id, p.reason ?? '']))
     const ips = await this.db.select().from(ipBans)
     this.bannedIps = new Map(ips.map(b => [b.ip, b.reason ?? '']))
+  }
+
+  async relocateV6(): Promise<void> {
+    const ps = await this.db.select({ id: players.id, ip: players.lastIp }).from(players).where(like(players.lastIp, '%:%'))
+    for (const p of ps) {
+      const { country, city } = await locate(p.ip!)
+      await this.db.update(players).set({ lastCountry: country, lastCity: city }).where(eq(players.id, p.id))
+    }
+    const hs = await this.db.select({ playerId: playerIps.playerId, ip: playerIps.ip }).from(playerIps).where(like(playerIps.ip, '%:%'))
+    for (const h of hs) {
+      const { country, city } = await locate(h.ip)
+      await this.db.update(playerIps).set({ country, city }).where(and(eq(playerIps.playerId, h.playerId), eq(playerIps.ip, h.ip)))
+    }
   }
 
   playerBan(id: string): string | null {

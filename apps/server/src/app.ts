@@ -102,6 +102,7 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
   tidyEvery.unref?.()
   app.addHook('onClose', async () => { clearTimeout(firstTidy); clearInterval(tidyEvery) })
   await mod.load()
+  void mod.relocateV6().catch(e => app.log.warn({ err: String(e) }, 'ipv6 relocate failed'))
   const notify = deps.notifier ?? discordNotifier(cfg.discordWebhook, { onError: e => app.log.warn({ err: String(e) }, 'discord post failed') })
   app.addHook('onClose', async () => notify.stop())
   const beastName = (b: unknown) => (typeof b === 'string' && b ? b[0]!.toUpperCase() + b.slice(1) : '?')
