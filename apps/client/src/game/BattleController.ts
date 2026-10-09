@@ -12,6 +12,7 @@ import { log } from '../telemetry'
 import type { Game } from './Game'
 import { Announcer } from './commentator'
 import { useSave } from '../state/save'
+import { goodLaunch, hintsLive, steerHintDue } from './hints'
 import { coachTip } from './coach'
 import { tierOf, type LaunchTier } from './launchPlan'
 import { spiritTransitions, summonEnd, reducedMotion, summonStart, zoomAfterEnd, type SpiritSeen } from './transitions'
@@ -82,6 +83,11 @@ export class BattleController {
   protected windowFrom = -Infinity
   protected coachSince = 0
   protected coached = false
+  protected countsHints = true
+  private hintsOn = false
+  private launchedAt = 0
+  private stickTouched = false
+  private steerCounted = false
   protected pullShown = 0
   protected lastTiers: [LaunchTier, LaunchTier] = ['GOOD', 'GOOD']
   protected summonHold: [number, number] = [0, 0]
@@ -179,6 +185,10 @@ export class BattleController {
 
   setManualTilt(x: number, y: number): void {
     this.manualTilt = { x: deadzone(x, 0.15), y: deadzone(y, 0.15) }
+    if (x !== 0 || y !== 0) {
+      if (!this.stickTouched) { this.stickTouched = true; if (this.hintsOn && useHud.getState().guide?.mode === 'steer') useHud.getState().set({ guide: null }) }
+      if (this.countsHints && !this.steerCounted && Math.hypot(x, y) > 0.35 && performance.now() - this.launchedAt < 3000) { this.steerCounted = true; useSave.getState().bumpHint('steers') }
+    }
   }
 
   protected later(ms: number, fn: () => void): void {
@@ -205,6 +215,10 @@ export class BattleController {
     this.game.arm()
     useHud.getState().set({ phase: 'grip', banner: null, callout: null, cutin: null, countdown: null, cine: false, pull: 0, spin: [0, 0], gauge: [0, 0], spiritActive: [false, false], edge: [false, false], saved: null, summon: null, refused: 0, coachTip: null, guide: null, coach: !!this.setup.coach && !this.coached, inputMode: this.inputMode, round: this.match.round })
     this.game.stage.introSweep()
+    this.hintsOn = this.countsHints && this.inputMode === 'swipe' && hintsLive(useSave.getState().hints)
+    this.stickTouched = false
+    this.steerCounted = false
+    if (this.hintsOn) useHud.getState().set({ guide: { mode: 'timing', small: true } })
   }
 
   protected countdown(t0: number): void {
@@ -325,6 +339,7 @@ export class BattleController {
     const win = this.swipe ? null : motionWin ?? []
     res = this.adjudicate(res, motionWin, swipeRaw, usedSwipe)
     if (this.holdLaunch(res, coaching)) return
+    if (this.countsHints && goodLaunch(res)) useSave.getState().bumpHint('launches')
     const rip = res.ok ? res : FAIL_RIP(t0)
     const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
@@ -382,6 +397,12 @@ export class BattleController {
 
   protected enterBattlePhase(): void {
     this.needNeutral = true
+    this.launchedAt = performance.now()
+    if (this.hintsOn) {
+      useHud.getState().set({ guide: null })
+      this.later(2000, () => { if (steerHintDue(performance.now() - this.launchedAt, this.stickTouched)) useHud.getState().set({ guide: { mode: 'steer', dir: '↑', pill: 'Drag to steer' } }) })
+      this.later(6000, () => { if (useHud.getState().guide?.mode === 'steer') useHud.getState().set({ guide: null }) })
+    }
     this.later(1100, () => {
       if (useHud.getState().phase === 'launch') useHud.getState().set({ phase: 'battle', callout: null })
     })
@@ -575,6 +596,7 @@ export class BattleController {
   protected concludeMatch(): void {
     if (this.concluded) return
     this.concluded = true
+    if (this.countsHints) useSave.getState().bumpHint('battles')
     const s = this.deps.sound
     const won = this.match.winner === 0
     this.announcer.say(won && this.maxDeficit >= 3 ? 'comeback' : won ? 'victory' : 'defeat', true)

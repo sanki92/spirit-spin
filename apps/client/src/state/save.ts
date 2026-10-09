@@ -4,6 +4,7 @@ import {
 } from '@spirit/core'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import type { Hints } from '../game/hints'
 
 export const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -25,6 +26,7 @@ export interface SaveData {
   quests: { date: string; list: Quest[]; claimed: string[] }
   settings: Settings
   onboarded: { safety: boolean; calibrated: boolean; firstBattle: boolean; training?: boolean }
+  hints?: Hints
   stats: { battles: number; wins: number; bestRpm: number }
   greet: { day: string; beast: BeastId; line: string; mood: Mood } | null
   cosmetics: { frame: string; title: string; launcher: string | null; stadium: string }
@@ -66,6 +68,7 @@ export interface SaveActions {
   claimQuest(id: string): number
   patchSettings(p: Partial<Settings>): void
   markOnboarded(k: keyof SaveData['onboarded']): void
+  bumpHint(k: keyof Hints): void
   setName(name: string): void
   setAvatar(n: number): void
   setCosmetic(kind: 'frame' | 'title' | 'launcher' | 'stadium', id: string): void
@@ -94,6 +97,7 @@ const fresh = (): SaveData => ({
   quests: { date: '', list: [], claimed: [] },
   settings: { motion: false, silentSpirit: false, sound: true, haptics: true, reducedMotion: false, commentator: true },
   onboarded: { safety: false, calibrated: false, firstBattle: false },
+  hints: { battles: 0, launches: 0, steers: 0 },
   stats: { battles: 0, wins: 0, bestRpm: 0 },
   greet: null,
   cosmetics: { frame: 'frame-common', title: 'title-rookie', launcher: null, stadium: 'stadium-classic' },
@@ -180,6 +184,7 @@ export const useSave = create<SaveData & SaveActions>()(
       },
       patchSettings: p => set(s => ({ settings: { ...s.settings, ...p } })),
       markOnboarded: k => set(s => ({ onboarded: { ...s.onboarded, [k]: true } })),
+      bumpHint: k => set(s => ({ hints: { battles: 0, launches: 0, steers: 0, ...s.hints, [k]: (s.hints?.[k] ?? 0) + 1 } })),
       setName: name => set({ name: name.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 16) || 'Spinner' }),
       setAvatar: n => set(s => (ownsCosmetic(s, `avatar-${n + 1}`) ? { avatar: n } : {})),
       setCosmetic: (kind, id) => set(s => (ownsCosmetic(s, id) && COSMETICS[id]?.kind === kind ? { cosmetics: { ...(s.cosmetics ?? fresh().cosmetics), [kind]: id } } : {})),

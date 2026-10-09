@@ -15,6 +15,7 @@ const SPIRIT_HOLD_MS = 3800
 const TILT_DONE = 0.35
 
 export class TrainingController extends BattleController {
+  protected override countsHints = false
   private stage: Stage = 'launch'
   private steps: Lesson[] = []
   private at = -1

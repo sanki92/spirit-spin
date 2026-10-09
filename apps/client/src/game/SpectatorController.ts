@@ -8,6 +8,7 @@ import { tierOf } from './launchPlan'
 import { spectatorSees } from './transitions'
 
 export class SpectatorController extends BattleController {
+  protected override countsHints = false
   private rp: Replayer | null = null
   private primed = false
   private ripRound = 0
