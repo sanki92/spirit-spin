@@ -26,8 +26,11 @@ describe('early-battle reminders', () => {
     expect(steerHintDue(6100, false)).toBe(false)
   })
 
-  it('guide overlays never take touches', () => {
+  it('guide overlays never take touches, even against the HUD child rule', () => {
     const css = readFileSync(new URL('../ui/hud/launch.css', import.meta.url), 'utf8')
-    expect(css).toMatch(/\.guide-thumb\s*\{[^}]*pointer-events:\s*none/)
+    const hud = readFileSync(new URL('../styles.css', import.meta.url), 'utf8') + readFileSync(new URL('../v2.css', import.meta.url), 'utf8')
+    expect(hud).toMatch(/\.hud > \*\s*\{[^}]*pointer-events:\s*auto/)
+    expect(css).toMatch(/\.hud > \.guide-thumb[^{]*\{[^}]*pointer-events:\s*none\s*!important/)
+    expect(css).toMatch(/\.guide-thumb \*[^{]*\{[^}]*pointer-events:\s*none\s*!important/)
   })
 })
