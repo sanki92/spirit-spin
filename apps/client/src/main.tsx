@@ -15,7 +15,7 @@ import { captureInstallEvents } from './state/install'
 import { installBackNav } from './state/back'
 import { keepUpdated } from './update'
 import { installClickSound } from './ui/clickSound'
-import { installForgetTyping } from './input/typingUndo'
+import { installNoUndoTyping } from './input/typingUndo'
 import './styles.css'
 import './screens.css'
 import './v2.css'
@@ -24,7 +24,7 @@ installTelemetry()
 installCrashReporting()
 captureInstallEvents()
 installBackNav()
-installForgetTyping(document)
+installNoUndoTyping(document)
 keepUpdated()
 fitViewport()
 useNav.subscribe((s, prev) => { const r = s.stack[s.stack.length - 1]; if (r !== prev.stack[prev.stack.length - 1]) log('nav', { to: r?.k, depth: s.stack.length }) })

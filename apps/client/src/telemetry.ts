@@ -22,6 +22,14 @@ export function log(type: string, data?: unknown): void {
   else if (!timer) timer = window.setTimeout(() => { timer = 0; flush() }, 1500)
 }
 
+let reported = 0
+
+export function report(kind: string, data: Record<string, unknown>): void {
+  if (import.meta.env.DEV || reported++ >= 30) return
+  const body = JSON.stringify({ kind, msg: JSON.stringify(data).slice(0, 400) })
+  void fetch('/v1/client-error', { method: 'POST', body, headers: { 'content-type': 'application/json' }, keepalive: true }).catch(() => undefined)
+}
+
 export function installTelemetry(): void {
   if (!enabled) return
   const nav = navigator as Navigator & { deviceMemory?: number; connection?: { effectiveType?: string } }

@@ -563,7 +563,7 @@ export class Game {
     this.stage.render(dt)
     if (this.guards && this.guardsDue) {
       this.guardsDue = false
-      const w = this.canvas.clientWidth, h = this.canvas.clientHeight
+      const w = this.stage.w, h = this.stage.h
       for (let i = 0; i < 2; i++) {
         const gi = this.guardIn[i]!
         this.guards.update(i as 0 | 1, gi.x, gi.y, gi.z, gi.g, gi.show, this.stage.camera, w, h)

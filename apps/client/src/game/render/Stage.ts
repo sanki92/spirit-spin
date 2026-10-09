@@ -68,7 +68,12 @@ export class Stage {
     this.scene.add(rim)
   }
 
+  w = 0
+  h = 0
+
   resize(w: number, h: number): void {
+    this.w = w
+    this.h = h
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     const halfV = (this.camera.fov * Math.PI) / 360

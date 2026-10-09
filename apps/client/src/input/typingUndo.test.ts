@@ -1,105 +1,88 @@
 import { describe, expect, it } from 'vitest'
-import { dropFocus, forgetTyping, installForgetTyping, isTextField } from './typingUndo'
+import { dropFocus, editText, installNoUndoTyping, isTextField } from './typingUndo'
 
-function field(tagName: string, type = 'text', value = 'qd6w') {
-  const sets: string[] = []
-  let v = value
+function field(tagName: string, type = 'text', value = 'QD', at = value.length) {
+  const fired: string[] = []
   return {
-    tagName, type, sets,
-    get value() { return v },
-    set value(x: string) { sets.push(x); v = x },
+    tagName, type, value, maxLength: -1, selectionStart: at as number | null, selectionEnd: at as number | null, fired,
+    setSelectionRange(a: number, b: number) { this.selectionStart = a; this.selectionEnd = b },
+    dispatchEvent(e: { type: string }) { fired.push(e.type); return true },
   }
 }
 
-type Ev = { target?: unknown; key?: string; isComposing?: boolean }
-function fakeDoc(active: unknown = null) {
-  const handlers: Record<string, (e: Ev) => void> = {}
-  return { handlers, activeElement: active, addEventListener: (k: string, fn: (e: Ev) => void, capture: boolean) => { expect(capture).toBe(true); handlers[k] = fn } }
+function beforeinput(target: unknown, inputType: string, data: string | null = null, isComposing = false) {
+  const e = { target, inputType, data, isComposing, dataTransfer: null, prevented: false, preventDefault() { this.prevented = true } }
+  return e
 }
 
-describe('forget typing so a shake has nothing to undo', () => {
-  it('sets the value from script twice and ends on the original', () => {
-    const f = field('INPUT')
-    forgetTyping(f)
-    expect(f.sets).toEqual(['', 'qd6w'])
-    expect(f.value).toBe('qd6w')
+function install() {
+  let fn: ((e: ReturnType<typeof beforeinput>) => void) | null = null
+  installNoUndoTyping({ addEventListener: (k: string, f: never, capture: boolean) => { expect(k).toBe('beforeinput'); expect(capture).toBe(true); fn = f } })
+  return (e: ReturnType<typeof beforeinput>) => fn!(e)
+}
+
+describe('typing that leaves nothing for a shake to undo', () => {
+  it('applies keyboard edits as text changes', () => {
+    expect(editText('QD', 2, 2, 'insertText', 'X', -1)).toEqual({ value: 'QDX', caret: 3 })
+    expect(editText('QDX', 1, 1, 'insertText', '6', -1)).toEqual({ value: 'Q6DX', caret: 2 })
+    expect(editText('QDXW', 1, 3, 'insertText', 'Z', -1)).toEqual({ value: 'QZW', caret: 2 })
+    expect(editText('QDX', 3, 3, 'deleteContentBackward', null, -1)).toEqual({ value: 'QD', caret: 2 })
+    expect(editText('QDX', 0, 0, 'deleteContentBackward', null, -1)).toEqual({ value: 'QDX', caret: 0 })
+    expect(editText('QDXW', 1, 3, 'deleteContentBackward', null, -1)).toEqual({ value: 'QW', caret: 1 })
+    expect(editText('QDX', 1, 1, 'deleteContentForward', null, -1)).toEqual({ value: 'QX', caret: 1 })
+    expect(editText('hi there', 8, 8, 'deleteWordBackward', null, -1)).toEqual({ value: 'hi ', caret: 3 })
+    expect(editText('hi there', 5, 5, 'deleteSoftLineBackward', null, -1)).toEqual({ value: 'ere', caret: 0 })
+    expect(editText('ab', 2, 2, 'insertFromPaste', 'cdef', -1)).toEqual({ value: 'abcdef', caret: 6 })
   })
 
-  it('a field the user emptied is still reset from script', () => {
-    const f = field('INPUT', 'text', '')
-    forgetTyping(f)
-    expect(f.sets).toEqual([' ', ''])
-    expect(f.value).toBe('')
+  it('keeps the field length limit and drops a whole emoji on backspace', () => {
+    expect(editText('QD6', 3, 3, 'insertFromPaste', 'WXYZ', 4)).toEqual({ value: 'QD6W', caret: 4 })
+    expect(editText('QD6W', 4, 4, 'insertText', 'X', 4)).toEqual({ value: 'QD6W', caret: 4 })
+    expect(editText('a😀', 3, 3, 'deleteContentBackward', null, -1)).toEqual({ value: 'a', caret: 1 })
+  })
+
+  it('leaves edits it cannot apply to the browser', () => {
+    expect(editText('QD', 2, 2, 'insertCompositionText', 'X', -1)).toBeNull()
+    expect(editText('QD', 2, 2, 'historyUndo', null, -1)).toBeNull()
+    expect(editText('QD', 2, 2, 'insertText', null, -1)).toBeNull()
+  })
+
+  it('cancels the browser edit and sets the value from script', () => {
+    const on = install()
+    const f = field('INPUT')
+    const e = beforeinput(f, 'insertText', 'X')
+    on(e)
+    expect(e.prevented).toBe(true)
+    expect(f.value).toBe('QDX')
+    expect(f.selectionStart).toBe(3)
+    expect(f.fired).toEqual(['input'])
+  })
+
+  it('lets composing input, non-text fields and fields without a caret through', () => {
+    const on = install()
+    const composing = field('INPUT'), box = field('INPUT', 'checkbox', 'on'), email = field('INPUT', 'email', 'a@b', 3)
+    email.selectionStart = null
+    for (const [t, ev] of [[composing, beforeinput(composing, 'insertText', 'X', true)], [box, beforeinput(box, 'insertText', 'X')], [email, beforeinput(email, 'insertText', 'X')]] as const) {
+      on(ev)
+      expect(ev.prevented).toBe(false)
+      expect(t.fired).toEqual([])
+    }
   })
 
   it('only text-like fields count', () => {
     expect(isTextField(field('INPUT', 'text'))).toBe(true)
     expect(isTextField(field('INPUT', 'search'))).toBe(true)
-    expect(isTextField(field('INPUT', 'email'))).toBe(true)
     expect(isTextField(field('TEXTAREA', ''))).toBe(true)
     expect(isTextField(field('INPUT', 'checkbox'))).toBe(false)
-    expect(isTextField(field('INPUT', 'range'))).toBe(false)
     expect(isTextField(field('BUTTON', 'submit'))).toBe(false)
     expect(isTextField(null)).toBe(false)
   })
 
-  it('clears on leaving a field and on Enter, not on other keys', () => {
-    const d = fakeDoc()
-    installForgetTyping(d)
-    const f = field('INPUT')
-    d.handlers.focusout!({ target: f })
-    expect(f.sets).toEqual(['', 'qd6w'])
-    d.handlers.keydown!({ target: f, key: 'a' })
-    expect(f.sets).toHaveLength(2)
-    d.handlers.keydown!({ target: f, key: 'Enter' })
-    expect(f.sets).toHaveLength(4)
-    const box = field('INPUT', 'checkbox', 'on')
-    d.handlers.focusout!({ target: box })
-    expect(box.sets).toEqual([])
-  })
-
-  it('tapping a button while a field is focused forgets that field', () => {
-    const f = field('INPUT')
-    const d = fakeDoc(f)
-    installForgetTyping(d)
-    d.handlers.pointerdown!({ target: { tagName: 'BUTTON' } })
-    expect(f.sets).toEqual(['', 'qd6w'])
-    d.handlers.pointerdown!({ target: f })
-    expect(f.sets).toHaveLength(2)
-  })
-
-  it('submitting a form forgets every text field in it', () => {
-    const a = field('INPUT'), b = field('TEXTAREA', ''), c = field('INPUT', 'checkbox', 'on')
-    const d = fakeDoc()
-    installForgetTyping(d)
-    d.handlers.submit!({ target: { tagName: 'FORM', querySelectorAll: () => [a, b, c] } })
-    expect(a.sets).toEqual(['', 'qd6w'])
-    expect(b.sets).toEqual(['', 'qd6w'])
-    expect(c.sets).toEqual([])
-  })
-
-  it('Enter while an input method is composing is left alone', () => {
-    const d = fakeDoc()
-    installForgetTyping(d)
-    const f = field('INPUT')
-    d.handlers.keydown!({ target: f, key: 'Enter', isComposing: true })
-    expect(f.sets).toEqual([])
-  })
-
-  it('opening a battle blurs a focused field and wipes page typing history with a scratch field', () => {
-    let blurred = 0, removed = 0
-    const active = { ...field('INPUT'), blur: () => { blurred++ } }
-    const scratch = field('INPUT', 'text', '')
-    const appended: unknown[] = []
-    const doc = {
-      activeElement: active,
-      createElement: () => Object.assign(scratch, { remove: () => { removed++ }, style: {} as Record<string, string>, setAttribute: () => undefined }),
-      body: { appendChild: (x: unknown) => { appended.push(x) } },
-    }
-    dropFocus(doc)
+  it('opening a battle drops focus from a text field', () => {
+    let blurred = 0
+    dropFocus({ activeElement: { ...field('INPUT'), blur: () => { blurred++ } } })
     expect(blurred).toBe(1)
-    expect(appended).toEqual([scratch])
-    expect(scratch.sets).toEqual(['x', ''])
-    expect(removed).toBe(1)
+    dropFocus({ activeElement: { tagName: 'BUTTON', blur: () => { blurred++ } } })
+    expect(blurred).toBe(1)
   })
 })

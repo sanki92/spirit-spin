@@ -3,7 +3,7 @@ import { EdgeLink } from '../net/edgeLink'
 import { mainLink, type WireLink } from '../net/link'
 import { rt } from '../net/rt'
 import { summonReset, useHud } from '../state/hud'
-import { log } from '../telemetry'
+import { log, report } from '../telemetry'
 import { BattleController, type MatchSetup } from './BattleController'
 import { REPLAY_TICKS, replayFrame, type Game, type ReplayFrame } from './Game'
 import { tierOf } from './launchPlan'
@@ -183,7 +183,13 @@ export class OnlineController extends BattleController {
     if (this.replay.length >= FINISH_CAM.minFrames) this.game.useReplay(this.replay)
     this.finishCamOk = !d || d.done
     if (this.game.battle) this.finishRound({ k: 'finish', tick: d?.session.confirmed.state.tick ?? 0, outcome })
-    if (d) log('net.round', this.roundStats())
+    if (d) {
+      const st = this.roundStats()
+      log('net.round', st)
+      const sg = this.game.stage
+      report('net.perf', { ...st, fpsLow: this.fpsLow, p95: Math.round(sg.perf.p95), dpr: sg.dpr, transport: undefined, serverFrame: undefined, target: undefined })
+      this.fpsLow = 999
+    }
     this.match = { ...this.match, scores, winner }
     useHud.getState().set({ scores })
     if (winner !== null) {
@@ -264,12 +270,13 @@ export class OnlineController extends BattleController {
   private fps = 0
   private fpsCount = 0
   private fpsAt = 0
+  private fpsLow = 999
 
   protected override frame(dt: number): void {
     super.frame(dt)
     const t = performance.now()
     this.fpsCount++
-    if (t - this.fpsAt >= 1000) { this.fps = this.fpsCount; this.fpsCount = 0; this.fpsAt = t }
+    if (t - this.fpsAt >= 1000) { this.fps = this.fpsCount; if (this.fpsAt && this.driver && !this.driver.done) this.fpsLow = Math.min(this.fpsLow, this.fps); this.fpsCount = 0; this.fpsAt = t }
     const d = this.driver
     if (!d || d.done || this.disposed || !this.game.battle || this.link.serverNow() < this.beginServer) return
     d.rtt = this.rttNow()
