@@ -75,10 +75,11 @@ export class TrainingController extends BattleController {
     this.tries++
     const stage = this.practice!
     const verdict = practiceVerdict(stage, res, this.tries)
-    if (stage === 'when' && verdict === 'advance') {
+    if (stage === 'when') {
       this.practice = null
       this.coached = true
-      useHud.getState().set({ guide: null, coachTip: null })
+      useHud.getState().set({ guide: null, coachTip: res.ok ? null : practiceTip(stage, res, verdict) })
+      if (!res.ok) this.later(2600, () => useHud.getState().set({ coachTip: null }))
       return false
     }
     this.holding = true

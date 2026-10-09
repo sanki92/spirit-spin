@@ -15,11 +15,11 @@ describe('swipe practice in training', () => {
     expect(practiceVerdict('how', fail('no-pull'), 3)).toBe('advance')
   })
 
-  it('when: any timed rip advances, a miss retries until the third try', () => {
+  it('when: one countdown only, a miss is explained once and the top launches anyway', () => {
     expect(practiceVerdict('when', rip('WEAK'), 1)).toBe('advance')
-    expect(practiceVerdict('when', fail('too-early'), 1)).toBe('retry')
-    expect(practiceVerdict('when', fail('too-late'), 2)).toBe('retry')
-    expect(practiceVerdict('when', fail('no-pull'), 3)).toBe('advance')
+    expect(practiceVerdict('when', fail('too-early'), 1)).toBe('advance')
+    expect(practiceVerdict('when', fail('too-late'), 1)).toBe('advance')
+    expect(practiceVerdict('when', fail('no-pull'), 1)).toBe('advance')
   })
 
   it('explains false starts and late flicks', () => {
@@ -30,11 +30,10 @@ describe('swipe practice in training', () => {
 })
 
 describe('scripted practice run', () => {
-  it('weak, weak, good advances on the third how try; early then timed advances when', () => {
+  it('weak, weak, good advances on the third how try; a false start still moves on', () => {
     const how = [rip('WEAK'), rip('WEAK'), rip('GOOD')].map((r, i) => practiceVerdict('how', r, i + 1))
     expect(how).toEqual(['retry', 'retry', 'advance'])
-    const when = [fail('too-early'), rip('WEAK')].map((r, i) => practiceVerdict('when', r, i + 1))
-    expect(when).toEqual(['retry', 'advance'])
+    expect(practiceVerdict('when', fail('too-early'), 1)).toBe('advance')
   })
 })
 

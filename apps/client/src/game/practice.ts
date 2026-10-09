@@ -11,7 +11,7 @@ const good = (r: RipResult | RipFail): boolean => r.ok && !r.overspin && (r.qual
 export function practiceVerdict(stage: PracticeStage, res: RipResult | RipFail, tries: number): 'advance' | 'retry' {
   if (tries >= PRACTICE_TRIES) return 'advance'
   if (stage === 'how') return good(res) ? 'advance' : 'retry'
-  return res.ok ? 'advance' : 'retry'
+  return 'advance'
 }
 
 export function timingNote(res: RipFail): { title: string; text: string } {
