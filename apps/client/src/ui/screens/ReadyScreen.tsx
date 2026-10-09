@@ -26,7 +26,7 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
         <section className="ready2-panel">
           <h1>Get ready to rip</h1>
           <ul>
-            <li><Img id="ui/icons/motion" eager /><span><strong>{motion ? 'Motion launch' : 'Swipe launch'}</strong><small>{motion ? 'Rip your phone to launch your top.' : 'Flick your thumb down to rip.'}</small></span></li>
+            <li><Img id={motion ? 'ui/icons/motion' : 'ui/guide/thumb'} eager /><span><strong>{motion ? 'Motion launch' : 'Swipe launch'}</strong><small>{motion ? 'Rip your phone to launch your top.' : 'Flick your thumb down to rip.'}</small></span></li>
             <li><Img id="ui/icons/sound" eager /><span><strong>Sound</strong><small>Hear every clash and the commentator.</small></span></li>
             <li><Img id="ui/icons/mic" eager /><span><strong>Spirit Call mic</strong><small>Shout to summon. Nothing is recorded.</small></span></li>
           </ul>

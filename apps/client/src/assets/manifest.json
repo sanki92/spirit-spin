@@ -1809,6 +1809,21 @@
   "w": 720,
   "h": 720
  },
+ "ui/guide/ripple": {
+  "url": "/assets/ui/guide/ripple.webp?v=f593b102",
+  "w": 342,
+  "h": 384
+ },
+ "ui/guide/streak": {
+  "url": "/assets/ui/guide/streak.webp?v=e1df17fa",
+  "w": 261,
+  "h": 384
+ },
+ "ui/guide/thumb": {
+  "url": "/assets/ui/guide/thumb.webp?v=0ab1cc57",
+  "w": 242,
+  "h": 384
+ },
  "ui/hud-plate-aegiron": {
   "url": "/assets/ui/hud-plate-aegiron.webp?v=fc266d27",
   "w": 640,

@@ -36,6 +36,7 @@ SIZE_RULES = [
     (r"^parts/tip-", 384, 85),
     (r"^backgrounds/", 1080, 74),
     (r"^onboarding/", 640, 80),
+    (r"^ui/guide/", 384, 85),
     (r"^key-art/hero-", 1600, 78),
     (r"^key-art/", 1024, 76),
 ]
