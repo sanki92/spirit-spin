@@ -63,6 +63,20 @@ describe('relief geometry', () => {
     }
   })
 
+  it('colours each wall point from the art at that spot when a sampler is given', () => {
+    const sample = (u: number, _v: number): [number, number, number] => (u < 0.5 ? [1, 0, 0] : [0, 0, 1])
+    const g = reliefGeometry(ring(), 'garage', sample), pos = g.attributes.position!, col = g.attributes.color!
+    const walls = g.groups.find(x => x.materialIndex === 1)!
+    let left = 0, right = 0
+    for (let i = walls.start; i < walls.start + walls.count; i++) {
+      const x = pos.getX(i)
+      if (x < -0.2) { expect(col.getX(i)).toBeGreaterThan(col.getZ(i)); left++ }
+      if (x > 0.2) { expect(col.getZ(i)).toBeGreaterThan(col.getX(i)); right++ }
+    }
+    expect(left).toBeGreaterThan(0)
+    expect(right).toBeGreaterThan(0)
+  })
+
   it('reads heights from the radial profile', () => {
     const r = ring()
     expect(centreHeight(r)).toBe(0)

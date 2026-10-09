@@ -15,3 +15,4 @@ packages/core/scripts/tuning.best.json
 assets/audio/src/
 e2e/out/
 test-results/
+tools/relief/out/

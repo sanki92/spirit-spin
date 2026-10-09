@@ -2,15 +2,30 @@ import { BufferGeometry, Color, ExtrudeGeometry, LatheGeometry, Path, Shape, Vec
 
 const SAMPLES = 256
 
-function pixels(t: Texture): { data: Uint8ClampedArray; w: number; h: number } {
+function pixels(t: Texture, size = SAMPLES): { data: Uint8ClampedArray; w: number; h: number } {
   const img = t.image as CanvasImageSource & { width: number; height: number }
-  const w = SAMPLES, h = Math.max(8, Math.round((SAMPLES * img.height) / img.width))
+  const w = size, h = Math.max(8, Math.round((size * img.height) / img.width))
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
   const ctx = c.getContext('2d', { willReadFrequently: true })!
   ctx.drawImage(img, 0, 0, w, h)
   return { data: ctx.getImageData(0, 0, w, h).data, w, h }
+}
+
+export function artSampler(t: Texture): (u: number, v: number) => [number, number, number] | null {
+  const { data, w, h } = pixels(t, 512)
+  return (u, v) => {
+    const x0 = Math.round(u * w - 0.5), y0 = Math.round((1 - v) * h - 0.5)
+    let best = -1, bd = Infinity
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const x = x0 + dx, y = y0 + dy
+      if (x < 0 || y < 0 || x >= w || y >= h) continue
+      const i = (y * w + x) * 4, d = dx * dx + dy * dy
+      if (data[i + 3]! > 200 && d < bd) { bd = d; best = i }
+    }
+    return best < 0 ? null : [data[best]! / 255, data[best + 1]! / 255, data[best + 2]! / 255]
+  }
 }
 
 const DIRS = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]] as const

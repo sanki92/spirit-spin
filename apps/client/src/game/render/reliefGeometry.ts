@@ -5,6 +5,9 @@ export interface ReliefShape { outer: number[][]; holes: number[][][] }
 export interface ReliefTier { h: number; wall: string; shapes: ReliefShape[] }
 export interface Relief { v: 1; centre: [number, number]; inner: number; outer: number; profile: number[]; tiers: ReliefTier[] }
 export type ReliefDetail = 'garage' | 'battle'
+export type ArtSampler = (u: number, v: number) => [number, number, number] | null
+
+const WALL_SHADE = 0.85
 
 const num = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 const ring = (x: unknown): x is number[][] => Array.isArray(x) && x.length >= 3 && x.every(p => Array.isArray(p) && p.length === 2 && num(p[0]) && num(p[1]))
@@ -31,7 +34,7 @@ function slice(g: BufferGeometry, start: number, count: number): BufferGeometry 
   return out
 }
 
-export function reliefGeometry(r: Relief, detail: ReliefDetail): BufferGeometry {
+export function reliefGeometry(r: Relief, detail: ReliefDetail, sample?: ArtSampler): BufferGeometry {
   const [cx, cy] = r.centre
   const uv = {
     generateTopUV: (_g: ExtrudeGeometry, v: number[], a: number, b: number, c: number) => [a, b, c].map(i => new Vector2((v[i * 3]! + cx) * 0.5 + 0.5, (v[i * 3 + 1]! + cy) * 0.5 + 0.5)),
@@ -47,10 +50,15 @@ export function reliefGeometry(r: Relief, detail: ReliefDetail): BufferGeometry 
     if (!shapes.length) continue
     const g = new ExtrudeGeometry(shapes, { depth: t.h, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.01, bevelSegments: detail === 'garage' ? 2 : 1, curveSegments: 4, UVGenerator: uv })
     g.rotateX(-Math.PI / 2)
-    const wall = new Color(t.wall).convertSRGBToLinear(), n = g.attributes.position!.count, col = new Float32Array(n * 3)
+    const wall = new Color(t.wall).convertSRGBToLinear(), pos = g.attributes.position!, n = pos.count, col = new Float32Array(n * 3), c = new Color()
     for (const grp of g.groups) {
-      const c = grp.materialIndex === 1 ? wall : new Color(1, 1, 1)
-      for (let i = grp.start; i < grp.start + grp.count; i++) col.set([c.r, c.g, c.b], i * 3)
+      for (let i = grp.start; i < grp.start + grp.count; i++) {
+        if (grp.materialIndex !== 1) { col.set([1, 1, 1], i * 3); continue }
+        const s = sample?.((pos.getX(i) + cx) * 0.5 + 0.5, (-pos.getZ(i) + cy) * 0.5 + 0.5)
+        if (s) c.setRGB(s[0] * WALL_SHADE, s[1] * WALL_SHADE, s[2] * WALL_SHADE).convertSRGBToLinear()
+        else c.copy(wall)
+        col.set([c.r, c.g, c.b], i * 3)
+      }
     }
     g.setAttribute('color', new BufferAttribute(col, 3))
     for (const grp of g.groups) (grp.materialIndex === 1 ? walls : caps).push(slice(g, grp.start, grp.count))
