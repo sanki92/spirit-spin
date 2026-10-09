@@ -9,3 +9,12 @@ export function unionBox(a: Box, b: Box, pad: number, screen: { w: number; h: nu
 }
 
 export const cardSide = (b: Box, screenH: number): 'above' | 'below' => (b.top + b.height / 2 < screenH / 2 ? 'below' : 'above')
+
+const CARD_GAP = 22
+const CARD_H = 120
+
+export function cardPlacement(cut: Box, screenH: number, skipBottom: number): { top: number } | { bottom: number } {
+  if (cardSide(cut, screenH) === 'below') return { top: Math.max(cut.top + cut.height + CARD_GAP, skipBottom) }
+  if (cut.top - CARD_GAP - CARD_H < skipBottom) return { top: skipBottom }
+  return { bottom: screenH - cut.top + CARD_GAP }
+}

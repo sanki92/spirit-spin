@@ -142,9 +142,9 @@ export function LaunchCallout({ callout, color }: { callout: Callout; color: str
   )
 }
 
-export function CoachTipCard({ tip }: { tip: { title: string; text: string } }) {
+export function CoachTipCard({ tip }: { tip: { title: string; text: string; now?: boolean } }) {
   return (
-    <div className="coach-tip" role="status">
+    <div className={tip.now ? 'coach-tip now' : 'coach-tip'} role="status">
       <Pic id="characters/commentator/thumbs-up" className="coach-tip-face" />
       <p><strong>{tip.title}</strong>{tip.text}</p>
     </div>

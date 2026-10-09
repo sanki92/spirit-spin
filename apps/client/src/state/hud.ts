@@ -41,7 +41,7 @@ export interface HudState {
   cine: boolean
   pull: number
   coach: boolean
-  coachTip: { title: string; text: string } | null
+  coachTip: { title: string; text: string; now?: boolean } | null
   lesson: Lesson | null
   lessonTaps: number
   lessonSkip: number

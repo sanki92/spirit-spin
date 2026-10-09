@@ -36,6 +36,7 @@ export class Runtime {
 
   async enableMotion(): Promise<boolean> {
     const seq = ++this.motionSeq
+    this.dropSensors()
     const ok = await armMotion(this.motionIo())
     if (seq !== this.motionSeq) { this.dropSensors(); return false }
     log('motion.enable', { ok })

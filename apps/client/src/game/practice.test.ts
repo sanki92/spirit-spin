@@ -37,3 +37,23 @@ describe('scripted practice run', () => {
     expect(when).toEqual(['retry', 'advance'])
   })
 })
+
+import { readFileSync } from 'node:fs'
+import { practiceTip, realRoundDone } from './practice'
+
+describe('review fixes: practice feedback', () => {
+  it('feedback tips show at once, with honest copy', () => {
+    expect(practiceTip('how', rip('GOOD'), 'advance')).toMatchObject({ title: 'Nice rip!', now: true })
+    expect(practiceTip('how', rip('WEAK'), 'advance').title).not.toMatch(/nice/i)
+    expect(practiceTip('how', rip('WEAK'), 'retry')).toMatchObject({ now: true })
+    expect(practiceTip('when', fail('too-early'), 'retry')).toMatchObject({ title: 'False start', now: true })
+    const css = readFileSync(new URL('../ui/hud/launch.css', import.meta.url), 'utf8')
+    expect(css).toMatch(/\.coach-tip\.now\s*\{[^}]*animation:\s*tipIn[^;]*\s0s\s/)
+  })
+
+  it('the real round ends training only once a round has finished after it started', () => {
+    expect(realRoundDone(1, 1)).toBe(false)
+    expect(realRoundDone(2, 1)).toBe(true)
+    expect(realRoundDone(1, 0)).toBe(true)
+  })
+})

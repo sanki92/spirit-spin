@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { assetUrl, hasAsset } from '../../assets/assets'
 import { useHud } from '../../state/hud'
-import { cardSide } from '../../game/spot'
+import { cardPlacement } from '../../game/spot'
 
 const PAD = 6
 const SKIP_BOTTOM = 104
@@ -60,8 +60,7 @@ export function LessonOverlay() {
   const dir = lesson?.arrow ? DIR[lesson.arrow] : null
   const cut = rect && !lift ? rect : null
   const liftBottom = lift ? window.innerHeight * LIFT_Y + (lift.from.height * lift.scale) / 2 : 0
-  const below = !!cut && cardSide(cut, window.innerHeight) === 'below'
-  const cardStyle = lift ? { top: liftBottom + 28 } : cut ? (below ? { top: Math.max(cut.bottom + PAD + 16, SKIP_BOTTOM) } : { bottom: window.innerHeight - cut.top + PAD + 16 }) : undefined
+  const cardStyle = lift ? { top: liftBottom + 28 } : cut ? cardPlacement(cut, window.innerHeight, SKIP_BOTTOM) : undefined
   return (
     <>
       {!cutin && lesson?.id !== 'done' && <button className="lesson-skip" onClick={skip}>Skip tutorial</button>}

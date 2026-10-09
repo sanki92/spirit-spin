@@ -14,3 +14,15 @@ describe('guide thumb pose', () => {
     expect(thumbPose('timing', null)).toBe('hidden')
   })
 })
+
+import { guideLive } from './guide'
+
+describe('review fixes: steer hint never outlives the stick', () => {
+  it('a steer guide shows only while the stick is live; other guides are unaffected', () => {
+    expect(guideLive({ mode: 'steer', dir: '↑' }, 'battle')).toBe(true)
+    expect(guideLive({ mode: 'steer', dir: '↑' }, 'launch')).toBe(true)
+    expect(guideLive({ mode: 'steer', dir: '↑' }, 'roundEnd')).toBe(false)
+    expect(guideLive({ mode: 'timing' }, 'countdown')).toBe(true)
+    expect(guideLive(null, 'battle')).toBe(false)
+  })
+})

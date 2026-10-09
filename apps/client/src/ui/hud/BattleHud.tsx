@@ -7,6 +7,7 @@ import { spiritReady, spiritRefused, stickLive, useHud, type Banner } from '../.
 import { LessonOverlay } from './LessonOverlay'
 import { CoachOverlay, CoachTipCard, GripGuide, LaunchCallout, PullMeter, VsIntro } from './LaunchHud'
 import { GuideThumb } from './GuideThumb'
+import { guideLive } from '../../game/guide'
 
 const BANNER_ART: Record<Exclude<Banner, null>, string> = {
   spin: 'ui/banner-finish-spin', ringout: 'ui/banner-finish-ringout', shatter: 'ui/banner-finish-shatter', spirit: 'ui/banner-finish-spirit',
@@ -52,7 +53,7 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
           {!spectator && h.inputMode === 'motion' && (h.phase === 'countdown' || h.phase === 'coach') && <PullMeter />}
         </div>
       )}
-      {h.guide && !spectator && <GuideThumb guide={h.guide} countdown={h.countdown} />}
+      {h.guide && guideLive(h.guide, h.phase) && !spectator && <GuideThumb guide={h.guide} countdown={h.countdown} />}
       {h.countdown === 'LAUNCH' && (
         <div className="launch-flash" aria-live="assertive">
           <Art id={COUNT_ART.LAUNCH!} text="LAUNCH!" className="launch-word" />

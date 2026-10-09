@@ -11,7 +11,7 @@ import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
 import { PartSheet } from '../PartSheet'
 import { canAfford, needMore } from '../../state/shortage'
-import { flipMotion, motionOn } from '../../input/motionSetting'
+import { canRecalibrate, flipMotion, motionOn } from '../../input/motionSetting'
 
 export function Journal() {
   const s = useSave()
@@ -290,7 +290,7 @@ export function Settings() {
           <input type="checkbox" role="switch" className="switch" checked={motionOn(s.settings)} disabled={motionBusy} onChange={e => { const on = e.target.checked; setMotionBusy(true); void flipMotion(on, rt, s.patchSettings).then(n => { setMotionNote(n); setMotionBusy(false) }) }} />
         </label>
         {toggle('silentSpirit', 'Silent Spirit Call', 'Tap the button instead of shouting.', false)}
-        <button className="set2-row link" onClick={() => nav.push({ k: 'calibrate' })}><span><strong>Recalibrate launcher</strong><small>Teach the game your rip strength again.</small></span><em aria-hidden="true">›</em></button>
+        {canRecalibrate(s.settings, !!rt.sensors) && <button className="set2-row link" onClick={() => nav.push({ k: 'calibrate' })}><span><strong>Recalibrate launcher</strong><small>Teach the game your rip strength again.</small></span><em aria-hidden="true">›</em></button>}
       </div>
       <h2 className="section-title">Sound and feel</h2>
       <div className="set2-group panel">

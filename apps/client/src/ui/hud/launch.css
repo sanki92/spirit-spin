@@ -78,6 +78,8 @@
 .coach-tip-face { width: 56px; height: 56px; object-fit: contain; }
 .coach-tip p { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--text); }
 .coach-tip strong { display: block; font-family: 'Bebas Neue'; font-weight: 400; font-size: 24px; letter-spacing: 1px; color: var(--gold); }
+.coach-tip.now { animation: tipIn 0.25s cubic-bezier(0.2, 1.2, 0.4, 1) 0s both; }
+.reduce-motion .coach-tip.now { animation: none; }
 @keyframes tipIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes tipOut { to { opacity: 0; transform: translateY(8px); } }
 
@@ -105,9 +107,9 @@
 .launch-overlay.phase-coach .pull-meter { top: 15%; height: 30%; }
 .hud.tipping .announcer { display: none; }
 .guide-thumb { position: absolute; inset: 0; pointer-events: none; z-index: 12; }
-.guide-thumb .gt-thumb { position: absolute; left: 50%; top: 30%; width: 92px; height: auto; margin: -118px 0 0 -53px; transform-origin: 57% 80%; will-change: transform, opacity; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55)); }
-.guide-thumb .gt-ripple { position: absolute; left: 50%; top: 30%; width: 120px; margin: -60px 0 0 -60px; opacity: 0; }
-.guide-thumb .gt-streak { position: absolute; left: 50%; top: 30%; width: 60px; height: 34vh; margin-left: -30px; object-fit: fill; opacity: 0; transform-origin: 50% 0; }
+.guide-thumb .gt-thumb { position: absolute; left: 50%; top: 38%; width: 92px; height: auto; margin: -118px 0 0 -53px; transform-origin: 57% 80%; will-change: transform, opacity; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55)); }
+.guide-thumb .gt-ripple { position: absolute; left: 50%; top: 38%; width: 120px; margin: -60px 0 0 -60px; opacity: 0; }
+.guide-thumb .gt-streak { position: absolute; left: 50%; top: 38%; width: 60px; height: 28vh; margin-left: -30px; object-fit: fill; opacity: 0; transform-origin: 50% 0; }
 .guide-thumb.small { transform: scale(0.7); transform-origin: 50% 85%; }
 .g-swipe.p-loop .gt-thumb { animation: gtSwipe 1.6s cubic-bezier(.5, 0, .2, 1) infinite; }
 .g-swipe.p-loop .gt-ripple { animation: gtTap 1.6s ease-out infinite; }
@@ -127,8 +129,8 @@
 .g-steer.p-loop .gt-thumb { animation: gtDrag 1.8s cubic-bezier(.4, 0, .2, 1) infinite; }
 .g-steer.p-loop .stick-knob.ghost { animation: gtKnob 1.8s cubic-bezier(.4, 0, .2, 1) infinite; }
 .gt-pill { position: absolute; left: 50%; top: calc(78% + 70px); transform: translateX(-50%); }
-.g-timing .gt-pill { top: calc(30% + 90px); }
-@keyframes gtSwipe { 0% { opacity: 0; transform: translateY(-14px) scale(1); } 15% { opacity: 1; transform: translateY(0) scale(1); } 25% { transform: translateY(0) scale(0.92); } 45% { opacity: 1; transform: translateY(34vh) scale(0.92); } 60%, 100% { opacity: 0; transform: translateY(36vh) scale(1); } }
+.g-timing .gt-pill { top: calc(38% + 90px); }
+@keyframes gtSwipe { 0% { opacity: 0; transform: translateY(-14px) scale(1); } 15% { opacity: 1; transform: translateY(0) scale(1); } 25% { transform: translateY(0) scale(0.92); } 45% { opacity: 1; transform: translateY(28vh) scale(0.92); } 60%, 100% { opacity: 0; transform: translateY(30vh) scale(1); } }
 @keyframes gtTap { 0%, 22% { opacity: 0; transform: scale(0.4); } 28% { opacity: 1; } 45%, 100% { opacity: 0; transform: scale(1.3); } }
 @keyframes gtStreak { 0%, 26% { opacity: 0; transform: scaleY(0); } 40% { opacity: 0.9; transform: scaleY(1); } 60%, 100% { opacity: 0; transform: scaleY(1); } }
 @keyframes gtHover { from { opacity: 1; transform: translateY(-6px) scale(1); } to { opacity: 1; transform: translateY(0) scale(0.97); } }

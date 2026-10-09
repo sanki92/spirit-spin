@@ -2,8 +2,7 @@ import { stepBattle, type RipFail, type RipResult, type TickInput } from '@spiri
 import { useHud, type Lesson } from '../state/hud'
 import { log } from '../telemetry'
 import { BattleController, BEAT_MS, GRIP_MS } from './BattleController'
-import { coachTip } from './coach'
-import { practiceVerdict, timingNote, type PracticeStage } from './practice'
+import { practiceTip, practiceVerdict, realRoundDone, type PracticeStage } from './practice'
 import { unionBox } from './spot'
 import { BEASTS } from './beasts'
 
@@ -25,6 +24,7 @@ export class TrainingController extends BattleController {
   private practice: PracticeStage | null = null
   private tries = 0
   private holding = false
+  private realFrom = 0
   private readonly unsub: () => void
 
   constructor(...args: ConstructorParameters<typeof BattleController>) {
@@ -83,7 +83,7 @@ export class TrainingController extends BattleController {
     }
     this.holding = true
     if (verdict === 'advance') {
-      useHud.getState().set({ coachTip: { title: 'Nice rip!', text: 'Now the timing: flick right when LAUNCH appears.' }, guide: null })
+      useHud.getState().set({ coachTip: practiceTip(stage, res, verdict), guide: null })
       this.later(1600, () => {
         this.holding = false
         this.practice = 'when'
@@ -92,8 +92,7 @@ export class TrainingController extends BattleController {
         this.timingRound()
       })
     } else {
-      const tip = stage === 'how' ? coachTip(res, true) : timingNote(res as RipFail)
-      useHud.getState().set({ coachTip: tip })
+      useHud.getState().set({ coachTip: practiceTip(stage, res, verdict) })
       this.later(2200, () => {
         this.holding = false
         useHud.getState().set({ coachTip: null })
@@ -116,7 +115,7 @@ export class TrainingController extends BattleController {
   }
 
   protected override beginRound(): void {
-    if (this.stage === 'real' && this.match.history.length > 0) {
+    if (this.stage === 'real' && realRoundDone(this.match.history.length, this.realFrom)) {
       this.stage = 'done'
       this.at = this.steps.length - 1
       useHud.getState().set({ banner: null })
@@ -220,6 +219,7 @@ export class TrainingController extends BattleController {
 
   private startReal(): void {
     this.stage = 'real'
+    this.realFrom = this.match.history.length
     this.paused = false
     useHud.getState().set({ lesson: null })
     this.beginRound()

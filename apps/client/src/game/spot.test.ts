@@ -26,3 +26,13 @@ describe('guard lesson spotlight', () => {
     expect(cardSide({ left: 150, top: 560, width: 100, height: 80 }, 800)).toBe('above')
   })
 })
+
+import { cardPlacement } from './spot'
+
+describe('review fixes: the lesson card never covers Skip tutorial', () => {
+  it('pins the card under the skip chip when there is no room above the spotlight', () => {
+    expect(cardPlacement({ left: 0, top: 130, width: 500, height: 592 }, 722, 104)).toEqual({ top: 104 })
+    expect(cardPlacement({ left: 150, top: 560, width: 100, height: 80 }, 722, 104)).toEqual({ bottom: 722 - 560 + 22 })
+    expect(cardPlacement({ left: 150, top: 120, width: 100, height: 80 }, 722, 104)).toEqual({ top: 222 })
+  })
+})

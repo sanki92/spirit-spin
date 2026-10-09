@@ -56,3 +56,13 @@ describe('motion switch', () => {
     expect(saved).toEqual([false])
   })
 })
+
+import { canRecalibrate } from './motionSetting'
+
+describe('review fixes: recalibrate only with live motion', () => {
+  it('hides recalibration unless motion is on and sensors are live', () => {
+    expect(canRecalibrate({ motion: false }, true)).toBe(false)
+    expect(canRecalibrate({ motion: true }, false)).toBe(false)
+    expect(canRecalibrate({ motion: true }, true)).toBe(true)
+  })
+})
