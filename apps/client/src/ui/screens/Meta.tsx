@@ -319,7 +319,7 @@ export function Settings() {
       ) : (
         <button className="text-btn set2-erase" onClick={() => setConfirmReset(true)}>Erase progress on this device</button>
       )}
-      <p className="set2-version">Version {__BUILD__}</p>
+      <p className="set2-version">{__BUILD__}</p>
     </Screen>
   )
 }
