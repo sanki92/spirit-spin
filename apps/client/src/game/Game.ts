@@ -275,10 +275,12 @@ export class Game {
   }
 
   start(): void {
-    const resize = () => this.stage.resize(this.canvas.clientWidth, this.canvas.clientHeight)
+    const resize = () => { const w = this.canvas.clientWidth, h = this.canvas.clientHeight; if (w > 0 && h > 0) this.stage.resize(w, h) }
     resize()
     window.addEventListener('resize', resize)
-    this.removeResize = () => window.removeEventListener('resize', resize)
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize)
+    ro?.observe(this.canvas)
+    this.removeResize = () => { window.removeEventListener('resize', resize); ro?.disconnect() }
     this.last = performance.now()
     looping = this
     this.stage.renderer.setAnimationLoop(now => {

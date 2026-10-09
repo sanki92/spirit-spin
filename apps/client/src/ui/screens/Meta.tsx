@@ -330,7 +330,7 @@ function RecoverForm() {
   return (
     <form className="set2-row set2-recover" onSubmit={async e => { e.preventDefault(); setState('busy'); setState((await recover(code)) ? 'ok' : 'bad') }}>
       <span><strong>Restore progress</strong><small className={state === 'bad' ? 'bad' : ''}>{state === 'bad' ? 'That code did not match any player.' : state === 'ok' ? 'Progress restored.' : 'Enter a recovery code from another device.'}</small></span>
-      <input value={code} onChange={e => setCode(e.target.value)} placeholder="ABCD-EFGH-JKLM" maxLength={14} autoCapitalize="characters" aria-label="Recovery code" />
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder="ABCD-EFGH-JKLM" maxLength={14} autoCapitalize="characters" autoCorrect="off" spellCheck={false} aria-label="Recovery code" />
       <button disabled={code.length < 12 || state === 'busy'}>Restore</button>
     </form>
   )

@@ -1,5 +1,5 @@
-interface Field { tagName: string; type?: string; value: string; maxLength?: number; selectionStart?: number | null; selectionEnd?: number | null; setSelectionRange?(a: number, b: number): void; dispatchEvent?(e: Event): boolean }
-interface TypingEvent { target?: unknown; inputType?: string; data?: string | null; isComposing?: boolean; dataTransfer?: { getData(t: string): string } | null; preventDefault(): void }
+interface Field { tagName: string; type?: string; value: string; maxLength?: number; readOnly?: boolean; disabled?: boolean; selectionStart?: number | null; selectionEnd?: number | null; setSelectionRange?(a: number, b: number): void; dispatchEvent?(e: Event): boolean }
+interface TypingEvent { target?: unknown; inputType?: string; data?: string | null; isComposing?: boolean; cancelable?: boolean; defaultPrevented?: boolean; dataTransfer?: { getData(t: string): string } | null; preventDefault(): void }
 interface Listens { addEventListener(type: 'beforeinput', fn: (e: TypingEvent) => void, capture: boolean): void }
 
 const TEXT = new Set(['text', 'search', 'email', 'url', 'tel', 'password', ''])
@@ -12,23 +12,35 @@ export function isTextField(el: unknown): el is Field {
   return f.tagName === 'INPUT' && TEXT.has(f.type ?? '')
 }
 
-const lowSurrogate = (s: string, i: number): boolean => { const c = s.charCodeAt(i); return c >= 0xdc00 && c <= 0xdfff }
+const graphemes = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null
 
-export function editText(v: string, a: number, b: number, type: string, data: string | null, max: number): { value: string; caret: number } | null {
+function chars(s: string): string[] {
+  return graphemes ? Array.from(graphemes.segment(s), x => x.segment) : Array.from(s)
+}
+
+function fit(s: string, room: number): string {
+  let out = ''
+  for (const c of chars(s)) {
+    if (out.length + c.length > room) break
+    out += c
+  }
+  return out
+}
+
+export function editText(v: string, a: number, b: number, type: string, data: string | null, max: number, singleLine = false): { value: string; caret: number } | null {
   if (INSERTS.has(type)) {
     if (data == null) return null
-    const room = max >= 0 ? Math.max(0, max - (v.length - (b - a))) : Infinity
-    const add = data.slice(0, room)
+    const text = singleLine ? data.replace(/\r\n|\r|\n/g, ' ') : data
+    const add = max >= 0 ? fit(text, Math.max(0, max - (v.length - (b - a)))) : text
     return { value: v.slice(0, a) + add + v.slice(b), caret: a + add.length }
   }
   if (a !== b && type.startsWith('delete')) return { value: v.slice(0, a) + v.slice(b), caret: a }
   if (type === 'deleteContentBackward') {
-    if (a === 0) return { value: v, caret: 0 }
-    const from = a >= 2 && lowSurrogate(v, a - 1) ? a - 2 : a - 1
+    const from = a - (chars(v.slice(0, a)).at(-1)?.length ?? 0)
     return { value: v.slice(0, from) + v.slice(a), caret: from }
   }
   if (type === 'deleteContentForward') {
-    const to = lowSurrogate(v, a + 1) ? a + 2 : a + 1
+    const to = a + (chars(v.slice(a))[0]?.length ?? 0)
     return { value: v.slice(0, a) + v.slice(to), caret: a }
   }
   if (type === 'deleteWordBackward') {
@@ -48,9 +60,9 @@ function setValue(el: Field, v: string): void {
 export function installNoUndoTyping(doc: Listens): void {
   doc.addEventListener('beforeinput', e => {
     const el = e.target
-    if (e.isComposing || !isTextField(el) || el.selectionStart == null || el.selectionEnd == null) return
+    if (e.isComposing || e.cancelable === false || e.defaultPrevented || !isTextField(el) || el.readOnly || el.disabled || el.selectionStart == null || el.selectionEnd == null) return
     const data = e.data ?? e.dataTransfer?.getData('text/plain') ?? null
-    const next = editText(el.value, el.selectionStart, el.selectionEnd, e.inputType ?? '', data, el.maxLength ?? -1)
+    const next = editText(el.value, el.selectionStart, el.selectionEnd, e.inputType ?? '', data, el.maxLength ?? -1, el.tagName === 'INPUT')
     if (!next) return
     e.preventDefault()
     setValue(el, next.value)

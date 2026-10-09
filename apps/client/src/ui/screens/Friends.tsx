@@ -284,7 +284,7 @@ export function Friends({ join, challenge: invite }: { join?: string | undefined
         <form className="lb-tile join" onSubmit={e => { e.preventDefault(); if (code.length === 4) void enter(code) }}>
           <strong>Join battle</strong>
           <div className="lb-join-row">
-            <input className="lb-code" value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase())} placeholder="CODE" maxLength={4} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label="Battle code" />
+            <input className="lb-code" value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase())} placeholder="CODE" maxLength={4} autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} aria-label="Battle code" />
             <button className="lb-btn cyan" disabled={code.length !== 4}>Go</button>
           </div>
         </form>
@@ -378,7 +378,7 @@ function FriendsPanel({ lists, offline, onChallenge, reload, notify }: { lists: 
       </header>
       <div className="lb-addbox">
         <form className="lb-add" onSubmit={e => { e.preventDefault(); if (code.replace(/^@/, '').length >= 3) void add(code) }}>
-          <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
+          <input value={code} onChange={e => setCode(e.target.value.replace(/[^a-z0-9_@]/gi, '').slice(0, 17))} placeholder="Their ID or @username" maxLength={17} autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} aria-label="Friend ID or username" />
           <button className="lb-btn cyan" disabled={code.replace(/^@/, '').length < 3 || pending !== null}>{pending === code ? 'Adding…' : 'Add'}</button>
         </form>
         {note && <p className="form-error" role="alert">{note}</p>}

@@ -10,8 +10,8 @@ function field(tagName: string, type = 'text', value = 'QD', at = value.length) 
   }
 }
 
-function beforeinput(target: unknown, inputType: string, data: string | null = null, isComposing = false) {
-  const e = { target, inputType, data, isComposing, dataTransfer: null, prevented: false, preventDefault() { this.prevented = true } }
+function beforeinput(target: unknown, inputType: string, data: string | null = null, isComposing = false, cancelable = true) {
+  const e = { target, inputType, data, isComposing, cancelable, defaultPrevented: false, dataTransfer: null, prevented: false, preventDefault() { this.prevented = true } }
   return e
 }
 
@@ -41,6 +41,23 @@ describe('typing that leaves nothing for a shake to undo', () => {
     expect(editText('a😀', 3, 3, 'deleteContentBackward', null, -1)).toEqual({ value: 'a', caret: 1 })
   })
 
+  it('never cuts a character in half at the length limit', () => {
+    expect(editText('QD6', 3, 3, 'insertFromPaste', '😀', 4)).toEqual({ value: 'QD6', caret: 3 })
+    expect(editText('Q', 1, 1, 'insertFromPaste', '😀😀', 4)).toEqual({ value: 'Q😀', caret: 3 })
+  })
+
+  it('backspace removes a whole flag, skin-toned or joined emoji', () => {
+    expect(editText('Cup 🇮🇳', 8, 8, 'deleteContentBackward', null, -1)).toEqual({ value: 'Cup ', caret: 4 })
+    expect(editText('ok 👍🏽', 7, 7, 'deleteContentBackward', null, -1)).toEqual({ value: 'ok ', caret: 3 })
+    expect(editText('👨‍👩‍👧x', 8, 8, 'deleteContentBackward', null, -1)).toEqual({ value: 'x', caret: 0 })
+    expect(editText('é!', 0, 0, 'deleteContentForward', null, -1)).toEqual({ value: '!', caret: 0 })
+  })
+
+  it('a multi-line paste into a single-line field turns newlines into spaces', () => {
+    expect(editText('XY', 1, 1, 'insertFromPaste', 'ab\ncd', -1, true)).toEqual({ value: 'Xab cdY', caret: 6 })
+    expect(editText('XY', 1, 1, 'insertFromPaste', 'ab\r\ncd', 5, true)).toEqual({ value: 'Xab Y', caret: 4 })
+  })
+
   it('leaves edits it cannot apply to the browser', () => {
     expect(editText('QD', 2, 2, 'insertCompositionText', 'X', -1)).toBeNull()
     expect(editText('QD', 2, 2, 'historyUndo', null, -1)).toBeNull()
@@ -58,10 +75,32 @@ describe('typing that leaves nothing for a shake to undo', () => {
     expect(f.fired).toEqual(['input'])
   })
 
+  it('leaves an edit the browser will not cancel, or one already cancelled', () => {
+    const on = install()
+    const a = field('INPUT'), b = field('INPUT')
+    const stuck = beforeinput(a, 'insertText', 'X', false, false)
+    on(stuck)
+    expect(a.value).toBe('QD')
+    expect(a.fired).toEqual([])
+    const done = { ...beforeinput(b, 'insertText', 'X'), defaultPrevented: true }
+    on(done)
+    expect(b.value).toBe('QD')
+  })
+
+  it('a single-line field gets spaces for pasted newlines from the listener too', () => {
+    const on = install()
+    const f = field('INPUT', 'text', 'XY', 1)
+    on(beforeinput(f, 'insertFromPaste', 'a\nb'))
+    expect(f.value).toBe('Xa bY')
+  })
+
   it('lets composing input, non-text fields and fields without a caret through', () => {
     const on = install()
     const composing = field('INPUT'), box = field('INPUT', 'checkbox', 'on'), email = field('INPUT', 'email', 'a@b', 3)
     email.selectionStart = null
+    const locked = { ...field('INPUT'), readOnly: true }
+    on(beforeinput(locked, 'insertText', 'X'))
+    expect(locked.fired).toEqual([])
     for (const [t, ev] of [[composing, beforeinput(composing, 'insertText', 'X', true)], [box, beforeinput(box, 'insertText', 'X')], [email, beforeinput(email, 'insertText', 'X')]] as const) {
       on(ev)
       expect(ev.prevented).toBe(false)

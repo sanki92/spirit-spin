@@ -133,6 +133,13 @@ describe('audit fixes', () => {
     for (let i = 0; i < 6; i++) codes.add((await send({ kind: 'render', msg: 'again' })).statusCode)
     expect(codes.has(429)).toBe(true)
   })
+
+  it('round perf reports from two phones on one Wi-Fi never crowd out a crash report', async () => {
+    const ip = '203.0.113.44'
+    for (let i = 0; i < 12; i++) expect((await app.inject({ method: 'POST', url: '/v1/client-perf', remoteAddress: ip, payload: { kind: 'net.perf', msg: '{"fps":30}' } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/v1/client-perf', remoteAddress: ip, payload: { kind: 'net.perf', msg: 'x'.repeat(5000) } })).statusCode).toBe(400)
+    expect((await app.inject({ method: 'POST', url: '/v1/client-error', remoteAddress: ip, payload: { kind: 'render', msg: 'boom' } })).statusCode).toBe(200)
+  })
 })
 
 describe('static files are never rate limited', () => {

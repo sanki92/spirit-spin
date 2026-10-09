@@ -356,6 +356,11 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
     return { ok: true }
   })
 
+  app.post('/v1/client-perf', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ kind: z.string().max(40), msg: z.string().max(400) }) } }, async req => {
+    req.log.info({ client: req.body, ip: clientIp(req), ua: String(req.headers['user-agent'] ?? '').slice(0, 120) }, 'client.perf')
+    return { ok: true }
+  })
+
   app.get('/v1/history', { preHandler: requireAuth }, async req => {
     const me = req.playerId
     const rows = await db.select().from(liveMatches).where(sql`${liveMatches.aId} = ${me} OR ${liveMatches.bId} = ${me}`).orderBy(desc(liveMatches.endedAt)).limit(50)

@@ -188,7 +188,6 @@ export class OnlineController extends BattleController {
       log('net.round', st)
       const sg = this.game.stage
       report('net.perf', { ...st, fpsLow: this.fpsLow, p95: Math.round(sg.perf.p95), dpr: sg.dpr, transport: undefined, serverFrame: undefined, target: undefined })
-      this.fpsLow = 999
     }
     this.match = { ...this.match, scores, winner }
     useHud.getState().set({ scores })
@@ -206,6 +205,8 @@ export class OnlineController extends BattleController {
   private makeDriver(round: number, tl: Timeline): void {
     const jitter = this.link.net.count >= 3 ? this.link.net.jitter : 15
     this.driver = new NetDriver(tl, this.side, round, chooseDelay(this.rttNow(), jitter), targetMargin(jitter), this.link, this.t0)
+    this.fpsLow = 999
+    this.game.stage.perf.p95 = 16.7
     this.replay = []
     this.driver.session.onConfirmed = (st, events, from) => {
       if (this.replay.at(-1)?.over) return
@@ -276,7 +277,7 @@ export class OnlineController extends BattleController {
     super.frame(dt)
     const t = performance.now()
     this.fpsCount++
-    if (t - this.fpsAt >= 1000) { this.fps = this.fpsCount; if (this.fpsAt && this.driver && !this.driver.done) this.fpsLow = Math.min(this.fpsLow, this.fps); this.fpsCount = 0; this.fpsAt = t }
+    if (t - this.fpsAt >= 1000) { const span = t - this.fpsAt; this.fps = Math.round((this.fpsCount * 1000) / span); if (this.fpsAt && span < 1500 && this.driver && !this.driver.done) this.fpsLow = Math.min(this.fpsLow, this.fps); this.fpsCount = 0; this.fpsAt = t }
     const d = this.driver
     if (!d || d.done || this.disposed || !this.game.battle || this.link.serverNow() < this.beginServer) return
     d.rtt = this.rttNow()
