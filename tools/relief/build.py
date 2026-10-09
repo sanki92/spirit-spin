@@ -1,7 +1,7 @@
 import json, os, sys
 import numpy as np
 from scipy import ndimage as ndi
-from skimage import filters, measure as skm, morphology
+from skimage import color, filters, measure as skm, morphology
 from common import C, HALF, ROOT, load_part, load_path, part_names, radius_map
 import measure
 import check
@@ -11,6 +11,7 @@ MIN_PART = 0.0015
 MIN_LAYER = 0.005
 HOLE_MIN = 0.0005
 TOLERANCES = (1.0, 1.5, 2.0, 3.0, 4.0)
+FLOOR_TOL = 1.0
 RECIPES = os.path.join(os.path.dirname(__file__), 'recipes')
 OUT = os.path.join(ROOT, 'apps', 'client', 'public', 'assets', 'relief')
 
@@ -29,7 +30,7 @@ def height(t):
     return TIERS[t]
 
 
-def where_mask(where, opaque, masks, rad, ang):
+def where_mask(where, opaque, masks, rad, ang, hs=None):
     if where == 'all':
         return opaque.copy()
     m = opaque.copy()
@@ -40,6 +41,16 @@ def where_mask(where, opaque, masks, rad, ang):
     if 'r' in where:
         a, b = where['r']
         m &= (rad >= a) & (rad < b)
+    if 'hue' in where:
+        hue, sat = hs
+        a, b = where['hue']
+        m &= (((hue - a) % 360) <= ((b - a) % 360)) & (sat >= where.get('hue_s', 0.2))
+    if 'bars' in where:
+        hit = np.zeros_like(m)
+        for a, w in where['bars']:
+            d = np.radians(ang - a)
+            hit |= (rad * np.abs(np.sin(d)) < w) & (np.cos(d) > 0)
+        m &= hit
     if 'angles' in where:
         hit = np.zeros_like(m)
         for a, b in where['angles']:
@@ -119,7 +130,7 @@ def emit(tiers, total, tol):
         g = mask_geom(t['mask'], total)
         if g is None:
             continue
-        g = g.simplify((1.0 if k == 0 else tol) / HALF, preserve_topology=True)
+        g = g.simplify((FLOOR_TOL if k == 0 else tol) / HALF, preserve_topology=True)
         if prev is not None:
             g = g.intersection(prev.buffer(-0.5 / HALF, join_style='mitre'))
         shapes = geom_shapes(g, min_area)
@@ -140,9 +151,11 @@ def build_arrays(rgb, opaque, recipe):
     ov = recipe.get('materials', {})
     masks = measure.material_masks(rgb, opaque, dark=tuple(ov.get('dark', (0.42, 0.35))), bright=tuple(ov.get('bright', (0.55, 0.22))), sat=ov.get('saturated', 0.35))
     total = int(opaque.sum())
+    hsv = color.rgb2hsv(rgb)
+    hs = (hsv[..., 0] * 360, hsv[..., 1])
     h = np.full(opaque.shape, np.nan, np.float32)
     for i, layer in enumerate(recipe['layers']):
-        mm = where_mask(layer['where'], opaque, masks, rad, ang)
+        mm = where_mask(layer['where'], opaque, masks, rad, ang, hs)
         if mm.sum() < MIN_LAYER * total:
             raise RecipeError(f"layer {i} ({layer}) covers {mm.sum() / total:.4f} of the part, under {MIN_LAYER}")
         h[mm] = height(layer['tier'])
@@ -151,7 +164,7 @@ def build_arrays(rgb, opaque, recipe):
     if 'seams' in recipe:
         sm = recipe['seams']
         cut = morphology.binary_dilation(seam_mask(rgb, opaque, sm.get('pct', 85), sm.get('min_len', 0)), morphology.disk(max(0, sm.get('width', 2) // 2)))
-        cut &= where_mask(sm.get('where', 'all'), opaque, masks, rad, ang)
+        cut &= where_mask(sm.get('where', 'all'), opaque, masks, rad, ang, hs)
         h[cut] = np.minimum(h[cut], height(sm.get('tier', 'base')))
     levels = sorted(set(np.unique(h[opaque]).round(4).tolist()))
     tiers, below = [], None

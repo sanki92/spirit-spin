@@ -1,0 +1,11 @@
+{
+  "part": "blade-spiral",
+  "centre": [0.0024, 0.0171],
+  "layers": [
+    { "tier": "base", "where": "all" },
+    { "tier": "low", "where": { "r": [0.398, 0.436] } },
+    { "tier": "mid", "where": { "hue": [190, 250], "r": [0.436, 0.78] } },
+    { "tier": "high", "where": { "hue": [20, 65] } }
+  ],
+  "why": "Inner rim from inner edge 0.398 to border 0.436 (low). The blue swirl body (hue 190-250 around the measured peak 219, mid) fills the band to the edge 0.773; the gold swirl blades and arrow claws (hue 20-65 around the measured peak 42) stand on top (high)."
+}

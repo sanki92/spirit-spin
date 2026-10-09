@@ -1,4 +1,4 @@
-import os, sys, tempfile
+import json, os, sys, tempfile
 import numpy as np
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
@@ -170,6 +170,58 @@ def test_raster_keeps_a_shape_inside_another_shapes_hole():
         r = check.raster(order)
         assert r[256, 256], 'island inside the hole was erased'
         assert not r[256, 256 + 115], 'hole ring between island and outer must stay empty'
+
+def test_hue_filter_separates_two_saturated_colours():
+    import build
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, 'two.png')
+        r, ang = polar()
+        img = np.zeros((SIZE, SIZE, 4), np.uint8)
+        ring = (r >= 0.3) & (r < 0.9)
+        img[ring & (ang < 180), :3] = (220, 170, 30)
+        img[ring & (ang >= 180), :3] = (30, 60, 210)
+        img[ring, 3] = 255
+        Image.fromarray(img).save(p)
+        recipe = {'part': 't', 'centre': [0.0, 0.0], 'layers': [
+            {'tier': 'base', 'where': 'all'},
+            {'tier': 'high', 'where': {'hue': [30, 60]}},
+        ], 'why': 't'}
+        data, ctx = build.build_path(p, recipe)
+        h = ctx['h']
+        assert (h[ring & (ang < 170) & (ang > 10)] == 0.21).all()
+        assert (h[ring & (ang > 190) & (ang < 350)] == 0.06).all()
+        wrap = dict(recipe, layers=[recipe['layers'][0], {'tier': 'high', 'where': {'hue': [200, 260]}}])
+        data, ctx = build.build_path(p, wrap)
+        assert (ctx['h'][ring & (ang > 190) & (ang < 350)] == 0.21).all()
+
+def test_outline_check_allows_one_pixel_but_not_more():
+    import check
+    data, ctx = build_synthetic(ring_recipe())
+    def shifted(dx):
+        d = json.loads(json.dumps(data))
+        for s in d['tiers'][0]['shapes']:
+            s['outer'] = [[x + dx / 256, y] for x, y in s['outer']]
+            s['holes'] = [[[x + dx / 256, y] for x, y in h] for h in s['holes']]
+        return d
+    assert not any(e.startswith('outline') for e in check.check_part('s', shifted(1), ctx))
+    assert any(e.startswith('outline') for e in check.check_part('s', shifted(4), ctx))
+
+def test_compact_disc_outline_matches_within_one_pixel():
+    import build, check
+    recipe = json.load(open(os.path.join(os.path.dirname(__file__), 'recipes', 'disc-compact.json')))
+    data, ctx = build.build_part('disc-compact', recipe)
+    assert not any(e.startswith('outline') for e in check.check_part('disc-compact', data, ctx)), check.check_part('disc-compact', data, ctx)
+
+def test_bars_are_constant_width_channels():
+    import build
+    rad, ang = polar()
+    opaque = rad < 0.95
+    m = build.where_mask({'bars': [[0, 0.03]]}, opaque, {}, rad, ang)
+    for r in (0.3, 0.8):
+        col = int(round(C + r * 256))
+        rows = np.nonzero(m[:, col])[0]
+        assert abs(len(rows) - 2 * 0.03 * 256) <= 3, (r, len(rows))
+    assert not m[int(C), int(C - 0.5 * 256)]
 
 if __name__ == '__main__':
     fails = 0

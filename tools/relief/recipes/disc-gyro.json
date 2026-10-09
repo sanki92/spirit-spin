@@ -1,0 +1,11 @@
+{
+  "part": "disc-gyro",
+  "centre": [0.0004, 0.0087],
+  "layers": [
+    { "tier": "base", "where": "all" },
+    { "tier": "mid", "where": { "r": [0.148, 0.209] } },
+    { "tier": "low", "where": { "material": "saturated" } },
+    { "tier": "low", "where": { "r": [0.732, 0.79] } }
+  ],
+  "why": "Hub collar from inner edge 0.148 to border 0.209 (mid). The teal cross ring between borders 0.502 and 0.572 and its four spokes (saturated) are raised ribs (low); the outer rim from border 0.732 to the edge 0.781 is raised (low). Nothing beyond 0.28 exceeds low."
+}

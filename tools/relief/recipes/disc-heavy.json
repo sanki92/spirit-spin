@@ -1,0 +1,76 @@
+{
+  "part": "disc-heavy",
+  "centre": [
+    0.0009,
+    0.0299
+  ],
+  "layers": [
+    {
+      "tier": "base",
+      "where": "all"
+    },
+    {
+      "tier": "mid",
+      "where": {
+        "r": [
+          0.195,
+          0.256
+        ]
+      }
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.381,
+          0.447
+        ]
+      }
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.709,
+          0.86
+        ]
+      }
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.515,
+          0.645
+        ],
+        "angles": [
+          [
+            -3.9,
+            9.1
+          ],
+          [
+            43.5,
+            56.5
+          ],
+          [
+            123.5,
+            136.5
+          ],
+          [
+            171.2,
+            184.2
+          ],
+          [
+            223.8,
+            236.8
+          ],
+          [
+            303.9,
+            316.9
+          ]
+        ]
+      }
+    }
+  ],
+  "why": "Hub collar between inner edge 0.195 and border 0.256 (mid). The inner ring between borders 0.381 and 0.447 and the heavy outer rim from border 0.709 to the edge 0.855 are raised (low). The six hex bolt heads are raised (low) at their measured positions: radius 0.515-0.645, angles 2.6, 177.7, 230.3, 310.4 (measured from the bolt rims) plus 50 and 130 (the top pair, merged with a highlight smear in the bright mask, placed by the art's symmetry), each \u00b16.5 degrees. The face between is the floor. Nothing beyond 0.28 exceeds low."
+}

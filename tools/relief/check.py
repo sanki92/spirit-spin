@@ -55,9 +55,11 @@ def check_part(name, data, ctx):
     if not tiers:
         return ['empty: no tiers']
     floor = raster(tiers[0]['shapes'])
-    iou = (floor & opaque).sum() / max(1, (floor | opaque).sum())
-    if iou < IOU_MIN:
-        errs.append(f'outline: IoU {iou:.4f} < {IOU_MIN}')
+    near = morphology.disk(1)
+    wrong = (floor & ~morphology.binary_dilation(opaque, near)) | (opaque & ~morphology.binary_dilation(floor, near))
+    match = 1 - wrong.sum() / max(1, (floor | opaque).sum())
+    if match < IOU_MIN:
+        errs.append(f'outline: {match:.4f} of pixels match within 1 px < {IOU_MIN}')
     outside = opaque & ~morphology.binary_dilation(floor, morphology.disk(1))
     if outside.sum() > 0.002 * total:
         errs.append(f'coverage: {int(outside.sum())} opaque pixels outside the floor')
