@@ -10,6 +10,7 @@ import { log } from '../../telemetry'
 import { Bar, Img, Screen, Slash, TopBar } from '../kit'
 import { Loader, Skeleton, SkeletonList } from '../Loader'
 import { TopPreview } from './Garage'
+import { motionOn } from '../../input/motionSetting'
 
 async function api<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T }> {
   try {
@@ -33,7 +34,7 @@ export function Ranked() {
   const rt = useRuntime()
   const s = useSave()
   const beasts = Object.keys(s.beasts) as BeastId[]
-  const pool: 'motion' | 'swipe' = rt.sensors && s.settings.inputMode !== 'swipe' ? 'motion' : 'swipe'
+  const pool: 'motion' | 'swipe' = rt.sensors && motionOn(s.settings) ? 'motion' : 'swipe'
   const [info, setInfo] = useState<RankedInfo | null>(null)
   const [offline, setOffline] = useState(false)
   const [deck, setDeck] = useState<TopBuild[]>(() => autoDeck(s.owned, beasts))
@@ -237,7 +238,7 @@ export function CupScreen({ id }: { id: string }) {
   const play = async () => {
     if (!mine) return
     setBusy(true)
-    const pool: 'motion' | 'swipe' = rt.sensors && s.settings.inputMode !== 'swipe' ? 'motion' : 'swipe'
+    const pool: 'motion' | 'swipe' = rt.sensors && motionOn(s.settings) ? 'motion' : 'swipe'
     const r = await api<IssuedGhost & { error?: string }>('POST', `/v1/tournaments/${cup.id}/pairings/${mine.id}/play`, { pool })
     setBusy(false)
     if (!r.ok) {

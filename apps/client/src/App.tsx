@@ -29,6 +29,7 @@ import { ReadyScreen } from './ui/screens/ReadyScreen'
 import { ComingSoon } from './ui/screens/Soon'
 import { FEATURES } from './features'
 import { Result } from './ui/screens/Result'
+import { motionOn } from './input/motionSetting'
 
 const BattleScreen = lazy(() => import('./ui/screens/BattleScreen').then(m => ({ default: m.BattleScreen })))
 const Stadium = lazy(() => import('./ui/screens/Stadium').then(m => ({ default: m.Stadium })))
@@ -149,7 +150,7 @@ function BattleRoute({ route }: { route: Extract<Route, { k: 'battle' }> }) {
     },
     [route, nav],
   )
-  return <BattleScreen setup={setup} theme={towerTheme(route.floor)} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} />
+  return <BattleScreen setup={setup} theme={towerTheme(route.floor)} onEnd={onEnd} forceSwipe={!motionOn(s.settings)} />
 }
 
 function TrainingRoute() {
@@ -168,7 +169,7 @@ function TrainingRoute() {
     nav.replace({ k: 'battle', opponent: towerFloor(1).opponent, floor: 1, boss: null, opponentName: 'Floor 1 Spinner' })
   }, [nav])
   const controller = useCallback<ControllerFactory>((g, st, d) => new TrainingController(g, st, d), [])
-  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} />
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={!motionOn(s.settings)} controller={controller} />
 }
 
 function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
@@ -189,7 +190,7 @@ function LiveRoute({ route }: { route: Extract<Route, { k: 'live' }> }) {
   )
   const controller = useCallback<ControllerFactory>((g, st, d) => new OnlineController(g, st, { ...d, onAbort: () => nav.replace({ k: 'friends' }) }, route.side), [route, nav])
   const names = useMemo<[string, string]>(() => [useProfile.getState().username || s.name || 'You', route.peer.name || 'Rival'], [route])
-  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={s.settings.inputMode === 'swipe'} controller={controller} names={names} />
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={!motionOn(s.settings)} controller={controller} names={names} />
 }
 
 function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
@@ -208,7 +209,7 @@ function GhostRoute({ route }: { route: Extract<Route, { k: 'ghost' }> }) {
     },
     [issued, route, nav],
   )
-  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || s.settings.inputMode === 'swipe'} controller={controller} />
+  return <BattleScreen setup={setup} theme={stadiumTheme()} onEnd={onEnd} forceSwipe={issued.pool === 'swipe' || !motionOn(s.settings)} controller={controller} />
 }
 
 function towerTheme(floor: number | null | undefined): StadiumTheme {

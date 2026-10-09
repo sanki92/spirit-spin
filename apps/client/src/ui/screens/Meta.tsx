@@ -11,6 +11,7 @@ import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
 import { PartSheet } from '../PartSheet'
 import { canAfford, needMore } from '../../state/shortage'
+import { motionOn } from '../../input/motionSetting'
 
 export function Journal() {
   const s = useSave()
@@ -283,7 +284,7 @@ export function Settings() {
       <div className="set2-group panel">
         <label className="set2-row">
           <span><strong>Launch with</strong><small>Motion uses your phone rip. Swipe works anywhere.</small></span>
-          <select value={s.settings.inputMode} onChange={e => s.patchSettings({ inputMode: e.target.value as 'auto' | 'swipe' })}>
+          <select value={motionOn(s.settings) ? 'auto' : 'swipe'} onChange={e => s.patchSettings({ motion: e.target.value === 'auto' })}>
             <option value="auto">Motion</option>
             <option value="swipe">Swipe</option>
           </select>

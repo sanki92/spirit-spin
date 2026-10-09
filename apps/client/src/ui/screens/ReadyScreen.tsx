@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Img } from '../kit'
 import { useRuntime } from '../../runtime'
+import { motionOn } from '../../input/motionSetting'
+import { useSave } from '../../state/save'
 
 export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => void }) {
   const rt = useRuntime()
+  const motion = useSave(st => motionOn(st.settings))
   const [busy, setBusy] = useState(false)
   const arm = async (mic = true) => {
     setBusy(true)
-    onReady(await rt.arm(mic))
+    onReady(await rt.arm(mic, motion))
   }
   const auto = useRef(false)
   useEffect(() => {
@@ -23,12 +26,12 @@ export function ReadyScreen({ onReady }: { onReady: (r: { motion: boolean }) => 
         <section className="ready2-panel">
           <h1>Get ready to rip</h1>
           <ul>
-            <li><Img id="ui/icons/motion" eager /><span><strong>Motion launch</strong><small>Rip your phone to launch your top.</small></span></li>
+            <li><Img id="ui/icons/motion" eager /><span><strong>{motion ? 'Motion launch' : 'Swipe launch'}</strong><small>{motion ? 'Rip your phone to launch your top.' : 'Flick your thumb down to rip.'}</small></span></li>
             <li><Img id="ui/icons/sound" eager /><span><strong>Sound</strong><small>Hear every clash and the commentator.</small></span></li>
             <li><Img id="ui/icons/mic" eager /><span><strong>Spirit Call mic</strong><small>Shout to summon. Nothing is recorded.</small></span></li>
           </ul>
           <button className="cta cyan" onClick={() => void arm()} disabled={busy}><span>{busy ? 'Arming…' : 'Tap to ready'}</span></button>
-          <p className="ready2-fine">You can switch to swipe launch and silent Spirit Call anytime in Settings.</p>
+          <p className="ready2-fine">{motion ? 'You can switch to swipe launch and silent Spirit Call anytime in Settings.' : 'Prefer ripping your phone? Turn on Motion controls in Settings.'}</p>
         </section>
       </div>
     </div>
