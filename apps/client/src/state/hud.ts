@@ -1,6 +1,7 @@
 import type { BeastId, FinishKind, RipQuality } from '@spirit/core'
 import { create } from 'zustand'
 import type { Guide } from '../game/guide'
+import type { Box } from '../game/spot'
 
 export type BattlePhase = 'idle' | 'grip' | 'countdown' | 'coach' | 'launch' | 'battle' | 'roundEnd' | 'matchEnd' | 'paused'
 export type Countdown = '3' | '2' | '1' | 'LAUNCH' | null
@@ -12,6 +13,7 @@ export interface Lesson {
   target?: string
   arrow?: '←' | '→' | '↑' | '↓'
   tap?: string
+  spot?: Box
 }
 
 export type Banner = FinishKind | 'victory' | 'defeat' | 'vs' | 'spiritCall' | 'shout' | null

@@ -1,5 +1,6 @@
 import { assembleTop, FINISH_CAM, TUNING, type BattleState, type TopBuild, type TopSpec } from '@spirit/core'
-import type { Object3D, Texture } from 'three'
+import { Vector3, type Object3D, type Texture } from 'three'
+import type { Box } from './spot'
 import { hasAsset } from '../assets/assets'
 import { texture } from './render/textures'
 import { BEASTS } from './beasts'
@@ -79,6 +80,23 @@ export class Game {
   private pendingClash: ReplayFrame['clash'] = null
   private cine: Cine | null = null
   guards: GuardBars | null = null
+  private readonly boxV = new Vector3()
+
+  topScreenBox(i: 0 | 1): Box | null {
+    const top = this.tops?.[i]
+    const w = this.stage.w, h = this.stage.h
+    if (!top || !top.group.visible || w <= 0 || h <= 0) return null
+    const p = top.group.position, r = top.radius
+    let l = Infinity, t = Infinity, rr = -Infinity, b = -Infinity
+    for (const [dx, dz] of [[-r, 0], [r, 0], [0, -r], [0, r]] as const) {
+      this.boxV.set(p.x + dx, p.y, p.z + dz).project(this.stage.camera)
+      if (this.boxV.z > 1) return null
+      const x = (this.boxV.x + 1) * 0.5 * w, y = (1 - this.boxV.y) * 0.5 * h
+      l = Math.min(l, x); rr = Math.max(rr, x); t = Math.min(t, y); b = Math.max(b, y)
+    }
+    const lift = (rr - l) * 0.35
+    return { left: l, top: t - lift, width: rr - l, height: b - t + lift }
+  }
   private readonly guardScene: GuardScene = { fighting: true, cine: false, zoom: false, summon: false, outcome: false, out: false, broken: false }
   private readonly guardIn = [{ x: 0, y: 0, z: 0, g: 1, show: false }, { x: 0, y: 0, z: 0, g: 1, show: false }]
   private guardsDue = false

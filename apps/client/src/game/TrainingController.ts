@@ -4,6 +4,7 @@ import { log } from '../telemetry'
 import { BattleController, BEAT_MS, GRIP_MS } from './BattleController'
 import { coachTip } from './coach'
 import { practiceVerdict, timingNote, type PracticeStage } from './practice'
+import { unionBox } from './spot'
 import { BEASTS } from './beasts'
 
 type Stage = 'launch' | 'lessons' | 'real' | 'done'
@@ -176,8 +177,15 @@ export class TrainingController extends BattleController {
   }
 
   private show(): void {
-    const lesson = this.steps[this.at]
+    let lesson = this.steps[this.at]
     if (!lesson) return
+    if (lesson.id === 'guard') {
+      const bar = document.querySelector<HTMLElement>('.guard-float.me')?.getBoundingClientRect()
+      const top = this.game.topScreenBox(0)
+      const spot = bar && bar.width > 0 && top ? unionBox(bar, top, 10, { w: window.innerWidth, h: window.innerHeight }) : undefined
+      const { target: _target, ...rest } = lesson
+      lesson = spot ? { ...rest, spot } : rest
+    }
     this.paused = true
     log('training.step', { id: lesson.id })
     useHud.getState().set({ lesson, guide: lesson.arrow && this.inputMode === 'swipe' ? { mode: 'steer', dir: lesson.arrow } : null })
