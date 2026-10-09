@@ -1,4 +1,6 @@
 import { BufferGeometry, Color, ExtrudeGeometry, LatheGeometry, Path, Shape, Vector2, type Texture } from 'three'
+import { reliefGeometry, type Relief, type ReliefDetail } from './reliefGeometry'
+import { reliefFor } from './reliefStore'
 
 const SAMPLES = 256
 
@@ -141,11 +143,20 @@ export function tipGeometry(t: Texture, height: number): { geometry: BufferGeome
 const ringCache = new Map<string, { geometry: BufferGeometry; edge: Color }>()
 const tipCache = new Map<string, { geometry: BufferGeometry; radius: number }>()
 
-export function cachedRing(key: string, t: Texture, depth: number, bevel: number): { geometry: BufferGeometry; edge: Color } {
+const reliefCache = new Map<string, BufferGeometry>()
+
+export function cachedRing(key: string, t: Texture, depth: number, bevel: number, detail: ReliefDetail = 'garage'): { geometry: BufferGeometry; edge: Color; relief: Relief | null } {
+  const relief = reliefFor(key)
+  if (relief) {
+    const rk = `${key}|relief|${detail}`
+    let g = reliefCache.get(rk)
+    if (!g) { g = reliefGeometry(relief, detail, artSampler(t)); reliefCache.set(rk, g) }
+    return { geometry: g.clone(), edge: new Color(1, 1, 1), relief }
+  }
   const k = `${key}|${depth}|${bevel}`
   let hit = ringCache.get(k)
   if (!hit) { hit = ringGeometry(t, depth, bevel); ringCache.set(k, hit) }
-  return { geometry: hit.geometry.clone(), edge: hit.edge.clone() }
+  return { geometry: hit.geometry.clone(), edge: hit.edge.clone(), relief: null }
 }
 
 export function cachedTip(key: string, t: Texture, height: number): { geometry: BufferGeometry; radius: number } {
