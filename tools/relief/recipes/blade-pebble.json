@@ -1,0 +1,53 @@
+{
+  "part": "blade-pebble",
+  "centre": [
+    0.0005,
+    0.039
+  ],
+  "layers": [
+    {
+      "tier": "base",
+      "where": "all"
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.461,
+          0.486
+        ]
+      }
+    },
+    {
+      "tier": "mid",
+      "where": {
+        "r": [
+          0.537,
+          0.7
+        ]
+      }
+    },
+    {
+      "tier": "high",
+      "where": {
+        "material": "saturated",
+        "r": [
+          0.537,
+          0.7
+        ]
+      }
+    }
+  ],
+  "seams": {
+    "width": 2,
+    "tier": "low",
+    "where": {
+      "material": "neutral",
+      "r": [
+        0.537,
+        0.7
+      ]
+    }
+  },
+  "why": "Inner rim from inner edge 0.461 to border 0.486 (low); the band between borders 0.486 and 0.537 is recessed (base). The grey outer armour runs from 0.537 to the edge 0.695 (mid), split at its drawn segment lines (low; grooves cut only the grey armour, never the panels), with the four green panels raised (high)."
+}

@@ -1,0 +1,48 @@
+{
+  "part": "blade-guard",
+  "centre": [
+    0.0005,
+    0.0122
+  ],
+  "layers": [
+    {
+      "tier": "base",
+      "where": "all"
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.402,
+          0.463
+        ]
+      }
+    },
+    {
+      "tier": "mid",
+      "where": {
+        "r": [
+          0.463,
+          0.81
+        ]
+      }
+    },
+    {
+      "tier": "high",
+      "where": {
+        "material": "bright",
+        "r": [
+          0.463,
+          0.81
+        ]
+      }
+    }
+  ],
+  "why": "Inner rim from inner edge 0.402 to border 0.463 (low). The purple scale plates fill the band out to the edge 0.809 (mid, pale glints included); only the strong silver frames (v >= 0.72, s < 0.18) form the raised lattice of ribs (high).",
+  "materials": {
+    "bright": [
+      0.72,
+      0.18
+    ]
+  }
+}

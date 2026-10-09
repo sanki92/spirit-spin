@@ -7,23 +7,25 @@ from common import C, HALF, ROOT, SIZE
 
 IOU_MIN = 0.98
 SLIVER = 0.0015
-TRI_MAX = 12000
+TRI_MAX = 16000
 HOLE_MIN = 0.0005
 TIERS_OUT = os.path.join(ROOT, 'docs', 'art', 'relief', 'tiers')
 
 
 def px(ring):
-    return [(x * HALF + C, C - y * HALF) for x, y in ring]
+    return [(x * HALF + C + 0.5, C - y * HALF + 0.5) for x, y in ring]
 
 
 def raster(shapes):
-    im = Image.new('L', (SIZE, SIZE), 0)
-    d = ImageDraw.Draw(im)
+    out = np.zeros((SIZE, SIZE), bool)
     for s in shapes:
+        im = Image.new('L', (SIZE, SIZE), 0)
+        d = ImageDraw.Draw(im)
         d.polygon(px(s['outer']), fill=1)
         for hole in s['holes']:
             d.polygon(px(hole), fill=0)
-    return np.asarray(im).astype(bool)
+        out |= np.asarray(im).astype(bool)
+    return out
 
 
 def area(ring):

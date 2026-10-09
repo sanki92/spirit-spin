@@ -1,0 +1,53 @@
+{
+  "part": "blade-prism",
+  "centre": [
+    -0.0015,
+    0.0013
+  ],
+  "layers": [
+    {
+      "tier": "base",
+      "where": "all"
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.449,
+          0.479
+        ]
+      }
+    },
+    {
+      "tier": "mid",
+      "where": {
+        "r": [
+          0.479,
+          0.822
+        ]
+      }
+    },
+    {
+      "tier": "low",
+      "where": {
+        "r": [
+          0.822,
+          0.86
+        ]
+      }
+    }
+  ],
+  "seams": {
+    "width": 2,
+    "tier": "low",
+    "where": {
+      "r": [
+        0.479,
+        0.822
+      ]
+    },
+    "pct": 85,
+    "min_len": 60
+  },
+  "why": "Inner rim from inner edge 0.449 to border 0.479 and outer rim from border 0.822 to edge 0.852 (low). Between them the crystal body (mid) is cut into its blocks along the long radial divider lines only (seam lines at least 60 px long; the short facet lines are surface detail, not grooves)."
+}

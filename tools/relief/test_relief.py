@@ -25,6 +25,19 @@ def synthetic(path, dy=0):
         img[m, :3] = (55, 55, 60)
     Image.fromarray(img).save(path)
 
+def test_specks_inside_the_hole_are_not_part_of_the_part():
+    import measure
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, 'specks.png'); synthetic(p)
+        img = np.asarray(Image.open(p)).copy()
+        for k in range(40):
+            a = np.radians(k * 9)
+            x, y = int(round(C + 45 * np.cos(a))) - 2, int(round(C + 45 * np.sin(a))) - 2
+            img[y:y + 5, x:x + 5] = (200, 200, 200, 255)
+        Image.fromarray(img).save(p)
+        m = measure.measure_path(p)
+        assert abs(m['inner'] - 0.30) <= 0.01, m['inner']
+
 def near(values, target, tol):
     return any(abs(v - target) <= tol for v in values)
 
@@ -126,6 +139,16 @@ def test_recipe_errors_are_loud():
     except build.RecipeError as e:
         assert 'coverage' in str(e)
 
+def test_seams_keep_only_long_lines_when_asked():
+    import build
+    rgb = np.zeros((SIZE, SIZE, 3), np.float32) + 0.5
+    op = np.zeros((SIZE, SIZE), bool); op[100:400, 100:400] = True
+    rgb[150:152, 120:380] = 0.0
+    rgb[300:302, 200:215] = 0.0
+    longs = build.seam_mask(rgb, op, 85, 60)
+    assert longs[140:160, 120:380].any() and not longs[290:310, 195:220].any()
+    assert build.seam_mask(rgb, op, 85, 0)[290:310, 195:220].any()
+
 def test_well_makes_the_floor():
     import build, check
     r = ring_recipe(); r['layers'].insert(1, {'tier': 'well', 'where': {'r': [0.30, 0.40]}})
@@ -138,6 +161,15 @@ def test_off_centre_part_builds_around_its_centre():
     data, ctx = build_synthetic(ring_recipe(centre=[0.0, round(40 / 256, 4)]), dy=-40)
     assert abs(data['centre'][1] - 40 / 256) < 0.006
     assert check.check_part('synthetic', data, ctx) == []
+
+def test_raster_keeps_a_shape_inside_another_shapes_hole():
+    import check
+    outer = {'outer': [[-0.9, -0.9], [0.9, -0.9], [0.9, 0.9], [-0.9, 0.9]], 'holes': [[[-0.6, -0.6], [0.6, -0.6], [0.6, 0.6], [-0.6, 0.6]]]}
+    island = {'outer': [[-0.3, -0.3], [0.3, -0.3], [0.3, 0.3], [-0.3, 0.3]], 'holes': []}
+    for order in ([island, outer], [outer, island]):
+        r = check.raster(order)
+        assert r[256, 256], 'island inside the hole was erased'
+        assert not r[256, 256 + 115], 'hole ring between island and outer must stay empty'
 
 if __name__ == '__main__':
     fails = 0

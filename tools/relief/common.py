@@ -7,6 +7,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PARTS = os.path.join(ROOT, 'assets', 'final', 'parts')
 SIZE = 512
 HALF = SIZE / 2
+SPECK = 0.0015
 
 
 def part_names():
@@ -19,6 +20,7 @@ def load_path(path):
         im = im.resize((SIZE, SIZE), Image.LANCZOS)
     a = np.asarray(im).astype(np.float32) / 255
     opaque = morphology.binary_opening(a[..., 3] > 0.43, morphology.disk(1))
+    opaque = morphology.remove_small_objects(opaque, max(1, int(SPECK * opaque.sum())), connectivity=2)
     return a[..., :3], opaque
 
 

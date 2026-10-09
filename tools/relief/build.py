@@ -4,11 +4,13 @@ from scipy import ndimage as ndi
 from skimage import filters, measure as skm, morphology
 from common import C, HALF, ROOT, load_part, load_path, part_names, radius_map
 import measure
+import check
 
 TIERS = {'well': 0.03, 'base': 0.06, 'low': 0.10, 'mid': 0.14, 'high': 0.21}
 MIN_PART = 0.0015
 MIN_LAYER = 0.005
 HOLE_MIN = 0.0005
+TOLERANCES = (1.0, 1.5, 2.0, 3.0, 4.0)
 RECIPES = os.path.join(os.path.dirname(__file__), 'recipes')
 OUT = os.path.join(ROOT, 'apps', 'client', 'public', 'assets', 'relief')
 
@@ -46,15 +48,18 @@ def where_mask(where, opaque, masks, rad, ang):
     return m
 
 
-def seam_mask(rgb, opaque):
+def seam_mask(rgb, opaque, pct=85, min_len=0):
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     edge = filters.sobel(ndi.gaussian_filter(lum, 0.8))
-    return morphology.skeletonize((edge > np.percentile(edge[opaque], 85)) & opaque)
+    sk = morphology.skeletonize((edge > np.percentile(edge[opaque], pct)) & opaque)
+    if min_len > 0:
+        sk = morphology.remove_small_objects(sk, min_len, connectivity=2)
+    return sk
 
 
-def ring_xy(contour):
-    c = skm.approximate_polygon(contour, 1.0) - 2
-    return [[round(float((x - C) / HALF), 4), round(float(-(y - C) / HALF), 4)] for y, x in c[:-1]]
+def px_to_norm(contour):
+    c = contour - 2
+    return [((x - C) / HALF, -(y - C) / HALF) for y, x in c]
 
 
 def longest(mask):
@@ -62,16 +67,18 @@ def longest(mask):
     return max(cs, key=len) if cs else None
 
 
-def shapes_of(mask, total):
+def mask_geom(mask, total):
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
     lab, n = ndi.label(mask, structure=np.ones((3, 3)))
-    out = []
+    polys = []
     for i in range(1, n + 1):
         comp = lab == i
         if comp.sum() < MIN_PART * total:
             continue
         filled = ndi.binary_fill_holes(comp)
         outer = longest(filled)
-        if outer is None:
+        if outer is None or len(outer) < 4:
             continue
         holes = []
         hl, hn = ndi.label(filled & ~comp)
@@ -81,10 +88,45 @@ def shapes_of(mask, total):
                 continue
             c = longest(hm)
             if c is not None and len(c) >= 4:
-                holes.append(ring_xy(c))
-        ring = ring_xy(outer)
-        if len(ring) >= 3:
-            out.append({'outer': ring, 'holes': [h for h in holes if len(h) >= 3]})
+                holes.append(px_to_norm(c))
+        p = Polygon(px_to_norm(outer), holes).buffer(0)
+        if not p.is_empty:
+            polys.append(p)
+    return unary_union(polys) if polys else None
+
+
+def geom_shapes(g, min_area):
+    if g is None or g.is_empty:
+        return []
+    parts = [g] if g.geom_type == 'Polygon' else [x for x in getattr(g, 'geoms', []) if x.geom_type == 'Polygon']
+    out = []
+    for p in parts:
+        if p.area < min_area:
+            continue
+        r = lambda ring: [[round(float(x), 4), round(float(y), 4)] for x, y in list(ring.coords)[:-1]]
+        holes = [r(h) for h in p.interiors if len(h.coords) >= 4]
+        outer = r(p.exterior)
+        if len(outer) >= 3:
+            out.append({'outer': outer, 'holes': holes})
+    return out
+
+
+def emit(tiers, total, tol):
+    from shapely.geometry import MultiPolygon, Polygon
+    min_area = MIN_PART * 1.05 * total / (HALF * HALF)
+    out, prev = [], None
+    for k, t in enumerate(tiers):
+        g = mask_geom(t['mask'], total)
+        if g is None:
+            continue
+        g = g.simplify((1.0 if k == 0 else tol) / HALF, preserve_topology=True)
+        if prev is not None:
+            g = g.intersection(prev.buffer(-0.5 / HALF, join_style='mitre'))
+        shapes = geom_shapes(g, min_area)
+        if not shapes:
+            continue
+        out.append({'h': t['h'], 'wall': t['wall'], 'shapes': shapes})
+        prev = MultiPolygon([Polygon(s['outer'], s['holes']) for s in shapes]).buffer(0)
     return out
 
 
@@ -108,7 +150,7 @@ def build_arrays(rgb, opaque, recipe):
         raise RecipeError(f'coverage: {int(np.isnan(h[opaque]).sum())} opaque pixels have no tier')
     if 'seams' in recipe:
         sm = recipe['seams']
-        cut = morphology.binary_dilation(seam_mask(rgb, opaque), morphology.disk(max(0, sm.get('width', 2) // 2)))
+        cut = morphology.binary_dilation(seam_mask(rgb, opaque, sm.get('pct', 85), sm.get('min_len', 0)), morphology.disk(max(0, sm.get('width', 2) // 2)))
         cut &= where_mask(sm.get('where', 'all'), opaque, masks, rad, ang)
         h[cut] = np.minimum(h[cut], height(sm.get('tier', 'base')))
     levels = sorted(set(np.unique(h[opaque]).round(4).tolist()))
@@ -127,13 +169,16 @@ def build_arrays(rgb, opaque, recipe):
         own = mk & ~above
         src = rgb[own] if own.any() else rgb[mk]
         wall = '#%02x%02x%02x' % tuple((src.mean(0) * 0.6 * 255).clip(0, 255).astype(int))
-        tiers.append({'h': round(float(lv), 4), 'wall': wall, 'shapes': shapes_of(mk, total)})
+        tiers.append({'h': round(float(lv), 4), 'wall': wall, 'mask': mk})
         below = mk
     profile = []
     for i in range(16):
         b = opaque & (rad >= i / 16) & (rad < (i + 1) / 16)
         profile.append(round(float(np.max(h[b])), 4) if b.any() else 0.0)
-    data = {'v': 1, 'centre': m['centre'], 'inner': m['inner'], 'outer': m['outer'], 'profile': profile, 'tiers': tiers}
+    for tol in TOLERANCES:
+        data = {'v': 1, 'centre': m['centre'], 'inner': m['inner'], 'outer': m['outer'], 'profile': profile, 'tiers': emit(tiers, total, tol), 'tol': tol}
+        if check.triangles(data) <= check.TRI_MAX:
+            break
     ctx = {'opaque': opaque, 'total': total, 'rgb': rgb, 'h': h}
     return data, ctx
 
@@ -147,7 +192,7 @@ def build_part(name, recipe):
 
 
 def main(names=None):
-    import check
+
     names = names or part_names()
     missing = [n for n in names if not os.path.exists(os.path.join(RECIPES, n + '.json'))]
     if missing:

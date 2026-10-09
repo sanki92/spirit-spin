@@ -24,8 +24,8 @@ def material_masks(rgb, opaque, dark=(0.42, 0.35), bright=(0.55, 0.22), sat=0.35
     v, s = hsv(rgb)
     d = opaque & (v < dark[0]) & (s < dark[1])
     b = opaque & (v >= bright[0]) & (s < bright[1]) & ~d
-    c = opaque & (s >= sat) & ~d & ~b
-    return {'dark': d, 'bright': b, 'saturated': c}
+    c = opaque & (s >= sat) & ~d
+    return {'dark': d, 'bright': b, 'saturated': c, 'neutral': opaque & (s < sat)}
 
 
 def radial_extent(opaque, rad):
@@ -96,7 +96,7 @@ def measure_arrays(rgb, opaque):
         'outer': round(outer, 3),
         'rings': rings_from(prof, inner, outer),
         'claws': claws,
-        'materials': {k: round(float(m.sum() / total), 3) for k, m in masks.items()},
+        'materials': {k: round(float(m.sum() / total), 3) for k, m in masks.items() if k != 'neutral'},
     }
 
 

@@ -1,0 +1,13 @@
+{
+  "part": "blade-ripple",
+  "centre": [-0.0009, 0.0387],
+  "materials": { "saturated": 0.12 },
+  "layers": [
+    { "tier": "base", "where": "all" },
+    { "tier": "low", "where": { "r": [0.34, 0.369] } },
+    { "tier": "mid", "where": { "r": [0.369, 0.459] } },
+    { "tier": "low", "where": { "r": [0.514, 0.7] } },
+    { "tier": "high", "where": { "material": "neutral", "r": [0.514, 0.7] } }
+  ],
+  "why": "Inner lip from inner edge 0.34 to border 0.369 (low); the grey inner ring with its four tabs between borders 0.369 and 0.459 (mid); the groove 0.459-0.514 (base). Outside 0.514 the grey sweeping blades (neutral, saturation under 0.12, high) alternate with pale lavender gaps (low) out to the edge 0.688."
+}
