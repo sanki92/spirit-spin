@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { hasAsset, assetUrl } from '../../assets/assets'
 import { TECHNIQUES, type BeastId } from '@spirit/core'
 import { BEASTS } from '../../game/beasts'
-import { spiritReady, spiritRefused, useHud, type Banner } from '../../state/hud'
+import { spiritReady, spiritRefused, stickLive, useHud, type Banner } from '../../state/hud'
 import { LessonOverlay } from './LessonOverlay'
 import { CoachOverlay, CoachTipCard, GripGuide, LaunchCallout, PullMeter, VsIntro } from './LaunchHud'
 
@@ -90,9 +90,9 @@ export function BattleHud({ names, beasts, arts, types, onSpirit, onSwipeZone, o
         </div>
       )}
       {h.cutin && <CutIn beast={h.cutin.beast} side={h.cutin.side} hesitate={h.cutin.hesitate} />}
+      {stickLive(h.phase, spectator) && <Stick onStick={onStick} />}
       {h.phase === 'battle' && !spectator && (
         <>
-          <Stick onStick={onStick} />
           {h.refused > 0 && <div key={h.refused} className="spirit-refused" role="status">Rival's beast is out!</div>}
           <button className={`spirit-btn ${ready ? 'ready' : ''} ${h.refused > 0 ? (h.refused % 2 ? 'refused' : 'refused-b') : ''}`} onPointerDown={onSpirit} disabled={!ready && !blocked}>
             <Live className="gauge" get={st => ({ height: `${Math.min(1, st.gauge[0]) * 100}%` })} />

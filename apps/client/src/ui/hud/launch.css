@@ -74,7 +74,7 @@
 .launch-burst { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--c) 70%, #fff), transparent 60%); opacity: 0; animation: burst 0.7s ease-out 0.62s both; }
 @keyframes burst { 0% { opacity: 0; } 15% { opacity: 0.85; } 100% { opacity: 0; } }
 
-.coach-tip { position: absolute; left: 12px; right: 12px; bottom: calc(140px + var(--safe-bottom)); display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 10px; padding: 10px 14px 10px 8px; pointer-events: none; background: rgba(7, 11, 31, 0.9); border-left: 3px solid var(--gold); animation: tipIn 0.4s cubic-bezier(0.2, 1.2, 0.4, 1) 0.9s both, tipOut 0.4s ease-in 4.8s forwards; }
+.coach-tip { pointer-events: none; position: absolute; left: 12px; right: 12px; bottom: calc(140px + var(--safe-bottom)); display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 10px; padding: 10px 14px 10px 8px; pointer-events: none; background: rgba(7, 11, 31, 0.9); border-left: 3px solid var(--gold); animation: tipIn 0.4s cubic-bezier(0.2, 1.2, 0.4, 1) 0.9s both, tipOut 0.4s ease-in 4.8s forwards; }
 .coach-tip-face { width: 56px; height: 56px; object-fit: contain; }
 .coach-tip p { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--text); }
 .coach-tip strong { display: block; font-family: 'Bebas Neue'; font-weight: 400; font-size: 24px; letter-spacing: 1px; color: var(--gold); }

@@ -46,6 +46,8 @@ export interface HudState {
   set: (p: Partial<HudState>) => void
 }
 
+export const stickLive = (phase: BattlePhase, spectator: boolean): boolean => !spectator && (phase === 'launch' || phase === 'battle')
+
 export const spiritReady = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'>): boolean => s.gauge[0] >= 1 && s.phase === 'battle' && !s.spiritActive[1]
 
 export const spiritRefused = (s: Pick<HudState, 'gauge' | 'phase' | 'spiritActive'>): boolean => s.gauge[0] >= 1 && s.phase === 'battle' && s.spiritActive[1]

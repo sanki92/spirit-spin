@@ -66,7 +66,7 @@ button { font-family: inherit; }
 .countdown { width: min(70vw, 420px); max-height: 40vh; object-fit: contain; }
 .art-text { font-family: 'Bebas Neue'; font-size: 64px; letter-spacing: 4px; color: #fff; text-shadow: 0 0 24px var(--edge), 0 4px 0 #0a3a66; text-align: center; }
 
-.callout { position: absolute; top: 30%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; }
+.callout { position: absolute; top: 30%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .callout-img { width: min(80vw, 480px); }
 .callout-fail { color: #ffb2a6; text-shadow: 0 0 24px #ff5a4a; font-size: 52px; }
 .rpm { font-family: 'Bebas Neue'; font-size: 44px; letter-spacing: 2px; color: #fff; text-shadow: 0 0 18px var(--edge); margin-top: -10px; }
