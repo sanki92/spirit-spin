@@ -15,6 +15,14 @@ describe('coachTip', () => {
   it('uses swipe wording without motion', () => {
     expect(coachTip(composeRip(1, 0.3, 1, 0, 0), true).text).toMatch(/swipe/)
   })
+
+  it('never tells a swipe player to pull', () => {
+    for (const r of [{ ok: false, reason: 'no-pull' } as const, composeRip(1, 0.3, 1, 0, 0), composeRip(1, 1, 0.45, 0, 0), composeRip(1, 1, 2, 0, 0), composeRip(1, 1, 1, 0, 0)]) {
+      expect(coachTip(r, true).text).not.toMatch(/pull/)
+      expect(coachTip(r, true).text).toMatch(/flick right on LAUNCH/)
+    }
+    expect(coachTip(composeRip(1, 1, 1, 0, 0), false).text).toMatch(/pull right on LAUNCH/)
+  })
 })
 
 describe('launch plan', () => {

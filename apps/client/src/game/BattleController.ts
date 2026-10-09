@@ -39,8 +39,8 @@ export interface MatchResult {
   verdict?: { winner: 0 | 1; scores: [number, number]; rating?: number; delta?: number } | null
 }
 
-const GRIP_MS = 1100
-const BEAT_MS = 650
+export const GRIP_MS = 1100
+export const BEAT_MS = 650
 const CAPTURE_AFTER_MS = 850
 const FAIL_RIP = (t0: number) => composeRip(0.15, 0.3, 0.45, 0, t0)
 const RESOLVE_AFTER_START_MS = RIP.windowMs + 10
@@ -244,6 +244,21 @@ export class BattleController {
     })
   }
 
+  protected holdLaunch(_res: RipResult | RipFail, _coaching: boolean): boolean {
+    return false
+  }
+
+  protected coachMiss(_res: RipFail): void {}
+
+  protected reopenCoach(): void {
+    this.swipe = null
+    this.swipeLive = null
+    this.resolvedAt = NaN
+    this.launchAt = Infinity
+    this.coachSince = performance.now()
+    useHud.getState().set({ phase: 'coach', countdown: null, callout: null })
+  }
+
   protected adjudicate(res: RipResult | RipFail, _motion: MotionSample[] | null, _swipe: TouchSample[] | null, _preferSwipe: boolean): RipResult | RipFail {
     return res
   }
@@ -261,10 +276,14 @@ export class BattleController {
         this.resolveLaunch()
       } else if (!start && this.swipe) {
         const t0 = this.swipe[0]!.t
-        if (scoreSwipe(this.swipe, t0, window.innerHeight).ok) {
+        const sw = scoreSwipe(this.swipe, t0, window.innerHeight)
+        if (sw.ok) {
           this.launchAt = t0
           this.resolveLaunch()
-        } else this.swipe = null
+        } else {
+          this.swipe = null
+          this.coachMiss(sw)
+        }
       }
       return
     }
@@ -305,6 +324,7 @@ export class BattleController {
     const motionWin = this.deps.sensors?.live ? this.deps.sensors.window(from, t0 + CAPTURE_AFTER_MS) : null
     const win = this.swipe ? null : motionWin ?? []
     res = this.adjudicate(res, motionWin, swipeRaw, usedSwipe)
+    if (this.holdLaunch(res, coaching)) return
     const rip = res.ok ? res : FAIL_RIP(t0)
     const opp = botRip(this.botRng, this.setup.bot, this.game.specs![1])
     const mags = win ? win.map(s => Math.hypot(s.ax, s.ay, s.az)) : []
