@@ -11,7 +11,7 @@ import { beastArt } from './Home'
 import { CosmeticShop } from './Style'
 import { PartSheet } from '../PartSheet'
 import { canAfford, needMore } from '../../state/shortage'
-import { motionOn } from '../../input/motionSetting'
+import { flipMotion, motionOn } from '../../input/motionSetting'
 
 export function Journal() {
   const s = useSave()
@@ -266,6 +266,9 @@ export function Settings() {
   const nav = useNav()
   const [confirmReset, setConfirmReset] = useState(false)
   const [copied, setCopied] = useState(false)
+  const rt = useRuntime()
+  const [motionBusy, setMotionBusy] = useState(false)
+  const [motionNote, setMotionNote] = useState<string | null>(null)
   const code = recoveryCode()
   const toggle = (k: 'silentSpirit' | 'sound' | 'haptics' | 'reducedMotion' | 'commentator', label: string, hint: string, def = true) => (
     <label className="set2-row">
@@ -283,11 +286,8 @@ export function Settings() {
       <h2 className="section-title">Launch and controls</h2>
       <div className="set2-group panel">
         <label className="set2-row">
-          <span><strong>Launch with</strong><small>Motion uses your phone rip. Swipe works anywhere.</small></span>
-          <select value={motionOn(s.settings) ? 'auto' : 'swipe'} onChange={e => s.patchSettings({ motion: e.target.value === 'auto' })}>
-            <option value="auto">Motion</option>
-            <option value="swipe">Swipe</option>
-          </select>
+          <span><strong>Motion controls</strong><small>{motionNote ?? 'Rip your phone to launch and tilt to steer. Off: swipe and thumb stick.'}</small></span>
+          <input type="checkbox" role="switch" className="switch" checked={motionOn(s.settings)} disabled={motionBusy} onChange={e => { const on = e.target.checked; setMotionBusy(true); void flipMotion(on, rt, s.patchSettings).then(n => { setMotionNote(n); setMotionBusy(false) }) }} />
         </label>
         {toggle('silentSpirit', 'Silent Spirit Call', 'Tap the button instead of shouting.', false)}
         <button className="set2-row link" onClick={() => nav.push({ k: 'calibrate' })}><span><strong>Recalibrate launcher</strong><small>Teach the game your rip strength again.</small></span><em aria-hidden="true">›</em></button>

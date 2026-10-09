@@ -12,3 +12,12 @@ export async function armMotion(io: MotionIo): Promise<boolean> {
   f.stop()
   return false
 }
+
+export const MOTION_BLOCKED = 'Motion blocked. Allow Motion & Orientation for this site in iPhone Settings, then try again.'
+
+export async function flipMotion(on: boolean, rt: { enableMotion(): Promise<boolean>; disableMotion(): void }, patch: (p: { motion: boolean }) => void): Promise<string | null> {
+  if (!on) { rt.disableMotion(); patch({ motion: false }); return null }
+  const ok = await rt.enableMotion()
+  patch({ motion: ok })
+  return ok ? null : MOTION_BLOCKED
+}

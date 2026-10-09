@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { armMotion, motionOn } from './motionSetting'
+import { armMotion, flipMotion, MOTION_BLOCKED, motionOn } from './motionSetting'
 
 function io(granted: boolean, event: boolean) {
   const log: string[] = []
@@ -31,5 +31,28 @@ describe('motion controls are opt-in', () => {
     const t = io(true, true)
     expect(await armMotion(t.io)).toBe(true)
     expect(t.log).toEqual(['start'])
+  })
+})
+
+describe('motion switch', () => {
+  const rt = (ok: boolean) => { const calls: string[] = []; return { calls, enableMotion: async () => { calls.push('on'); return ok }, disableMotion: () => { calls.push('off') } } }
+
+  it('turning on saves only after the phone allows motion', async () => {
+    const r = rt(true), saved: boolean[] = []
+    expect(await flipMotion(true, r, p => saved.push(p.motion))).toBeNull()
+    expect(saved).toEqual([true])
+  })
+
+  it('a blocked phone keeps motion off and explains how to allow it', async () => {
+    const r = rt(false), saved: boolean[] = []
+    expect(await flipMotion(true, r, p => saved.push(p.motion))).toBe(MOTION_BLOCKED)
+    expect(saved).toEqual([false])
+  })
+
+  it('turning off stops sensors and saves off', async () => {
+    const r = rt(true), saved: boolean[] = []
+    expect(await flipMotion(false, r, p => saved.push(p.motion))).toBeNull()
+    expect(r.calls).toEqual(['off'])
+    expect(saved).toEqual([false])
   })
 })
