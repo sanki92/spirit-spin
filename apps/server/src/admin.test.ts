@@ -82,6 +82,25 @@ describe('admin', () => {
     expect(me).toMatchObject({ version: 2, save: { coins: 600, shards: 12, xp: 6 } })
   })
 
+  it('maxes a player: every part at top level, every beast awakened, every cosmetic, full coins', async () => {
+    const g = await guest()
+    await app.inject({ method: 'PUT', url: '/v1/save', headers: auth(g.token), payload: { baseVersion: 0, save: { version: 1, coins: 100, shards: 0, xp: 5, tower: 2, starter: 'voltfang', beasts: {}, owned: { blades: [], discs: [], tips: [] }, unlocks: [] } } })
+    const t = await login()
+    expect((await app.inject({ method: 'POST', url: `/v1/admin/players/${g.playerId}/max`, headers: admin(t) })).statusCode).toBe(200)
+    const me = (await app.inject({ method: 'GET', url: '/v1/me', headers: auth(g.token) })).json()
+    const { BLADES, DISCS, TIPS, BEAST_IDS, COSMETICS, MAX_PART_LEVEL } = await import('@spirit/core')
+    expect(me.version).toBe(2)
+    expect(me.save.coins).toBe(1_000_000)
+    expect(me.save.tower).toBe(2)
+    expect([...me.save.owned.blades].sort()).toEqual(Object.keys(BLADES).sort())
+    expect([...me.save.owned.discs].sort()).toEqual(Object.keys(DISCS).sort())
+    expect([...me.save.owned.tips].sort()).toEqual(Object.keys(TIPS).sort())
+    for (const id of BEAST_IDS) expect(me.save.beasts[id].awakened).toBeTruthy()
+    expect(me.save.partLevels[`blade:${Object.keys(BLADES)[0]}`]).toBe(MAX_PART_LEVEL)
+    expect([...me.save.unlocks].sort()).toEqual(Object.keys(COSMETICS).sort())
+    expect(me.save.entitlements).toContain('pass-s1')
+  })
+
   it('serves stats, live rooms, the action log, and an empty history for a new player', async () => {
     const t = await login()
     const s = (await app.inject({ method: 'GET', url: '/v1/admin/stats', headers: admin(t) })).json()

@@ -208,6 +208,7 @@ tr.click:hover td { background: var(--ink-hi); }
         ${p.bannedAt ? '<div class="row"><button class="btn cyan" id="aunban">Unban player</button></div>' : '<form class="row" id="aban"><input name="reason" placeholder="Ban reason (shown to the player)" maxlength="200" required><button class="btn red">Ban player</button></form>'}
         ${p.lastIp && !p.ipBanned ? `<form class="row" id="aipban"><input name="reason" placeholder="IP ban reason" maxlength="200" required><button class="btn red">Ban IP ${esc(p.lastIp)}</button></form><div class="warnbox">Mobile carriers share one IP across many people. An IP ban blocks everyone on ${esc(p.lastIp)} (${esc(p.playersOnLastIp)} known player${p.playersOnLastIp === 1 ? '' : 's'} so far). Prefer a player ban.</div>` : ''}
         <form class="row" id="agrant"><input name="coins" type="number" min="0" max="1000000" placeholder="Coins"><input name="shards" type="number" min="0" max="100000" placeholder="Shards"><button class="btn gold">Grant</button></form>
+        <div class="row"><button class="btn gold" id="amax">Max out</button><span class="muted">Every part at top level, every beast awakened, every cosmetic, 1,000,000 coins.</span></div>
         ${p.username ? '<div class="row"><button class="btn" id="areset">Reset username</button><span class="muted">They pick a new one next time they open the game.</span></div>' : ''}
         <p class="ok" id="aok" role="status"></p><p class="err" id="aerr" role="alert"></p>
       </div>
@@ -224,6 +225,7 @@ tr.click:hover td { background: var(--ink-hi); }
     b('aunban', () => done(() => post(`/v1/admin/players/${id}/unban`), 'Unbanned.'))
     f('aipban', fd => done(() => post('/v1/admin/ip-bans', { ip: p.lastIp, reason: fd.get('reason') }), 'IP banned.'))
     f('agrant', fd => done(() => post(`/v1/admin/players/${id}/grant`, { coins: Number(fd.get('coins') || 0), shards: Number(fd.get('shards') || 0) }), 'Granted. Their game picks it up on next sync.'))
+    b('amax', () => done(() => post(`/v1/admin/players/${id}/max`), 'Maxed out. Their game picks it up on next sync.'))
     b('areset', () => done(() => post(`/v1/admin/players/${id}/reset-username`), 'Username reset.'))
   }
 

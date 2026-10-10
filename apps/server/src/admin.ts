@@ -3,6 +3,7 @@ import { promisify } from 'node:util'
 
 const scryptAsync = promisify(scrypt) as (p: string, s: string, n: number) => Promise<Buffer>
 const FAILS_PER_MINUTE = 20
+import { awakenedForm, BEAST_IDS, BLADES, COSMETICS, DISCS, MAX_PART_LEVEL, newBeast, partKey, SKUS, TIPS, type BeastState } from '@spirit/core'
 import { desc, eq, gte, ilike, isNotNull, or, sql } from 'drizzle-orm'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
@@ -185,6 +186,28 @@ export function registerAdmin(appBase: FastifyInstance, d: AdminDeps): void {
     await db.update(players).set({ save: next, saveVersion: p.v + 1, updatedAt: new Date() }).where(eq(players.id, req.params.id))
     await audit(req, 'grant', req.params.id, { coins, shards }, `Granted ${coins ? `${coins} coins ` : ''}${shards ? `${shards} shards ` : ''}to ${await playerLabel(req.params.id)}`)
     return { ok: true, coins: next.coins, shards: next.shards }
+  })
+  app.post('/v1/admin/players/:id/max', { preHandler: requireAdmin, schema: { params: z.object({ id: z.string().uuid() }) } }, async (req, reply) => {
+    const [p] = await db.select({ save: players.save, v: players.saveVersion }).from(players).where(eq(players.id, req.params.id)).limit(1)
+    if (!p) return reply.code(404).send({ error: 'no such player' })
+    const s = obj(p.save)
+    const had = obj(s.beasts) as Record<string, BeastState>
+    const beasts = Object.fromEntries(BEAST_IDS.map(id => {
+      const b: BeastState = { ...newBeast(id, false), ...had[id], trust: 100, respect: 100 }
+      b.battles = Math.max(b.battles, 12)
+      b.counters = { ...b.counters, bossWins: Math.max(b.counters.bossWins, 2) }
+      return [id, { ...b, awakened: b.awakened ?? awakenedForm(b) }]
+    }))
+    const kinds = [['blade', BLADES], ['disc', DISCS], ['tip', TIPS]] as const
+    const partLevels = Object.fromEntries(kinds.flatMap(([k, list]) => Object.keys(list).map(id => [partKey(k, id), MAX_PART_LEVEL])))
+    for (const item of new Set([...Object.values(SKUS).flatMap(k => k.grants), ...Object.keys(COSMETICS)])) await db.insert(entitlements).values({ playerId: req.params.id, item, source: 'admin:max' }).onConflictDoNothing()
+    const next = {
+      ...s, coins: 1_000_000, shards: 100_000, xp: num(s.xp) + 1, beasts, traits: [...BEAST_IDS], partLevels, unlocks: Object.keys(COSMETICS),
+      owned: { blades: Object.keys(BLADES), discs: Object.keys(DISCS), tips: Object.keys(TIPS) },
+    }
+    await db.update(players).set({ save: next, saveVersion: p.v + 1, updatedAt: new Date() }).where(eq(players.id, req.params.id))
+    await audit(req, 'max', req.params.id, null, `Maxed out ${await playerLabel(req.params.id)}`)
+    return { ok: true }
   })
   app.post('/v1/admin/players/:id/reset-username', { preHandler: requireAdmin, schema: { params: z.object({ id: z.string().uuid() }) } }, async req => {
     const label = await playerLabel(req.params.id)
