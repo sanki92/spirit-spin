@@ -206,7 +206,7 @@ export function Calibrate() {
     const timers = [
       setTimeout(() => setBeat('Ready'), 200),
       setTimeout(() => setBeat('Set'), 1200),
-      setTimeout(() => { setBeat('RIP!'); rt.sound.play('launch') }, t0 - performance.now()),
+      setTimeout(() => { setBeat('RIP!'); rt.sound.play('rip') }, t0 - performance.now()),
       setTimeout(() => {
         const r = scoreRip(rt.sensors!.window(t0 - 1100, t0 + 700), t0, { pull100: 1 })
         if (r.ok) pulls.current.push(r.pullRatio)

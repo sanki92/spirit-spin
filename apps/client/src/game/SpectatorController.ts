@@ -28,6 +28,8 @@ export class SpectatorController extends BattleController {
 
   override start(): void {
     useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, notice: null, ...summonReset })
+    this.announcer.preload()
+    this.deps.sound.crowd(0)
     this.announcer.say('intro', true)
     const r = rt.last('round')
     if (r) this.onNet(r)
@@ -104,7 +106,8 @@ export class SpectatorController extends BattleController {
     const w = this.match.winner
     useHud.getState().set({ phase: 'matchEnd', banner: 'victory', notice: w === null ? null : `${this.names[w]} wins!` })
     this.announcer.say('victory', true)
-    this.deps.sound.play('victory')
+    this.deps.sound.play('victory', { bus: 'ui', volume: 1.4 })
+    this.deps.sound.react('applause')
     this.later(4200, () => this.deps.onEnd({ winner: w ?? 0, match: this.match, bestRpm: 0, spiritCalls: 0, comeback: false, perfectRips: 0, overspins: 0, finishes: [], aggression: 0 }))
   }
 

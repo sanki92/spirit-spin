@@ -13,6 +13,10 @@ export class Announcer {
 
   constructor(private sound: Sound, private enabled: () => boolean) {}
 
+  preload(): void {
+    if (this.enabled()) this.sound.preloadVoices(Object.values(bank).flatMap(lines => lines.map(l => l.id)))
+  }
+
   say(cue: Cue, force = false): void {
     if (!this.enabled()) return
     const now = performance.now()
@@ -34,9 +38,13 @@ export class Announcer {
     }, Math.max(1600, line.text.length * 55))
   }
 
-  dispose(): void {
+  stop(): void {
     clearTimeout(this.timer)
     this.sound.stopVoice()
     useHud.getState().set({ announcer: null })
+  }
+
+  dispose(): void {
+    this.stop()
   }
 }

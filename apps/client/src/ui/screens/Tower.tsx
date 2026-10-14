@@ -17,7 +17,7 @@ function BossTalk({ chapter, mode, onDone, onCancel }: { chapter: Chapter; mode:
   const last = i >= lines.length - 1
   const b = BOSSES[chapter.boss]
   const mood = mode === 'intro' ? (i === lines.length - 1 ? 'shout' : 'confident') : i === 0 ? 'defeated' : 'respect'
-  const next = () => { rt.sound.play('ui', { volume: 0.5 }); if (!last) setI(i + 1) }
+  const next = () => { rt.sound.play('uiTab', { bus: 'ui' }); if (!last) setI(i + 1) }
   const focus = useRef<HTMLButtonElement>(null)
   const root = useRef<HTMLDivElement>(null)
   const box = useRef<HTMLDivElement>(null)

@@ -1,65 +1,201 @@
 {
- "tick": [
-  "/assets/audio/tick-0.mp3"
+ "count": [
+  "/assets/audio/count-0.acfe2c0c.mp3"
  ],
- "launch": [
-  "/assets/audio/launch-0.mp3"
+ "go": [
+  "/assets/audio/go-0.8d3701e3.mp3"
  ],
  "rip": [
-  "/assets/audio/rip-0.mp3",
-  "/assets/audio/rip-1.mp3"
+  "/assets/audio/rip-0.cc015b83.mp3",
+  "/assets/audio/rip-1.c722a83f.mp3"
  ],
  "clash": [
-  "/assets/audio/clash-0.mp3",
-  "/assets/audio/clash-1.mp3",
-  "/assets/audio/clash-2.mp3",
-  "/assets/audio/clash-3.mp3",
-  "/assets/audio/clash-4.mp3"
+  "/assets/audio/clash-0.0d64a14e.mp3",
+  "/assets/audio/clash-1.259d7d3c.mp3",
+  "/assets/audio/clash-2.16a9ffe1.mp3",
+  "/assets/audio/clash-3.54efed1b.mp3",
+  "/assets/audio/clash-4.3ad9c450.mp3"
  ],
  "clashHeavy": [
-  "/assets/audio/clashHeavy-0.mp3",
-  "/assets/audio/clashHeavy-1.mp3",
-  "/assets/audio/clashHeavy-2.mp3",
-  "/assets/audio/clashHeavy-3.mp3",
-  "/assets/audio/clashHeavy-4.mp3"
+  "/assets/audio/clashHeavy-0.d1313187.mp3",
+  "/assets/audio/clashHeavy-1.89c3e37a.mp3",
+  "/assets/audio/clashHeavy-2.8bc6b887.mp3",
+  "/assets/audio/clashHeavy-3.35878df8.mp3",
+  "/assets/audio/clashHeavy-4.e70154a9.mp3"
  ],
  "wall": [
-  "/assets/audio/wall-0.mp3",
-  "/assets/audio/wall-1.mp3",
-  "/assets/audio/wall-2.mp3"
+  "/assets/audio/wall-0.acda7d7d.mp3",
+  "/assets/audio/wall-1.bf165c1e.mp3",
+  "/assets/audio/wall-2.1018994b.mp3"
  ],
- "ringout": [
-  "/assets/audio/ringout-0.mp3"
- ],
- "shatter": [
-  "/assets/audio/shatter-0.mp3",
-  "/assets/audio/shatter-1.mp3"
- ],
- "spirit": [
-  "/assets/audio/spirit-0.mp3"
- ],
- "spinDown": [
-  "/assets/audio/spinDown-0.mp3"
- ],
- "finish": [
-  "/assets/audio/finish-0.mp3"
- ],
- "victory": [
-  "/assets/audio/victory-0.mp3"
- ],
- "defeat": [
-  "/assets/audio/defeat-0.mp3"
- ],
- "ui": [
-  "/assets/audio/ui-0.mp3"
- ],
- "callout": [
-  "/assets/audio/callout-0.mp3"
- ],
- "hesitate": [
-  "/assets/audio/hesitate-0.mp3"
+ "edge": [
+  "/assets/audio/edge-0.b5d7f90e.mp3"
  ],
  "hum": [
-  "/assets/audio/hum-0.mp3"
+  "/assets/audio/hum-0.eb4afd77.mp3"
+ ],
+ "ringout": [
+  "/assets/audio/ringout-0.d83d9393.mp3"
+ ],
+ "shatter": [
+  "/assets/audio/shatter-0.340ce3df.mp3"
+ ],
+ "spinDown": [
+  "/assets/audio/spinDown-0.9972229e.mp3"
+ ],
+ "finish": [
+  "/assets/audio/finish-0.ed502208.mp3"
+ ],
+ "spirit": [
+  "/assets/audio/spirit-0.ed502208.mp3"
+ ],
+ "hesitate": [
+  "/assets/audio/hesitate-0.e9c14ecf.mp3"
+ ],
+ "victory": [
+  "/assets/audio/victory-0.9ca3317f.mp3"
+ ],
+ "defeat": [
+  "/assets/audio/defeat-0.6977d488.mp3"
+ ],
+ "ui": [
+  "/assets/audio/ui-0.ce6d25cc.mp3"
+ ],
+ "callout": [
+  "/assets/audio/callout-0.de068bd6.mp3"
+ ],
+ "uiBack": [
+  "/assets/audio/uiBack-0.dc9c5212.mp3"
+ ],
+ "uiError": [
+  "/assets/audio/uiError-0.a0f12318.mp3"
+ ],
+ "uiToggle": [
+  "/assets/audio/uiToggle-0.d92fae72.mp3"
+ ],
+ "uiTab": [
+  "/assets/audio/uiTab-0.d7504c28.mp3"
+ ],
+ "reward": [
+  "/assets/audio/reward-0.25e8663d.mp3"
+ ],
+ "unlock": [
+  "/assets/audio/unlock-0.c34b68b6.mp3"
+ ],
+ "crowdCalm": [
+  "/assets/audio/crowdCalm-0.5b58d348.mp3"
+ ],
+ "crowdExcited": [
+  "/assets/audio/crowdExcited-0.6fced60b.mp3"
+ ],
+ "crowdRoar": [
+  "/assets/audio/crowdRoar-0.393274d3.mp3"
+ ],
+ "cheer": [
+  "/assets/audio/cheer-0.01d60c54.mp3",
+  "/assets/audio/cheer-1.788c9a18.mp3"
+ ],
+ "ooh": [
+  "/assets/audio/ooh-0.33f6dc94.mp3",
+  "/assets/audio/ooh-1.d3a1496d.mp3"
+ ],
+ "gasp": [
+  "/assets/audio/gasp-0.d0492116.mp3",
+  "/assets/audio/gasp-1.7a6738ba.mp3"
+ ],
+ "aww": [
+  "/assets/audio/aww-0.f47bbe80.mp3",
+  "/assets/audio/aww-1.085ab596.mp3"
+ ],
+ "roar": [
+  "/assets/audio/roar-0.dad6890d.mp3",
+  "/assets/audio/roar-1.8cbd4a20.mp3"
+ ],
+ "applause": [
+  "/assets/audio/applause-0.dea469a4.mp3"
+ ],
+ "chant": [
+  "/assets/audio/chant-0.dc3e0049.mp3"
+ ],
+ "voltfangSelect": [
+  "/assets/audio/voltfangSelect-0.642b181a.mp3"
+ ],
+ "voltfangCharge": [
+  "/assets/audio/voltfangCharge-0.d4460a6a.mp3"
+ ],
+ "voltfangRelease": [
+  "/assets/audio/voltfangRelease-0.f2056992.mp3"
+ ],
+ "voltfangImpact": [
+  "/assets/audio/voltfangImpact-0.97a28a6d.mp3"
+ ],
+ "aegironSelect": [
+  "/assets/audio/aegironSelect-0.c9af3bbb.mp3"
+ ],
+ "aegironCharge": [
+  "/assets/audio/aegironCharge-0.7f8edb61.mp3"
+ ],
+ "aegironRelease": [
+  "/assets/audio/aegironRelease-0.f47cdada.mp3"
+ ],
+ "aegironImpact": [
+  "/assets/audio/aegironImpact-0.79327916.mp3"
+ ],
+ "nagaraSelect": [
+  "/assets/audio/nagaraSelect-0.9f45c138.mp3"
+ ],
+ "nagaraCharge": [
+  "/assets/audio/nagaraCharge-0.93ae200a.mp3"
+ ],
+ "nagaraRelease": [
+  "/assets/audio/nagaraRelease-0.8a4820ee.mp3"
+ ],
+ "nagaraImpact": [
+  "/assets/audio/nagaraImpact-0.b6f657ee.mp3"
+ ],
+ "agnyxSelect": [
+  "/assets/audio/agnyxSelect-0.b630425e.mp3"
+ ],
+ "agnyxCharge": [
+  "/assets/audio/agnyxCharge-0.994abf4a.mp3"
+ ],
+ "agnyxRelease": [
+  "/assets/audio/agnyxRelease-0.e7dbcbc4.mp3"
+ ],
+ "agnyxImpact": [
+  "/assets/audio/agnyxImpact-0.08809bc1.mp3"
+ ],
+ "zephyraSelect": [
+  "/assets/audio/zephyraSelect-0.dc6d195d.mp3"
+ ],
+ "zephyraCharge": [
+  "/assets/audio/zephyraCharge-0.d30734c4.mp3"
+ ],
+ "zephyraRelease": [
+  "/assets/audio/zephyraRelease-0.91c4855f.mp3"
+ ],
+ "zephyraImpact": [
+  "/assets/audio/zephyraImpact-0.afb19302.mp3"
+ ],
+ "umbraxSelect": [
+  "/assets/audio/umbraxSelect-0.52330438.mp3"
+ ],
+ "umbraxCharge": [
+  "/assets/audio/umbraxCharge-0.9948e5dd.mp3"
+ ],
+ "umbraxRelease": [
+  "/assets/audio/umbraxRelease-0.6bc0bdf9.mp3"
+ ],
+ "umbraxImpact": [
+  "/assets/audio/umbraxImpact-0.a2c18747.mp3"
+ ],
+ "vo3": [
+  "/assets/audio/vo/count-3.dd75ecc0.mp3"
+ ],
+ "vo2": [
+  "/assets/audio/vo/count-2.e09e12c8.mp3"
+ ],
+ "vo1": [
+  "/assets/audio/vo/count-1.a287565c.mp3"
  ]
 }

@@ -14,6 +14,7 @@ import { beastArt } from './Home'
 import { canAfford, needMore } from '../../state/shortage'
 import { CrashGuard } from '../../crash'
 import { usePeek } from '../../state/back'
+import type { SoundId } from '../../audio/sound'
 
 const TopViewer = lazy(() => import('../TopViewer'))
 
@@ -86,14 +87,14 @@ export function Garage() {
   const choose = (id: string) => {
     if (id === currentId) return
     toTop()
-    if (slot === 'beast') { setBurst(n => n + 1); rt.sound.play('spirit', { volume: 0.7 }) }
+    if (slot === 'beast') { setBurst(n => n + 1); rt.sound.play(`${id}Select` as SoundId, { bus: 'ui' }) }
     setDraft(d => (slot === 'blade' ? { ...d, bladeId: id } : slot === 'disc' ? { ...d, discId: id } : slot === 'tip' ? { ...d, tipId: id } : { ...d, beastId: id as BeastId }))
   }
   const upgrade = () => {
     if (!kind || cost === null) return
     if (!canAfford('shards', s.shards ?? 0, cost, `the ${info!.name} upgrade`)) return
     if (!s.upgradePart(kind, currentId)) return needMore('shards', cost - (s.shards ?? 0), `the ${info!.name} upgrade`)
-    rt.sound.play('callout')
+    rt.sound.play('reward', { bus: 'ui' })
     log('garage.upgrade', { kind, id: currentId, level: level + 1 })
     say(`${info!.name} is now level ${level + 1}`)
     toTop()
@@ -101,7 +102,7 @@ export function Garage() {
   const buyTrait = () => {
     if (!canAfford('shards', s.shards ?? 0, TRAIT_COST, TECHNIQUES[draft.beastId].trait.name)) return
     if (!s.buyTrait(draft.beastId)) return needMore('shards', TRAIT_COST - (s.shards ?? 0), TECHNIQUES[draft.beastId].trait.name)
-    rt.sound.play('callout')
+    rt.sound.play('unlock', { bus: 'ui' })
     log('garage.trait', { beast: draft.beastId })
     say(`${TECHNIQUES[draft.beastId].trait.name} unlocked`)
     toTop()
@@ -200,7 +201,7 @@ export function Garage() {
       {slot !== 'beast' && grid}
       {flash && <div className="toast" role="status">{flash}</div>}
       <div className="garage-cta">
-        <Slash tone={saved ? 'ghost' : 'gold'} disabled={!!saved} onClick={() => { s.setLoadout({ bladeId: draft.bladeId, discId: draft.discId, tipId: draft.tipId, beastId: draft.beastId }); toTop();rt.sound.play('launch', { volume: 0.4 }); say('Equipped. Ready to battle') }}>{saved ? 'Equipped' : 'Equip this top'}</Slash>
+        <Slash tone={saved ? 'ghost' : 'gold'} disabled={!!saved} onClick={() => { s.setLoadout({ bladeId: draft.bladeId, discId: draft.discId, tipId: draft.tipId, beastId: draft.beastId }); toTop();rt.sound.play('callout', { bus: 'ui' }); say('Equipped. Ready to battle') }}>{saved ? 'Equipped' : 'Equip this top'}</Slash>
       </div>
     </Screen>
   )

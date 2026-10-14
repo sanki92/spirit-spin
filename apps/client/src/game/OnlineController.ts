@@ -56,6 +56,8 @@ export class OnlineController extends BattleController {
       const m = rt.last(k)
       if (m) this.onNet(m)
     }
+    this.announcer.preload()
+    this.deps.sound.crowd(0)
     rt.battlePings(true)
     rt.send({ k: 'ready' })
   }

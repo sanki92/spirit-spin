@@ -3,7 +3,7 @@ import {
   type BattleEvent, type BotBrain, type Calibration, type MatchState, type RipFail, type RipResult, type RngState, type Side,
   type FinishKind, type MotionSample, type TickInput, type TopBuild, type TouchSample,
 } from '@spirit/core'
-import type { Sound } from '../audio/sound'
+import type { CrowdLevel, Sound, SoundId } from '../audio/sound'
 import { buzz } from '../input/haptics'
 import { deadzone, type SensorFeed } from '../input/sensors'
 import { summonReset, useHud, edgeFlags } from '../state/hud'
@@ -117,7 +117,9 @@ export class BattleController {
   start(): void {
     log('match.start', { player: this.setup.player, opponent: this.setup.opponent, bot: this.setup.bot, hesitates: this.setup.playerHesitates, input: this.inputMode })
     useHud.getState().set({ phase: 'idle', scores: [0, 0], round: 1, banner: 'vs', callout: null, cutin: null, coachTip: null, coach: false, pull: 0, ...summonReset })
+    this.announcer.preload()
     this.later(300, () => this.announcer.say('intro', true))
+    this.deps.sound.crowd(0)
     this.later(1400, () => this.beginRound())
   }
 
@@ -126,6 +128,7 @@ export class BattleController {
     useHud.getState().set({ coachTip: null, coach: false, pull: 0, ...summonReset })
     this.announcer.dispose()
     this.deps.sound.stopHums()
+    this.deps.sound.crowd(null)
     for (const t of this.timers) clearTimeout(t)
     this.game.setBattle(null)
   }
@@ -224,19 +227,51 @@ export class BattleController {
     this.prepRound()
     this.launchAt = t0
     const s = this.deps.sound
+    this.setCrowd(0)
+    this.later(t0 - BEAT_MS * 3 - 400 - performance.now(), () => s.react('chant', 0.8))
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
       const at = t0 - BEAT_MS * (3 - i)
-      s.play('tick', { at: s.perfToAudio(at), volume: 0.8 })
+      this.countBeat(label, at)
       this.later(at - performance.now(), () => { if (this.resolvedAt !== t0) useHud.getState().set({ phase: 'countdown', countdown: label }) })
     }
-    s.play('launch', { at: s.perfToAudio(t0) })
+    s.play('go', { at: s.perfToAudio(t0), rate: 1 })
+    s.play('rip', { at: s.perfToAudio(t0) + 0.05, volume: 0.8 })
     this.later(t0 - performance.now(), () => {
       if (this.resolvedAt === t0) return
       useHud.getState().set({ countdown: 'LAUNCH' })
       buzz(40)
       this.announcer.say('rip', true)
+      s.react('cheer', 0.9)
+      this.setCrowd(1)
     })
     this.later(t0 + CAPTURE_AFTER_MS - performance.now(), () => this.resolveLaunch())
+  }
+
+  private countBeat(label: '3' | '2' | '1', at: number): void {
+    const s = this.deps.sound, t = s.perfToAudio(at)
+    s.play('count', { at: t, rate: 1, volume: 0.9 })
+    if (useSave.getState().settings.commentator !== false) s.play(`vo${label}`, { at: t, bus: 'voice' })
+  }
+
+  private crowdLevel: CrowdLevel | null = null
+  private crowdAt = 0
+
+  protected setCrowd(level: CrowdLevel): void {
+    if (this.crowdLevel === level) return
+    this.crowdLevel = level
+    this.deps.sound.crowd(level)
+  }
+
+  private cheer(id: 'cheer' | 'ooh' | 'gasp' | 'aww' | 'roar', volume = 1, gap = 2500): void {
+    const now = performance.now()
+    if (now - this.crowdAt < gap) return
+    this.crowdAt = now
+    this.deps.sound.react(id, volume)
+  }
+
+  private beastSound(side: Side, part: 'Charge' | 'Release' | 'Impact', volume = 1): void {
+    const id = this.game.specs?.[side]?.beastId
+    if (id) this.deps.sound.play(`${id}${part}` as SoundId, { volume: side === 0 ? volume * 0.85 : volume })
   }
 
   protected coachRound(): void {
@@ -246,7 +281,7 @@ export class BattleController {
     const start = performance.now() + GRIP_MS
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
       const at = start + BEAT_MS * i
-      s.play('tick', { at: s.perfToAudio(at), volume: 0.8 })
+      this.countBeat(label, at)
       this.later(at - performance.now(), () => useHud.getState().set({ phase: 'countdown', countdown: label }))
     }
     this.later(start + BEAT_MS * 3 - performance.now(), () => {
@@ -448,10 +483,11 @@ export class BattleController {
         g.noteClash(e.x, e.y, e.energy)
         const heavy = e.energy > 1.5
         g.fx.clash(e.x, e.y, e.energy, heavy ? g.elementOf(Math.random() < 0.5 ? 0 : 1) : null)
-        s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3), rate: 0.9 + Math.random() * 0.25 })
+        s.play(heavy ? 'clashHeavy' : 'clash', { volume: Math.min(1, 0.4 + e.energy * 0.3) })
         g.stage.shake(Math.min(0.08, e.energy * 0.025))
         if (heavy) {
           this.announcer.say('clash')
+          this.cheer(e.energy > 2.5 ? 'cheer' : 'ooh', 0.8, 4000)
           g.hitstop(40 + Math.min(60, e.energy * 20))
           g.stage.punch(Math.min(0.07, e.energy * 0.02))
         }
@@ -459,7 +495,8 @@ export class BattleController {
         break
       }
       case 'edge':
-        s.play('wall', { volume: 0.7, rate: 1.4 })
+        s.play('edge', { volume: 0.7 })
+        this.cheer('gasp', 0.8)
         if (e.side === 0 && this.playing) {
           buzz(60)
           if (!this.edgeTold) { this.edgeTold = true; this.announcer.say('edge', true) }
@@ -473,6 +510,7 @@ export class BattleController {
         }
         s.play('clash', { volume: 0.6, rate: 1.3 })
         this.announcer.say('save', true)
+        this.cheer('cheer', 0.9, 1000)
         break
       case 'wall': {
         s.play('wall', { volume: 0.35 })
@@ -487,7 +525,7 @@ export class BattleController {
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: false } })
         g.spirits?.[e.side].pose(false)
         g.spirits?.[e.side].show(true)
-        this.later(1100, () => this.announcer.say('spirit', true))
+        this.later(1100, () => this.announcer.say(g.specs![e.side].beastId, true))
         if (!reducedMotion()) {
           g.fx.burst(t.x, t.y)
           g.fx.clash(t.x, t.y, 2, g.elementOf(e.side))
@@ -498,20 +536,22 @@ export class BattleController {
         hud.set({ summon })
         this.summonHold[e.side] = SUMMON_S
         this.takeoverDue[e.side] = false
-        s.play('spirit')
+        this.beastSound(e.side, 'Charge')
+        this.cheer('roar', 0.6, 1000)
         buzz([30, 40, 60])
         this.later(1300, () => useHud.getState().set({ cutin: null }))
         break
       }
       case 'takeover':
+        this.beastSound(e.side, 'Release')
         if (this.summonHold[e.side] > 0) this.takeoverDue[e.side] = true
         else this.takeover(e.side)
         break
       case 'beast': {
         g.power?.onEvent(e, g.battle?.tops ?? null)
         const el = g.elementOf(e.side)
-        if (e.move === 'shockwave' || e.move === 'fling') { g.fx.burst(e.x, e.y); g.stage.shake(0.06); s.play('clashHeavy', { volume: 0.6, rate: 0.8 }) }
-        else if (e.move === 'strike' || e.move === 'dive' || e.move === 'pounce') { g.fx.clash(e.x, e.y, 2.5, el); g.hitstop(45); g.stage.punch(0.04); s.play('clashHeavy', { volume: 0.7 }) }
+        if (e.move === 'shockwave' || e.move === 'fling') { g.fx.burst(e.x, e.y); g.stage.shake(0.06); this.beastSound(e.side, 'Impact', 0.8) }
+        else if (e.move === 'strike' || e.move === 'dive' || e.move === 'pounce') { g.fx.clash(e.x, e.y, 2.5, el); g.hitstop(45); g.stage.punch(0.04); this.beastSound(e.side, 'Impact') }
         else g.fx.clash(e.x, e.y, 1, el)
         buzz(e.move === 'strike' ? 30 : 12)
         break
@@ -521,6 +561,7 @@ export class BattleController {
         this.hesitationLeft = false
         hud.set({ cutin: { beast: g.specs![e.side].beastId, side: e.side, hesitate: true } })
         s.play('hesitate')
+        this.cheer('aww', 0.6, 1000)
         this.later(1400, () => useHud.getState().set({ cutin: null }))
         break
       case 'spiritEnd':
@@ -560,7 +601,7 @@ export class BattleController {
     g.spirits?.forEach(sp => sp.show(false))
     g.power?.reset()
     this.match = applyRound(this.match, o)
-    this.announcer.say(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spin' : o.finish === 'spirit' ? 'spiritFinish' : 'draw', true)
+    this.announcer.stop()
     const [p, q] = this.match.scores
     this.maxDeficit = Math.max(this.maxDeficit, q - p)
     const impact = () => {
@@ -571,7 +612,10 @@ export class BattleController {
         g.shatter(loser ?? 1, l.x, l.y)
       }
       g.stage.shake(0.1)
-      s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish')
+      s.play(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spinDown' : 'finish', { rate: 1 })
+      this.later(400, () => this.announcer.say(o.finish === 'ringout' ? 'ringout' : o.finish === 'shatter' ? 'shatter' : o.finish === 'spin' ? 'spin' : o.finish === 'spirit' ? 'spiritFinish' : 'draw', true))
+      this.cheer(o.winner === 0 || o.finish !== 'spin' ? 'roar' : 'aww', 1, 0)
+      this.setCrowd(1)
       buzz([60, 40, 120])
       useHud.getState().set({ phase: 'roundEnd', banner: o.finish, scores: this.match.scores, cine: false })
       if (this.match.winner === null && Math.max(p, q) >= 3) this.later(1800, () => this.announcer.say('matchPoint', true))
@@ -583,7 +627,6 @@ export class BattleController {
     const still = reducedMotion()
     const decisive = replaysFinish(o, this.match.winner !== null)
     if (!still && decisive && this.finishCamOk && g.finishCam(loser, impact)) {
-      s.play('clashHeavy', { volume: 0.5, rate: 0.55 })
       useHud.getState().set({ phase: 'roundEnd', banner: null, cine: true })
       log('finishCam', { round: this.match.round, finish: o.finish })
     } else {
@@ -600,7 +643,9 @@ export class BattleController {
     const won = this.match.winner === 0
     this.announcer.say(won && this.maxDeficit >= 3 ? 'comeback' : won ? 'victory' : 'defeat', true)
     useHud.getState().set({ phase: 'matchEnd', banner: won ? 'victory' : 'defeat' })
-    s.play(won ? 'victory' : 'defeat')
+    s.play(won ? 'victory' : 'defeat', { bus: 'ui', volume: 1.4 })
+    s.react(won ? 'applause' : 'aww', won ? 1 : 0.7)
+    this.setCrowd(0)
     this.later(1800, () =>
       this.deps.onEnd({
         winner: this.match.winner!,
@@ -652,6 +697,10 @@ export class BattleController {
     if (b) {
       this.deps.sound.hum(0, b.outcome || b.tops[0].out ? 0 : b.tops[0].spin)
       this.deps.sound.hum(1, b.outcome || b.tops[1].out ? 0 : b.tops[1].spin)
+      if (!b.outcome && this.crowdLevel !== null && this.crowdLevel > 0) {
+        const [p, q] = this.match.scores
+        this.setCrowd(Math.min(b.tops[0].spin, b.tops[1].spin) < 0.3 || Math.max(p, q) >= 3 || useHud.getState().edge.some(Boolean) ? 2 : 1)
+      }
     } else this.deps.sound.stopHums()
     if (b && this.hudTimer > 0.1) {
       this.hudTimer = 0

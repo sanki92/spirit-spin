@@ -12,6 +12,7 @@ import { CosmeticShop } from './Style'
 import { PartSheet } from '../PartSheet'
 import { canAfford, needMore } from '../../state/shortage'
 import { canRecalibrate, flipMotion, motionOn } from '../../input/motionSetting'
+import type { SoundId } from '../../audio/sound'
 
 export function Journal() {
   const s = useSave()
@@ -77,7 +78,7 @@ export function Awaken({ then }: { then?: Route | undefined } = {}) {
     if (!b || started) return
     const next = { ...b, awakened: form }
     s.setBeast(next)
-    rt.sound.play('spirit', { volume: 0.8 })
+    rt.sound.play(`${id}Charge` as SoundId)
     void spiritMoment('awaken', next, null, null).then(ai => {
       const text = ai?.line ?? 'I can feel everything we went through. Thank you, partner.'
       setLine({ text, mood: ai?.mood ?? 'joyful' })
@@ -86,7 +87,7 @@ export function Awaken({ then }: { then?: Route | undefined } = {}) {
     })
     if (s.settings.reducedMotion || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return setPhase('done')
     setPhase('charge')
-    timers.current.push(window.setTimeout(() => { setPhase('burst'); rt.sound.play('callout') }, CHARGE_MS))
+    timers.current.push(window.setTimeout(() => { setPhase('burst'); rt.sound.play(`${id}Release` as SoundId); rt.sound.play('unlock', { bus: 'ui' }) }, CHARGE_MS))
     timers.current.push(window.setTimeout(() => setPhase('done'), CHARGE_MS + BURST_MS))
   }
   useEffect(() => {
@@ -320,6 +321,7 @@ export function Settings() {
         <button className="text-btn set2-erase" onClick={() => setConfirmReset(true)}>Erase progress on this device</button>
       )}
       <p className="set2-version">{__BUILD__}</p>
+      <p className="set2-version">Sounds and announcer voice by ElevenLabs (elevenlabs.io)</p>
     </Screen>
   )
 }

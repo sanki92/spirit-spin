@@ -61,5 +61,23 @@
   "save": [
     { "id": "save-1", "text": "What a save!", "face": "hyped" },
     { "id": "save-2", "text": "Back from the brink!", "face": "thumbs-up" }
+  ],
+  "voltfang": [
+    { "id": "beast-voltfang", "text": "VOLTFANG... Storm Wolf, UNLEASHED!", "face": "hyped" }
+  ],
+  "aegiron": [
+    { "id": "beast-aegiron", "text": "AEGIRON... the Crystal Fortress RISES!", "face": "shocked" }
+  ],
+  "nagara": [
+    { "id": "beast-nagara", "text": "NAGARA... Moon Serpent, STRIKE!", "face": "pointing" }
+  ],
+  "agnyx": [
+    { "id": "beast-agnyx", "text": "AGNYX... Crimson Firebird, IGNITE!", "face": "hyped" }
+  ],
+  "zephyra": [
+    { "id": "beast-zephyra", "text": "ZEPHYRA... Storm Griffin, TAKE FLIGHT!", "face": "pointing" }
+  ],
+  "umbrax": [
+    { "id": "beast-umbrax", "text": "UMBRAX... Shadow Panther, POUNCE!", "face": "serious" }
   ]
 }
