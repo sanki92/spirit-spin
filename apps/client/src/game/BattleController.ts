@@ -199,7 +199,7 @@ export class BattleController {
 
   protected beginRound(): void {
     if (this.setup.coach && !this.coached && this.match.round === 1) return this.coachRound()
-    this.countdown(performance.now() + (this.match.round === 1 ? GRIP_MS * 2.2 : GRIP_MS) + BEAT_MS * 3)
+    this.countdown(performance.now() + Math.max(this.match.round === 1 ? GRIP_MS * 2.2 : GRIP_MS, this.deps.sound.voiceLeftMs() + 350) + BEAT_MS * 3)
   }
 
   protected prepRound(): void {
@@ -228,7 +228,7 @@ export class BattleController {
     this.launchAt = t0
     const s = this.deps.sound
     this.setCrowd(0)
-    this.later(t0 - BEAT_MS * 3 - 400 - performance.now(), () => s.react('chant', 0.8))
+    this.later(t0 - BEAT_MS * 3 - 150 - performance.now(), () => this.announcer.stop())
     for (const [i, label] of (['3', '2', '1'] as const).entries()) {
       const at = t0 - BEAT_MS * (3 - i)
       this.countBeat(label, at)
@@ -248,6 +248,7 @@ export class BattleController {
   }
 
   private countBeat(label: '3' | '2' | '1', at: number): void {
+    if (at < performance.now() - 40) return
     const s = this.deps.sound, t = s.perfToAudio(at)
     s.play('count', { at: t, rate: 1, volume: 0.9 })
     if (useSave.getState().settings.commentator !== false) s.play(`vo${label}`, { at: t, bus: 'voice' })

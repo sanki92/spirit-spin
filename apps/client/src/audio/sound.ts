@@ -180,6 +180,11 @@ export class Sound {
   private voices = new Map<string, Promise<AudioBuffer | null>>()
   private speaking: { src: AudioBufferSourceNode; gain: GainNode } | null = null
   private voiceGen = 0
+  private voiceEnd = 0
+
+  voiceLeftMs(): number {
+    return this.speaking ? Math.max(0, this.voiceEnd - this.ctx.currentTime) * 1000 : 0
+  }
 
   stopVoice(): void {
     this.voiceGen++
@@ -214,6 +219,8 @@ export class Sound {
       src.start()
       this.duck(src)
       this.speaking = { src, gain }
+      this.voiceEnd = this.ctx.currentTime + buf.duration
+      src.addEventListener('ended', () => { if (this.speaking?.src === src) this.speaking = null })
     })
   }
 

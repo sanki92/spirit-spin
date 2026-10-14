@@ -30,14 +30,14 @@ MAP = {
     "hesitate": ("sfx", ["hesitate"]),
     "victory": ("sting", ["victory"]),
     "defeat": ("sting", ["defeat"]),
-    "ui": ("ui", ["ui-tap"]),
-    "callout": ("ui", ["ui-confirm"]),
-    "uiBack": ("ui", ["ui-back"]),
-    "uiError": ("ui", ["ui-error"]),
-    "uiToggle": ("ui", ["ui-toggle"]),
-    "uiTab": ("ui", ["ui-tab"]),
-    "reward": ("ui", ["ui-reward"]),
-    "unlock": ("ui", ["ui-unlock"]),
+    "ui": ("ui", ["ui-tap-2"]),
+    "callout": ("ui", ["ui-confirm-2"]),
+    "uiBack": ("ui", ["ui-back-1"]),
+    "uiError": ("ui", ["ui-error-2"]),
+    "uiToggle": ("ui", ["ui-toggle-2"]),
+    "uiTab": ("ui", ["ui-tab-2"]),
+    "reward": ("ui", ["ui-reward-2"]),
+    "unlock": ("ui", ["ui-unlock-2"]),
     "crowdCalm": ("bed", ["crowd-calm"]),
     "crowdExcited": ("bed", ["crowd-excited"]),
     "crowdRoar": ("bed", ["crowd-roar"]),
@@ -48,11 +48,12 @@ MAP = {
     "roar": ("crowd", ["roar-1", "roar-2"]),
     "applause": ("crowd", ["applause"]),
     "chant": ("crowd", ["chant"]),
-    **{f"{b}{part.title()}": ("sfx", [f"{b}-{part}"]) for b in BEASTS for part in ("select", "charge", "release", "impact")},
+    **{f"{b}{part.title()}": ("sfx", [f"{b}-{part}"]) for b in BEASTS for part in ("charge", "release", "impact")},
+    **{f"{b}Select": ("sfx", [f"{b}-select-1", f"{b}-select-2"]) for b in BEASTS},
 }
 COUNT_VO = {"vo3": "count-3", "vo2": "count-2", "vo1": "count-1"}
 
-HP = {"ui": 250, "voice": 90}
+HP = {"ui": 150, "voice": 90}
 
 
 def loudness(x, rate):

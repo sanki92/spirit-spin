@@ -10,7 +10,7 @@ FLOOR = 1000
 HARRY = "SOYHLrjzK2X1ezoPC6cr"
 
 ONE = "one-shot, crisp attack, no music, no voice"
-UI = "soft crystalline glass mallet, clean, dry, very short, mobile game interface sound"
+UI = "soft muted rounded bubble pop, warm, gentle, very short, modern mobile game button sound, no metal, no ringing, no clank"
 CROWD = "indoor anime tournament arena crowd"
 
 SFX = {
@@ -18,14 +18,14 @@ SFX = {
     "count-go": ("huge bright rising synth stab with a metallic whoosh and an energy burst, triumphant, anime battle start, " + ONE, 1.5, 0.6),
     "rip-1": ("spinning top launcher ripcord pulled hard and fast, ratcheting plastic zip and gear whirr, then a metal top clicking down onto a steel dish, " + ONE, 1.5, 0.6),
     "rip-2": ("fast zip of a toy ripcord tearing through a launcher, sharp whirr, metal top released spinning onto steel, " + ONE, 1.5, 0.6),
-    "ui-tap": (UI + ", single neutral soft tap", 0.5, 0.7),
-    "ui-confirm": (UI + ", two-note rising chime, positive confirm", 0.5, 0.7),
-    "ui-back": (UI + ", two-note falling chime, softer, go back", 0.5, 0.7),
-    "ui-error": (UI + ", gentle low falling buzz tone, not allowed", 0.5, 0.7),
-    "ui-toggle": (UI + ", tiny switch click with a soft pop", 0.5, 0.7),
-    "ui-tab": (UI + ", quick light swipe whoosh with a soft tick", 0.5, 0.7),
-    "ui-reward": (UI + ", bright coin shimmer arpeggio rising, reward collected", 1.5, 0.6),
-    "ui-unlock": (UI + ", sparkling glassy fanfare with a rising shimmer, something new unlocked", 2.0, 0.6),
+    **{f"ui-tap-{i}": (UI + ", single light tap", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-confirm-{i}": (UI + ", two soft rising marimba blips, positive", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-back-{i}": (UI + ", soft low pop with a tiny downward swish, going back", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-error-{i}": (UI + ", soft low muffled double bump, not allowed", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-toggle-{i}": (UI + ", tiny soft plastic switch click", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-tab-{i}": (UI + ", very soft quick paper swish", 0.5, 0.7) for i in range(1, 4)},
+    **{f"ui-reward-{i}": ("warm soft marimba arpeggio rising with gentle sparkle, reward collected, mobile game, no metal", 1.5, 0.6) for i in range(1, 3)},
+    **{f"ui-unlock-{i}": ("warm soft marimba and pad flourish rising, magical, something new unlocked, mobile game, no metal", 2.0, 0.6) for i in range(1, 3)},
     **{f"clash-{i}": ("small metal spinning tops grazing each other, sharp metallic tick with a thin bright ring, " + ONE, 0.5, 0.5) for i in range(1, 6)},
     **{f"clashheavy-{i}": ("two heavy steel spinning tops colliding hard, sharp crack, anvil ring, short, no long reverb tail, impact, " + ONE, 1.0, 0.5) for i in range(1, 6)},
     **{f"wall-{i}": ("metal spinning top striking a steel stadium rail, hard short clank, " + ONE, 0.5, 0.5) for i in range(1, 4)},
@@ -56,15 +56,16 @@ SFX = {
 }
 
 BEASTS = {
-    "voltfang": ("electric storm wolf", "Electric wolf snarl with a sharp crackling lightning arc", "Lightning bolt strike, crackling electric arc burst into a wolf howl", "thunder crack with electric sizzle"),
-    "aegiron": ("crystal stone titan", "Crystal chime ring over a heavy stone grind and rock thud", "Massive stone impact, rocks cracking, glassy crystal shards ringing out, braam", "stone slam with crystal shards shattering"),
-    "nagara": ("water moon serpent", "Serpent hiss with a liquid water splash and slithering rattle", "Tidal water surge whoosh crashing into a heavy splash, serpent hiss", "heavy water splash with a serpent hiss"),
-    "agnyx": ("fire phoenix firebird", "Firebird screech over a whoomph of igniting flame", "Fireball burst, roaring flame whoomph, crackling ember tail, bird screech", "fiery explosion whoomph with crackling embers"),
-    "zephyra": ("wind storm griffin", "Griffin cry riding a fast rising wind whoosh, whistling air cut", "Cyclone whoosh spinning up into a sharp wind gust burst, airy, no low end", "sharp wind blast with a whistling air cut"),
-    "umbrax": ("shadow panther", "Dark reversed swell into a low panther growl and shadowy whisper", "Deep reversed whoosh into a dark energy burst, ghostly whisper, dark tail", "dark energy slash with a ghostly whisper"),
+    "voltfang": ("electric storm wolf", "Vicious electric wolf snarling and barking, crackling lightning burst, aggressive, menacing", "Lightning bolt strike, crackling electric arc burst into a wolf howl", "thunder crack with electric sizzle"),
+    "aegiron": ("crystal stone titan", "Massive armored titan roaring, heavy stone crunch, ground shaking, menacing growl", "Massive stone impact, rocks cracking, glassy crystal shards ringing out, braam", "stone slam with crystal shards shattering"),
+    "nagara": ("water moon serpent", "Giant serpent hissing menacingly, venomous rattle, sudden strike with a water splash, dangerous", "Tidal water surge whoosh crashing into a heavy splash, serpent hiss", "heavy water splash with a serpent hiss"),
+    "agnyx": ("fire phoenix firebird", "Fierce phoenix screeching, roaring fire burst, aggressive, dangerous", "Fireball burst, roaring flame whoomph, crackling ember tail, bird screech", "fiery explosion whoomph with crackling embers"),
+    "zephyra": ("wind storm griffin", "Fierce griffin screeching, violent wind blast, aggressive, dangerous", "Cyclone whoosh spinning up into a sharp wind gust burst, airy, no low end", "sharp wind blast with a whistling air cut"),
+    "umbrax": ("shadow panther", "Deep menacing panther snarling growl, dark ominous shadow swell, aggressive, dangerous", "Deep reversed whoosh into a dark energy burst, ghostly whisper, dark tail", "dark energy slash with a ghostly whisper"),
 }
 for b, (stem, select, release, impact) in BEASTS.items():
-    SFX[f"{b}-select"] = (f"{select}, {ONE}", 1.5, 0.65)
+    for i in (1, 2):
+        SFX[f"{b}-select-{i}"] = (f"{select}, {ONE}", 1.5, 0.6)
     SFX[f"{b}-charge"] = (f"{stem} power charging up, rising energy riser building fast, magical, {ONE}", 1.5, 0.65)
     SFX[f"{b}-release"] = (f"{release}, anime special attack, {ONE}", 2.0, 0.65)
     SFX[f"{b}-impact"] = (f"{impact}, short impact sweetener, {ONE}", 1.0, 0.65)
