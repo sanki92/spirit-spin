@@ -55,7 +55,14 @@ function adopt(remote: Record<string, unknown>, version: number): void {
   useSave.setState(remote as Partial<SaveData>)
   applyingRemote = false
   storeAuth({ ...(auth as Auth), version })
+  matchName()
 }
+
+export function matchName(): void {
+  const u = useProfile.getState().username
+  if (u && useSave.getState().name !== u) useSave.getState().setName(u)
+}
+useProfile.subscribe(matchName)
 
 export function signOut(): void {
   if (signedOut) return
@@ -216,7 +223,6 @@ export async function claimUsername(username: string): Promise<{ ok: true; usern
   if (!r) return { ok: false, reason: 'offline' }
   if (r.status === 200 && r.data.username) {
     useProfile.getState().set({ username: r.data.username })
-    useSave.getState().setName(r.data.username)
     return { ok: true, username: r.data.username }
   }
   return { ok: false, reason: r.status === 409 ? 'taken' : r.data.reason ?? 'offline' }
