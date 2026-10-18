@@ -317,3 +317,18 @@ describe('room', () => {
     expect(live.done).toBe(true)
   })
 })
+
+describe('room events', () => {
+  it('logs who joined, who dropped, who quit and how the match ended', () => {
+    const logs: Record<string, unknown>[] = []
+    room = new Room('LOGS', { seatHoldMs: 1000, now: () => Date.now(), onDone: () => undefined, log: o => logs.push(o) })
+    room.seat('a', 'A', BUILD, () => undefined)
+    room.seat('b', 'B', BUILD, () => undefined)
+    room.disconnect(1)
+    room.seat('b', 'B', BUILD, () => undefined)
+    room.forfeit(0, 'quit')
+    expect(logs.map(l => l.msg)).toEqual(['room.join', 'room.join', 'room.drop', 'room.rejoin', 'room.forfeit', 'room.end'])
+    expect(logs[4]).toMatchObject({ code: 'LOGS', side: 0, name: 'A', reason: 'quit' })
+    expect(logs[5]).toMatchObject({ names: ['A', 'B'], winner: 1 })
+  })
+})

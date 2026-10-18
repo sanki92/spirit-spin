@@ -20,6 +20,7 @@ const Env = z.object({
   RT_EDGE_WT: z.string().optional(),
   RT_EDGE_WS: z.string().optional(),
   NET_DASH_KEY: z.string().min(16).optional(),
+  LOG_DIR: z.string().default('.data/logs'),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   ADMIN_USER: z.string().min(3).optional(),
   ADMIN_PASSWORD_HASH: z.string().optional(),
@@ -39,6 +40,7 @@ export interface Config {
   assetArchiveDir?: string | undefined
   edge?: EdgeConfig | null
   netDashKey?: string | undefined
+  logDir?: string | undefined
   discordWebhook?: string | undefined
   admin?: { user: string; passwordHash: string } | null
   competitive?: boolean
@@ -66,6 +68,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     staticDir: e.STATIC_DIR,
     assetArchiveDir: e.ASSET_ARCHIVE_DIR,
     netDashKey: e.NET_DASH_KEY,
+    logDir: e.LOG_DIR,
     discordWebhook: e.DISCORD_WEBHOOK_URL,
     competitive: e.COMPETITIVE === '1',
     admin: e.ADMIN_USER && e.ADMIN_PASSWORD_HASH ? { user: e.ADMIN_USER, passwordHash: e.ADMIN_PASSWORD_HASH } : null,

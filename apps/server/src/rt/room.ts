@@ -92,6 +92,10 @@ export class Room {
     if (!this.spectators.size && this.seats.every(s => !s)) this.finish()
   }
 
+  private ev(msg: string, o: Record<string, unknown>): void {
+    this.opts.log?.({ code: this.code, msg, ...o })
+  }
+
   private seatsChanged(): void {
     const m = this.seatsMsg()
     for (const w of this.spectators.keys()) w(m)
@@ -105,6 +109,7 @@ export class Room {
     const side = free as Side
     assembleTop(build)
     this.seats[side] = { playerId, name, build, send, close, online: true, hold: null, ready: false, rip: null, bin, heard: 0, quiet: false, ripLog: [], tiltSum: 0, tiltN: 0 }
+    this.ev('room.join', { side, name, playerId })
     send({ k: 'room', code: this.code, side })
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
@@ -136,6 +141,7 @@ export class Room {
     if (s.hold) clearTimeout(s.hold)
     s.hold = null
     s.online = true
+    this.ev('room.rejoin', { side, name: s.name, round: this.round, phase: this.phase })
     const previous = s.close
     s.send = send
     s.close = close
@@ -163,6 +169,7 @@ export class Room {
     if (!s || this.phase === 'done' || (send && s.send !== send)) return
     if (s.hold) clearTimeout(s.hold)
     s.online = false
+    this.ev('room.drop', { side, name: s.name, round: this.round, phase: this.phase })
     this.seatsChanged()
     const other = this.seats[(1 - side) as Side]
     if (!other) {
@@ -179,6 +186,7 @@ export class Room {
   forfeit(side: Side, reason: 'forfeit' | 'quit'): void {
     if (this.phase === 'done') return
     const winner = (1 - side) as Side
+    this.ev('room.forfeit', { side, name: this.seats[side]?.name, reason, round: this.round, phase: this.phase, scores: this.match.scores })
     this.match = { ...this.match, winner }
     this.seats[winner]?.send({ k: 'left', reason })
     for (const w of this.spectators.keys()) w({ k: 'left', reason, winner })
@@ -355,6 +363,7 @@ export class Room {
 
   private finish(lingerMs = 0): void {
     if (this.phase === 'done') return
+    this.ev('room.end', { names: this.seats.map(x => x?.name ?? null), scores: this.match.scores, winner: this.match.winner, round: this.round, phase: this.phase, ms: this.startedAt ? this.opts.now() - this.startedAt : null })
     this.phase = 'done'
     void this.endEdgeMatch(lingerMs)
     this.live?.stop()

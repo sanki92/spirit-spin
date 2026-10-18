@@ -1,4 +1,4 @@
-import { log } from '../telemetry'
+import { log, setLogAuth } from '../telemetry'
 import { useProfile, type Invite } from './profile'
 import { useSave, type SaveData } from './save'
 
@@ -63,6 +63,7 @@ export function matchName(): void {
   if (u && useSave.getState().name !== u) useSave.getState().setName(u)
 }
 useProfile.subscribe(matchName)
+setLogAuth(authHeader)
 
 export function signOut(): void {
   if (signedOut) return

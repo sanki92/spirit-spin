@@ -1,4 +1,5 @@
 import cors from '@fastify/cors'
+import { actionLog } from './actionlog'
 import fastifyStatic from '@fastify/static'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -72,7 +73,8 @@ export const AI = { primary: 'gpt-4.1-nano', fallback: 'gpt-4o-mini', perPlayerD
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
 
 export async function buildApp(cfg: Config, deps: Deps = {}) {
-  const app = Fastify({ logger: cfg.logLevel === 'silent' ? false : { level: cfg.logLevel }, bodyLimit: 256 * 1024, trustProxy: cfg.trustProxy ?? 'loopback' }).withTypeProvider<ZodTypeProvider>()
+  const actions = cfg.logDir ? actionLog(cfg.logDir) : null
+  const app = Fastify({ logger: cfg.logLevel === 'silent' ? false : { level: cfg.logLevel, ...(actions ? { stream: actions.server } : {}) }, bodyLimit: 256 * 1024, trustProxy: cfg.trustProxy ?? 'loopback' }).withTypeProvider<ZodTypeProvider>()
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
   const { db, close } = await openDb(cfg.databaseUrl)
@@ -354,6 +356,15 @@ export async function buildApp(cfg: Config, deps: Deps = {}) {
 
   app.post('/v1/client-error', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, schema: { body: z.object({ kind: z.string().max(40), msg: z.string().max(400), stack: z.string().max(2000).optional(), screen: z.string().max(40).optional(), build: z.string().max(40).optional() }) } }, async req => {
     req.log.warn({ client: req.body, ip: clientIp(req), ua: String(req.headers['user-agent'] ?? '').slice(0, 200) }, 'client.error')
+    return { ok: true }
+  })
+
+  app.post('/v1/client-log', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { body: z.object({ s: z.string().max(12), v: z.string().max(20).optional(), e: z.array(z.object({ t: z.number(), type: z.string().max(40), data: z.unknown().optional() })).max(60) }) } }, async req => {
+    if (!actions) return { ok: true }
+    const h = req.headers.authorization
+    const pid = h?.startsWith('Bearer ') ? (await tokens.inspect(h.slice(7)))?.id ?? null : null
+    const ip = clientIp(req)
+    for (const x of req.body.e) actions.add({ src: 'client', pid, s: req.body.s, v: req.body.v, ip, t: x.t, type: x.type, data: x.data === undefined ? undefined : JSON.stringify(x.data).slice(0, 500) })
     return { ok: true }
   })
 
