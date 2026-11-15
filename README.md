@@ -1,43 +1,31 @@
 # Spirit Spin
 
-An original anime spinning-top battle game for the mobile web. Your phone is the launcher: rip it to launch, tilt to steer, shout to summon the spirit beast living in your top. Beasts remember your battles and grow into awakened forms shaped by how you play.
+Anime spinning-top battles, built phone-first for the browser. Swipe to launch, drag to steer (tilt if you want it), and tap to summon the spirit beast living in your top.
 
-## What's in the box
+Play it at [spiritspin.sankalptripathi.tech](https://spiritspin.sankalptripathi.tech).
 
-| Area | Where | Highlights |
-|---|---|---|
-| Deterministic core | `packages/core` | 60 Hz battle sim (no trig, seeded RNG), rip scoring, match rules, beast growth, Tower, quests, ghosts, replay verification, league pairings, store catalog |
-| Client (PWA) | `apps/client` | React UI + imperative Three.js, motion/swipe rip, tilt, shout, commentator, live/ranked/tournament/stadium modes, Spirit Pass, share cards |
-| Server | `apps/server` | Fastify REST + WebSocket rooms, PGlite/Postgres, guest auth + recovery codes, Spirit Director (OpenAI, capped), ranked Elo, tournaments, Razorpay entitlements |
-| Art & audio | `assets/`, `tools/` | Generated art (OpenAI image models), Kenney CC0 sounds, voiced commentator lines |
-| Specs & plans | `docs/` | Product design, phase plans with rulings, research, deploy guide |
+## What's inside
 
-## Run it locally
+- `packages/core`: deterministic 60 Hz battle sim, match rules, progression
+- `apps/client`: React + Three.js PWA
+- `apps/server`: Fastify API, live battle rooms, Postgres or PGlite
+- `edge`: Go realtime server (WebTransport with a WebSocket fallback, gRPC to the API)
+
+Online battles use rollback netcode. Each phone runs the same simulation, the server only confirms inputs, and phones rewind and replay when they guessed wrong.
+
+## Run it
 
 ```bash
 npm ci
-python tools/build_assets.py && python tools/build_audio.py
-# API (dev tools on: dev payments, clean restart endpoint)
-DEV_TOOLS=1 npm run dev -w apps/server
-# client over HTTPS for phones on the same Wi-Fi (sensors need a secure context)
-cd apps/client && npx vite --host
+npm run dev -w apps/server
+npm run dev -w apps/client
 ```
 
-Open `https://<your-lan-ip-with-dashes>.sslip.io:5173` on the phone. `?sim` adds a motion simulator on desktop. `?stadium` turns a laptop or TV into the stadium screen.
-
-Restart the dev API with `curl -X POST localhost:8787/__dev/shutdown` (never hard-kill it on Windows; the embedded database dislikes it).
+Art and audio aren't part of this repo.
 
 ## Test
 
 ```bash
-npx vitest run --root packages/core    # sim, rules, ghosts, league
-npx vitest run --root apps/server      # API, realtime, ranked, tournaments, store
-npx vitest run --root apps/client
-npx playwright test                    # two-phone live match, ranked, tournament, stadium, pass, awakening, a11y, screen captures
+npm run check
+npm run edge:test
 ```
-
-The Playwright suite needs the API on `:8787` and the client on `:5174` (`HTTP_ONLY=1 npx vite --port 5174`).
-
-## Deploy
-
-See [docs/DEPLOY.md](docs/DEPLOY.md).
